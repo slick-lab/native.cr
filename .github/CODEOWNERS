@@ -1,0 +1,31 @@
+# .github/CODEOWNERS
+
+# Default owner for everything
+* @slick-lab/native-cr-maintainers
+
+# Core engine files
+src/native/engine/ @slick-lab/native-cr-engine
+src/native/engine/android/ @slick-lab/native-cr-android
+src/native/engine/ios/ @slick-lab/native-cr-ios
+
+# Framework files
+src/native/framework/ @slick-lab/native-cr-framework
+src/native/framework/ui.cr @slick-lab/native-cr-ui
+src/native/framework/animation.cr @slick-lab/native-cr-animation
+
+# CLI and core
+src/native/cli/ @slick-lab/native-cr-cli
+src/native/core/ @slick-lab/native-cr-core
+
+# Build configuration
+Makefile @slick-lab/native-cr-build
+shard.yml @slick-lab/native-cr-build
+CMakeLists.txt @slick-lab/native-cr-build
+
+# Documentation
+*.md @slick-lab/native-cr-docs
+docs/ @slick-lab/native-cr-docs
+
+# GitHub configuration
+.github/ @slick-lab/native-cr-infra
+.github/workflows/ @slick-lab/native-cr-ci
