@@ -1,80 +1,60 @@
+# src/native.cr
 
-abstract class NativeApp
-  include JSON::Serializable
-  
-  macro preserve
-    {% preserve_vars = @type.instance_vars.select { |var| var.has_annotation! Preserve } %}
-    
-    def to_json : String
-      {
-        {% for var in preserve_vars %}
-          {{var.name.stringify}}: @{{var.name}},
-        {% end %}
-      }.to_json
+require "json"
+require "file_utils"
+require "signal"
+
+# Load all core modules
+require "./native/core/*"
+
+# Load all framework modules
+require "./native/framework/*"
+
+# Load all CLI modules
+require "./native/cli/*"
+
+# Load platform engines
+{% if flag?(:android) %}
+  require "./native/engine/android/*"
+{% elsif flag?(:ios) %}
+  require "./native/engine/ios/*"
+{% end %}
+
+module Native
+  VERSION = "0.1.0"
+
+  def self.run
+    args = ARGV
+
+    if args.empty?
+      puts "Native.cr v#{VERSION}"
+      puts ""
+      puts "Usage: native.cr <command> [options]"
+      puts ""
+      puts "Commands:"
+      puts "  create <name>     Create a new project"
+      puts "  build <platform>  Build for android or ios"
+      puts "  reload <file>     Start development with hot reload"
+      puts "  doctor            Check toolchain installation"
+      puts ""
+      puts "Run 'native.cr <command> --help' for more information"
+      return
     end
-    
-    def from_json(json : String) : Nil
-      data = JSON.parse(json)
-      {% for var in preserve_vars %}
-        if data.has_key?({{var.name.stringify}})
-          @{{var.name}} = data[{{var.name.stringify}}].as({{var.type}})
-        end
-      {% end %}
+
+    case args[0]
+    when "create"
+      system("bash #{__DIR__}/../cli/create.sh #{args[1..-1].join(" ")}")
+    when "build"
+      Native::CLI::BuildCommand.new(args[1..-1]).run
+    when "reload"
+      Native::CLI::ReloadCommand.new(args[1..-1]).run
+    when "doctor"
+      Native::CLI::DoctorCommand.new(args[1..-1]).run
+    else
+      puts "Unknown command: #{args[0]}"
+      puts "Run 'native.cr' without arguments for help"
     end
-  end
-  
-  annotation Preserve; end
-  
-  def initialize
-    setup_signal_handlers
-  end
-  
-  private def setup_signal_handlers
-    Signal::USR1.trap do
-      save_state
-    end
-    
-    Signal::TERM.trap do
-      save_state
-      exit(0)
-    end
-  end
-  
-  private def save_state
-    state_file = ENV["NATIVE_CR_STATE_FILE"]?
-    
-    if state_file
-      begin
-        json = to_json
-        File.write(state_file, json)
-        STDERR.puts "[native.cr] State saved to #{state_file}"
-      rescue ex
-        STDERR.puts "[native.cr] Failed to save state: #{ex.message}"
-      end
-    end
-  end
-  
-  protected def load_saved_state
-    state_file = ENV["NATIVE_CR_STATE_FILE"]?
-    
-    if state_file && File.exists?(state_file)
-      begin
-        json = File.read(state_file)
-        from_json(json)
-        STDERR.puts "[native.cr] State loaded from #{state_file}"
-        File.delete(state_file)
-      rescue ex
-        STDERR.puts "[native.cr] Failed to load state: #{ex.message}"
-      end
-    end
-  end
-  
-  abstract def render : String
-  abstract def run : Nil
-  
-  def self.start
-    app = new
-    app.load_saved_state
-    app.run
   end
 end
+
+Native.run
