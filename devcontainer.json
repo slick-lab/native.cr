@@ -1,0 +1,45 @@
+{
+  "name": "native.cr Development",
+  "image": "crystal-lang/crystal:1.20.0-alpine",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/python:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "faustinoaq.crystal-lang",
+        "crystal-lang-tools.crystal-lang",
+        "eamodio.gitlens",
+        "vscode-icons-team.vscode-icons",
+        "editorconfig.editorconfig",
+        "ms-vscode.makefile-tools",
+        "github.vscode-github-actions"
+      ],
+      "settings": {
+        "crystal.lint.enabled": true,
+        "crystal.format.enabled": true,
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2,
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true
+      }
+    }
+  },
+  "containerEnv": {
+    "ANDROID_HOME": "/opt/android-sdk",
+    "ANDROID_SDK_ROOT": "/opt/android-sdk"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.android,target=/root/.android,type=bind",
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gradle,target=/root/.gradle,type=bind"
+  ],
+  "postCreateCommand": "sh scripts/setup_devcontainer.sh",
+  "postStartCommand": "sh scripts/start_devcontainer.sh",
+  "remoteUser": "root",
+  "workspaceFolder": "/workspaces/native.cr",
+  "workspaceMount": "type=bind,source=${localWorkspaceFolder},target=/workspaces/native.cr"
+}
