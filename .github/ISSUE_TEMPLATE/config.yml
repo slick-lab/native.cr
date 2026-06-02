@@ -1,0 +1,13 @@
+# .github/ISSUE_TEMPLATE/config.yml
+
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/slick-lab/native.cr/discussions
+    about: Ask questions and share ideas
+  - name: Discord Chat
+    url: https://discord.gg/nativecr
+    about: Join our Discord for real-time chat
+  - name: Documentation
+    url: https://native.cr/docs
+    about: Read the official documentation
