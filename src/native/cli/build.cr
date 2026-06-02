@@ -63,16 +63,12 @@ module Native::CLI
       Examples:
         native.cr build android
         native.cr build ios src/main.cr
-        native.cr build android --release
-        native.cr build ios --entry src/app.cr --output ./dist
       HELP
     end
 
     def run
       puts "[native.cr] Building for #{@platform}"
       puts "[native.cr] Entry point: #{@entry_point}"
-      puts "[native.cr] Output: #{@output}"
-      puts "[native.cr] Release mode: #{@release}"
       puts ""
 
       if @clean && Dir.exists?(@output)
@@ -94,63 +90,49 @@ module Native::CLI
     end
 
     private def build_android
-      puts "[native.cr] Building Android..."
-
       lib_dir = "#{@output}/lib/arm64-v8a"
       Dir.mkdir_p(lib_dir)
 
-      cmd = "crystal build #{@entry_point} --target aarch64-linux-android"
+      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android"
       cmd += " --release" if @release
       cmd += " --link-flags=\"-shared\""
       cmd += " -o #{lib_dir}/libnative_cr.so"
 
-      puts "[native.cr] Compiling Crystal..."
+      puts "[native.cr] Compiling Crystal to Android ARM64..."
       output = `#{cmd} 2>&1`
 
       if $?.success?
-        puts "[native.cr] Crystal compilation successful"
+        puts "[native.cr] Compilation successful"
       else
         puts "[native.cr] Compilation failed:"
         puts output
         exit(1)
       end
 
-      copy_android_manifest
-
       puts ""
       puts "[native.cr] Android build complete"
       puts "[native.cr] Library: #{lib_dir}/libnative_cr.so"
-    end
-
-    private def copy_android_manifest
-      manifest_src = File.join(__DIR__, "..", "engine", "android", "AndroidManifest.xml")
-      manifest_dst = "#{@output}/AndroidManifest.xml"
-
-      if File.exists?(manifest_src)
-        FileUtils.cp(manifest_src, manifest_dst)
-        puts "[native.cr] Copied AndroidManifest.xml"
-      else
-        puts "[native.cr] Warning: AndroidManifest.xml not found"
-      end
+      puts ""
+      puts "Next steps:"
+      puts "  1. Copy #{lib_dir}/libnative_cr.so to your Android project's jniLibs/arm64-v8a/"
+      puts "  2. Build your APK with Android Studio or Gradle"
     end
 
     private def build_ios
-      puts "[native.cr] Building iOS..."
-
       framework_dir = "#{@output}/NativeCr.framework"
       Dir.mkdir_p(framework_dir)
       Dir.mkdir_p("#{framework_dir}/Headers")
 
-      cmd = "crystal build #{@entry_point} --target aarch64-apple-ios"
+      cmd = "crystal build #{@entry_point} -D ios --target aarch64-apple-ios"
       cmd += " --release" if @release
       cmd += " --link-flags=\"-static\""
       cmd += " -o #{framework_dir}/NativeCr"
 
-      puts "[native.cr] Compiling Crystal..."
+      puts "[native.cr] Compiling Crystal to iOS ARM64..."
       output = `#{cmd} 2>&1`
 
       if $?.success?
-        puts "[native.cr] Crystal compilation successful"
+        puts "[native.cr] Compilation successful"
       else
         puts "[native.cr] Compilation failed:"
         puts output
@@ -162,6 +144,10 @@ module Native::CLI
       puts ""
       puts "[native.cr] iOS build complete"
       puts "[native.cr] Framework: #{framework_dir}"
+      puts ""
+      puts "Next steps:"
+      puts "  1. Drag #{framework_dir} into your Xcode project"
+      puts "  2. Build your IPA with Xcode"
     end
 
     private def create_ios_module_map(framework_dir : String)
@@ -174,6 +160,13 @@ module Native::CLI
       MODULE
 
       File.write("#{framework_dir}/module.modulemap", module_map)
+      
+      header = <<-HEADER
+      #import <Foundation/Foundation.h>
+      extern void native_cr_main(void);
+      HEADER
+      
+      File.write("#{framework_dir}/Headers/NativeCr.h", header)
     end
   end
 end
