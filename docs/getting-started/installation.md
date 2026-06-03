@@ -65,4 +65,4 @@ Install Xcode from the App Store.
 
 Next Steps
 
-- Create Your First App
+- hello - world
