@@ -1,0 +1,55 @@
+# .gitignore
+
+# Native.cr build artifacts
+.native_cache/
+.build/
+build/
+dist/
+*.so
+*.a
+*.dylib
+*.dSYM/
+*.o
+
+# Crystal
+.shards/
+shard.lock
+lib/
+bin/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+crash.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Android
+android_project/.gradle/
+android_project/build/
+android_project/local.properties
+android_project/app/build/
+
+# iOS
+ios_project/build/
+ios_project/Pods/
+ios_project/*.xcworkspace
+ios_project/*.xcuserstate
+
+# Environment
+.env
+.env.local
