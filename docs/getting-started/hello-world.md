@@ -43,10 +43,10 @@ To show something on screen, you need a UI component. The most basic component i
 
 A UI::Text object has several properties you can set:
 
-· text - The string to display
-· text_size - Font size in points
-· color - The text color
-· x and y - Position on screen
+- text - The string to display
+- text_size - Font size in points
+- color - The text color
+- x and y - Position on screen
 
 In setup, you create the text label and store it in an instance variable so you can access it later. Then you assign it to @root. The draw method will call draw on whatever view is stored in @root.
 
@@ -137,7 +137,7 @@ Native::App.start(HelloApp)
 
 Now when you tap anywhere on the screen, the text changes from "Hello, World!" to "You tapped the screen!". The text stays changed until you tap again.
 
-Adding a Counter
+## Adding a Counter
 
 Changing to a fixed message works, but what if you want to count how many times the user tapped? You need to store a number that increases each time.
 
@@ -173,7 +173,7 @@ Native::App.start(HelloApp)
 
 Each tap increases the count. The label updates to show the new number.
 
-Preserving State Across Restarts
+## Preserving State Across Restarts
 
 You might have noticed that native.cr reload recompiles and restarts your app when you save a file. During development, this happens frequently. By default, your @count variable would reset to 0 every time because the app starts fresh.
 
@@ -212,7 +212,7 @@ Native::App.start(HelloApp)
 
 Notice we changed @count to a property with a default value of 0. The @[Preserve] annotation works on properties. Now when you edit your code and save, the app restarts but your tap count remains.
 
-Improving the Display with Proper English
+## Improving the Display with Proper English
 
 The text "Taps: 1" is fine, but "Taps: 1 times" is grammatically incorrect. You should show "Taps: 1 time" for a single tap and "Taps: 2 times" for multiple taps.
 
@@ -238,7 +238,7 @@ def on_touch_began(x : Float32, y : Float32)
 end
 ```
 
-Adding Color Feedback
+## Adding Color Feedback
 
 Make the app more visually interesting by changing the background color every few taps. For example, change color every 5 taps.
 
@@ -291,7 +291,7 @@ Native::App.start(HelloApp)
 
 The modulo operator (%) gives the remainder after division. So @count % 5 cycles through 0, 1, 2, 3, 4 repeatedly as the count increases. Each remainder value maps to a different color.
 
-Adding a Button Instead of Screen Taps
+## Adding a Button Instead of Screen Taps
 
 Some users might expect a button rather than tapping anywhere. Native.cr provides a UI::Button component. A button has a text property and an on_click callback.
 
