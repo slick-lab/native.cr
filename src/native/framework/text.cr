@@ -13,6 +13,7 @@ module Native
     end
 
     enum ReturnKeyType
+      Default
       Done
       Go
       Search
