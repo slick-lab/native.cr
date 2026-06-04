@@ -39,7 +39,7 @@ module Native
       end
 
       def pixel(x : Int32, y : Int32) : {UInt8, UInt8, UInt8, UInt8}
-        return {0, 0, 0, 0} if x < 0 || x >= @width || y < 0 || y >= @height
+        return {0_u8, 0_u8, 0_u8, 0_u8} if x < 0 || x >= @width || y < 0 || y >= @height
         
         idx = (y * @width + x) * channels
         r = @pixels[idx]
