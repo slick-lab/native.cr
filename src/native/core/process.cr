@@ -18,6 +18,7 @@ module Native::Core
       property build_output : String = "./.native_cache/app"
       property state_file : String = "./.native_cache/state.json"
       property compile_timeout : Time::Span = 30.seconds
+      property desktop_mode : Bool = true
 
       def initialize
       end
@@ -116,11 +117,11 @@ module Native::Core
       end
 
       private def start_desktop
-        puts "[native.cr] Starting in desktop mode"
+        puts "[native.cr] Starting desktop preview"
         
         begin
           load_saved_state
-          build_and_run
+          build_and_run_desktop
         rescue e
           puts "[native.cr] Error during startup: #{e.message}"
           return
@@ -161,18 +162,16 @@ module Native::Core
         begin
           capture_state_desktop
           stop
-          build_and_run
+          build_and_run_desktop
         rescue e
           puts "[native.cr] Error during fast restart: #{e.message}"
         end
       end
 
       private def capture_state_desktop
-        @current_process.try do |proc|
-          if !proc.terminated?
-            proc.terminate
-            sleep 0.2.seconds
-          end
+        if @current_process && !@current_process.terminated?
+          @current_process.terminate
+          sleep 0.2.seconds
         end
       end
 
@@ -191,12 +190,12 @@ module Native::Core
         end
       end
 
-      private def build_and_run
+      private def build_and_run_desktop
         begin
-          compile
-          run
+          compile_desktop
+          run_desktop
         rescue e
-          puts "[native.cr] Error in build_and_run: #{e.message}"
+          puts "[native.cr] Error in build_and_run_desktop: #{e.message}"
         end
       end
 
@@ -234,6 +233,42 @@ module Native::Core
         end
       end
 
+      private def compile_desktop
+        puts "[native.cr] Building desktop preview..."
+        puts "[native.cr] Entry point: #{@config.entry_point}"
+
+        unless File.exists?(@config.entry_point)
+          raise CompileError.new("Entry point not found: #{@config.entry_point}")
+        end
+
+        bootstrap = File.join(File.dirname(@config.build_output), "desktop_bootstrap.cr")
+        
+        File.write(bootstrap, <<-CR
+          require "#{File.expand_path(@config.entry_point)}"
+          require "native/engine/desktop/show"
+        CR
+        )
+
+        cmd = "crystal build #{bootstrap} -o #{@config.build_output}_desktop --error-trace"
+
+        begin
+          output = `#{cmd} 2>&1`
+
+          if $?.success?
+            puts "[native.cr] Desktop build successful"
+          else
+            puts "[native.cr] Desktop build failed:"
+            puts output
+            raise CompileError.new("Desktop build failed")
+          end
+        rescue e
+          puts "[native.cr] Error during desktop compilation: #{e.message}"
+          raise CompileError.new("Desktop compilation error: #{e.message}")
+        ensure
+          File.delete(bootstrap) if File.exists?(bootstrap)
+        end
+      end
+
       private def run
         env = ENV.to_h
         env["NATIVE_CR_STATE_FILE"] = @config.state_file
@@ -264,6 +299,35 @@ module Native::Core
         rescue e
           puts "[native.cr] Error starting app: #{e.message}"
           raise ProcessError.new("Failed to start process: #{e.message}")
+        end
+      end
+
+      private def run_desktop
+        begin
+          @current_process = ::Process.new(
+            "#{@config.build_output}_desktop",
+            shell: true
+          )
+
+          if proc = @current_process
+            puts "[native.cr] Desktop preview running (PID: #{proc.pid})"
+
+            spawn do
+              begin
+                proc.wait
+                puts "[native.cr] Desktop preview exited"
+              rescue e
+                puts "[native.cr] Error waiting for desktop process: #{e.message}"
+              ensure
+                @current_process = nil
+              end
+            end
+          else
+            raise ProcessError.new("Failed to start desktop preview")
+          end
+        rescue e
+          puts "[native.cr] Error starting desktop preview: #{e.message}"
+          raise ProcessError.new("Failed to start desktop process: #{e.message}")
         end
       end
 
