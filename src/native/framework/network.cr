@@ -183,13 +183,13 @@ module Native
       end
 
       private def execute(request : Request) : Response
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           execute_android(request)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           execute_ios(request)
-        {% else }}
+        {% else %}
           execute_stub(request)
-        {% end }}
+        {% end %}
       end
 
       private def execute_android(request : Request) : Response
@@ -331,21 +331,21 @@ module Native
       def connect : Nil
         return if @is_connected
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           connect_android
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           connect_ios
-        {% end }}
+        {% end %}
       end
 
       def disconnect : Nil
         return unless @is_connected
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAndroid.websocket_close(@socket_ptr)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibIOS.websocket_close(@socket_ptr)
-        {% end }}
+        {% end %}
         
         @is_connected = false
         @socket_ptr = nil
@@ -354,21 +354,21 @@ module Native
       def send(text : String) : Nil
         return unless @is_connected
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAndroid.websocket_send_text(@socket_ptr, text.to_utf8)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibIOS.websocket_send_text(@socket_ptr, text.to_utf8)
-        {% end }}
+        {% end %}
       end
 
       def send(data : Bytes) : Nil
         return unless @is_connected
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAndroid.websocket_send_binary(@socket_ptr, data, data.size)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibIOS.websocket_send_binary(@socket_ptr, data, data.size)
-        {% end }}
+        {% end %}
       end
 
       def on_open(&block : -> Nil) : Nil

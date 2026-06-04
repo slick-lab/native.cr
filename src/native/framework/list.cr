@@ -65,15 +65,15 @@ module Native
       @item_builder : (T, Int32 -> UI::View)
       @item_updater : (UI::View, T, Int32 -> Nil)?
       
-      def initialize(@data : Array(T), &builder : T, Int32 -> UI::View)
+      def initialize(@data : Array(T), &builder : (T, Int32 -> UI::View))
         @item_builder = builder
         @item_updater = nil
       end
       
       def initialize(
-                     @data : Array(T), 
-                     &builder : Proc(T, Int32, UI::View), 
-                     &updater : Proc(UI::View, T, Int32, Nil)
+                     @data : Array(T),
+                     &updater : (UI::View, T, Int32 -> Nil),
+                     &builder : (T, Int32 -> UI::View),
                      )
         @item_builder = builder
         @item_updater = updater
