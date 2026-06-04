@@ -160,11 +160,14 @@ module Native
     end
 
     class ValueAnimator < Animator
-      @start_value : Float64 = 0.0
+      @start_value : Float64 =  0.0
       @end_value : Float64 = 1.0
       @current_value : Float64 = 0.0
       @on_update : (Float64 -> Nil)?
-
+      @auto_reverse : Bool = false
+      @repeat_count : Int32 = 0
+      @current_repeat : Int32 = 0
+      @direction : Int32 = 1
       def initialize(start_value : Float64 = 0.0, end_value : Float64 = 1.0,
                      config : AnimationConfig = AnimationConfig.new)
         super(config)
