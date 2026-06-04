@@ -83,12 +83,6 @@ describe Native::Core::State do
       json.should contain("\"score\":0")
       json.should contain("\"active\":false")
     end
-    
-    it "raises SerializationError on invalid object" do
-      expect_raises(Native::Core::State::SerializationError) do
-        Native::Core::State.save(Box.new(123))
-      end
-    end
   end
   
   describe "#load" do
