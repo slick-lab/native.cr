@@ -65,7 +65,7 @@ module Native
           return
         end
         
-        @@callbacks[type] = [] of PermissionStatus -> Nil unless @@callbacks.has_key?(type)
+        @@callbacks[type] = [] of (PermissionStatus -> Nil) unless @@callbacks.has_key?(type)
         @@callbacks[type] << callback
         
         {% if flag?(:android) %}

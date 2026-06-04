@@ -93,19 +93,19 @@ module Native
       def focus : Nil
         return unless @config.enabled
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibTextInput.android_focus(@native_input_ptr)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibTextInput.ios_focus(@native_input_ptr)
-        {% end }}
+        {% end %}
       end
 
       def blur : Nil
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibTextInput.android_blur(@native_input_ptr)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibTextInput.ios_blur(@native_input_ptr)
-        {% end }}
+        {% end %}
       end
 
       def clear : Nil
@@ -118,11 +118,11 @@ module Native
 
       def enabled=(value : Bool)
         @config.enabled = value
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibTextInput.android_set_enabled(@native_input_ptr, value)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibTextInput.ios_set_enabled(@native_input_ptr, value)
-        {% end }}
+        {% end %}
       end
 
       def on_change(&block : String -> Nil) : Nil
@@ -152,7 +152,7 @@ module Native
       end
 
       private def create_native_input : Nil
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           @native_input_ptr = LibTextInput.android_create_text_input(
             @x, @y, @width, @height,
             @config.placeholder.to_utf8,
@@ -173,7 +173,7 @@ module Native
             -> { handle_focus },
             -> { handle_blur }
           )
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           @native_input_ptr = LibTextInput.ios_create_text_input(
             @x, @y, @width, @height,
             @config.placeholder.to_utf8,
@@ -188,37 +188,37 @@ module Native
             ->(text_ptr : UInt8*) { handle_text_change(text_ptr) },
             ->(text_ptr : UInt8*) { handle_submit(text_ptr) }
           )
-        {% end }}
+        {% end %}
       end
 
       private def update_native_text : Nil
         return unless @native_input_ptr
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibTextInput.android_set_text(@native_input_ptr, @text.to_utf8)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibTextInput.ios_set_text(@native_input_ptr, @text.to_utf8)
-        {% end }}
+        {% end %}
       end
 
       private def update_native_placeholder : Nil
         return unless @native_input_ptr
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibTextInput.android_set_placeholder(@native_input_ptr, @config.placeholder.to_utf8)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibTextInput.ios_set_placeholder(@native_input_ptr, @config.placeholder.to_utf8)
-        {% end }}
+        {% end %}
       end
 
       private def update_native_frame : Nil
         return unless @native_input_ptr
         
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibTextInput.android_set_frame(@native_input_ptr, absolute_x, absolute_y, @width, @height)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibTextInput.ios_set_frame(@native_input_ptr, absolute_x, absolute_y, @width, @height)
-        {% end }}
+        {% end %}
       end
 
       private def draw_border(renderer : Void*) : Nil
