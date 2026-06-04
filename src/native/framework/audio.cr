@@ -430,44 +430,44 @@ module Native
     end
 
     module AudioMixer
-      @master_volume : Float32 = 1.0
-      @music_volume : Float32 = 1.0
-      @sfx_volume : Float32 = 1.0
+      @@master_volume : Float32 = 1.0
+      @@music_volume : Float32 = 1.0
+      @@sfx_volume : Float32 = 1.0
 
       def self.master_volume=(value : Float32)
-        @master_volume = value.clamp(0.0, 1.0)
+        @@master_volume = value.clamp(0.0, 1.0)
         apply_volumes
       end
 
       def self.master_volume : Float32
-        @master_volume
+        @@master_volume
       end
 
       def self.music_volume=(value : Float32)
-        @music_volume = value.clamp(0.0, 1.0)
+        @@music_volume = value.clamp(0.0, 1.0)
         apply_volumes
       end
 
       def self.music_volume : Float32
-        @music_volume
+        @@music_volume
       end
 
       def self.sfx_volume=(value : Float32)
-        @sfx_volume = value.clamp(0.0, 1.0)
+        @@sfx_volume = value.clamp(0.0, 1.0)
         apply_volumes
       end
 
       def self.sfx_volume : Float32
-        @sfx_volume
+        @@sfx_volume
       end
 
       private def self.apply_volumes
         {% if flag?(:android) %}
-          LibAudio.set_master_volume(@master_volume * @music_volume)
-          LibAudio.set_sfx_volume(@master_volume * @sfx_volume)
+          LibAudio.set_master_volume(@@master_volume * @@music_volume)
+          LibAudio.set_sfx_volume(@@master_volume * @@sfx_volume)
         {% elsif flag?(:ios) %}
-          LibAudio.set_master_volume(@master_volume * @music_volume)
-          LibAudio.set_sfx_volume(@master_volume * @sfx_volume)
+          LibAudio.set_master_volume(@@master_volume * @@music_volume)
+          LibAudio.set_sfx_volume(@@master_volume * @@sfx_volume)
         {% else %}
           return
         {% end %}

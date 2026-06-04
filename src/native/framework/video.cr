@@ -44,7 +44,7 @@ module Native
       end
 
       def load(path : String) : Bool
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           @video_ptr = LibVideo.android_create_video_view(
             absolute_x, absolute_y, @width, @height,
             path.to_utf8,
@@ -52,16 +52,16 @@ module Native
             @config.loop,
             @config.muted
           )
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           @video_ptr = LibVideo.ios_create_video_view(
             absolute_x, absolute_y, @width, @height,
             path.to_utf8,
             @config.auto_play,
             @config.loop
           )
-        {% else }}
+        {% else %}
           return false
-        {% end }}
+        {% end %}
 
         if @video_ptr
           setup_callbacks
@@ -80,11 +80,11 @@ module Native
       def play : Nil
         return unless @video_ptr && @state != VideoState::Playing
 
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_play(@video_ptr)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibVideo.ios_video_play(@video_ptr)
-        {% end }}
+        {% end %}
 
         @state = VideoState::Playing
         @on_state_change.try &.call(@state)
@@ -93,11 +93,11 @@ module Native
       def pause : Nil
         return unless @video_ptr && @state == VideoState::Playing
 
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_pause(@video_ptr)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibVideo.ios_video_pause(@video_ptr)
-        {% end }}
+        {% end %}
 
         @state = VideoState::Paused
         @on_state_change.try &.call(@state)
@@ -106,11 +106,11 @@ module Native
       def stop : Nil
         return unless @video_ptr
 
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_stop(@video_ptr)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibVideo.ios_video_stop(@video_ptr)
-        {% end }}
+        {% end %}
 
         @state = VideoState::Idle
         @on_state_change.try &.call(@state)
@@ -119,22 +119,22 @@ module Native
       def seek(time : Float64) : Nil
         return unless @video_ptr
 
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_seek(@video_ptr, time)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibVideo.ios_video_seek(@video_ptr, time)
-        {% end }}
+        {% end %}
       end
 
       def volume=(value : Float32)
         @config.volume = value.clamp(0.0, 1.0)
         return unless @video_ptr
 
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_set_volume(@video_ptr, @config.volume)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibVideo.ios_video_set_volume(@video_ptr, @config.volume)
-        {% end }}
+        {% end %}
       end
 
       def volume : Float32
@@ -145,9 +145,9 @@ module Native
         @config.muted = value
         return unless @video_ptr
 
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_set_muted(@video_ptr, value)
-        {% end }}
+        {% end %}
       end
 
       def muted? : Bool
@@ -208,15 +208,15 @@ module Native
       private def update_native_frame : Nil
         return unless @video_ptr
 
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_set_frame(@video_ptr, absolute_x, absolute_y, @width, @height)
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibVideo.ios_video_set_frame(@video_ptr, absolute_x, absolute_y, @width, @height)
-        {% end }}
+        {% end %}
       end
 
       private def setup_callbacks : Nil
-        {% if flag?(:android) }}
+        {% if flag?(:android) %}
           LibVideo.android_video_set_callbacks(
             @video_ptr,
             -> { handle_ready },
@@ -224,7 +224,7 @@ module Native
             ->(error_ptr : UInt8*) { handle_error(error_ptr) },
             ->(time : Float64) { handle_time_update(time) }
           )
-        {% elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibVideo.ios_video_set_callbacks(
             @video_ptr,
             -> { handle_ready },
@@ -232,16 +232,16 @@ module Native
             ->(error_ptr : UInt8*) { handle_error(error_ptr) },
             ->(time : Float64) { handle_time_update(time) }
           )
-        {% end }}
+        {% end %}
       end
 
       private def handle_ready : Nil
         @state = VideoState::Idle
-        @duration = {% if flag?(:android) }}
+        @duration = {% if flag?(:android) %}
           LibVideo.android_video_get_duration(@video_ptr)
-        {% else }}
+        {% else %}
           0.0
-        {% end }}
+        {% end %}
         @on_ready.try &.call
         @on_state_change.try &.call(@state)
 

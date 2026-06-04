@@ -223,21 +223,19 @@ module Native
         {% end %}
       end
 
-      @on_notification_callbacks = [] of (Notification -> Nil)
-      @on_action_callbacks = [] of (String, Notification -> Nil)
 
       def self.on_notification(&block : Notification -> Nil) : Nil
-        @on_notification_callbacks << block
+        @@on_notification_callbacks << block
         setup_delegate
       end
 
       def self.on_action(&block : String, Notification -> Nil) : Nil
-        @on_action_callbacks << block
+        @@on_action_callbacks << block
         setup_delegate
       end
 
       private def self.setup_delegate : Nil
-        return if @delegate_setup
+        return if @@delegate_setup
         
         {% if flag?(:android) %}
           LibNotifications.android_set_notification_delegate(
@@ -259,7 +257,7 @@ module Native
           )
         {% end %}
         
-        @delegate_setup = true
+        @@delegate_setup = true
       end
 
       private def self.handle_notification_action(action_id_ptr : UInt8*, payload_json_ptr : UInt8*) : Nil
@@ -275,7 +273,7 @@ module Native
         rescue
         end
         
-        @on_action_callbacks.each { |cb| cb.call(action_id, notification) }
+        @@on_action_callbacks.each { |cb| cb.call(action_id, notification) }
         
         LibNotifications.free_string(action_id_ptr)
         LibNotifications.free_string(payload_json_ptr)
@@ -293,11 +291,13 @@ module Native
         rescue
         end
         
-        @on_notification_callbacks.each { |cb| cb.call(notification) }
+        @@on_notification_callbacks.each { |cb| cb.call(notification) }
         
         LibNotifications.free_string(payload_json_ptr)
       end
 
+      @@on_notification_callbacks = [] of (Notification -> Nil)
+      @@on_action_callbacks = [] of (String, Notification -> Nil)
       @@delegate_setup = false
     end
 
