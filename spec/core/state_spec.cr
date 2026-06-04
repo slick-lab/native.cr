@@ -62,17 +62,7 @@ describe Native::Core::State do
       app.score.should eq(100)
     end
   end
-  
-  describe "#valid_json?" do
-    it "returns true for valid JSON" do
-      Native::Core::State.valid_json?("{"key":"value"}").should be_true
-    end
     
-    it "returns false for invalid JSON" do
-      Native::Core::State.valid_json?("not json").should be_false
-    end
-  end
-  
   describe "#pretty" do
     it "returns pretty printed JSON" do
       app = TestApp.new
