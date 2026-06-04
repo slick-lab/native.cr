@@ -169,11 +169,13 @@ module Native::Core
       end
 
       private def capture_state_desktop
-        if @current_process && !@current_process.terminated?
-          @current_process.terminate
-          sleep 0.2.seconds
+        if proc = @current_process
+         if !proc.terminated?
+           proc.terminate
+           sleep 0.2.seconds
         end
-      end
+       end
+     end
 
       private def load_saved_state
         return if @is_mobile
