@@ -388,9 +388,8 @@ end
 describe Native::Dialog::DialogButton do
   it "creates button with title and action" do
     callback_called = false
-    button = Native::Dialog::DialogButton.new("OK", Native::Dialog::DialogAction::Positive) do
-      callback_called = true
-    end
+    button = Native::Dialog::DialogButton.new("OK", Native::Dialog::DialogAction::Positive)
+    button.callback = ->{ callback_called = true }
     button.title.should eq("OK")
     button.action.should eq(Native::Dialog::DialogAction::Positive)
     button.callback.call
