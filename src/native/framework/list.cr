@@ -70,15 +70,6 @@ module Native
         @item_updater = nil
       end
       
-      def initialize(
-                     @data : Array(T),
-                     &updater : (UI::View, T, Int32 -> Nil),
-                     &builder : (T, Int32 -> UI::View),
-                     )
-        @item_builder = builder
-        @item_updater = updater
-      end
-      
       def item_count : Int32
         @data.size
       end
