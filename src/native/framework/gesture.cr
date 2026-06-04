@@ -35,6 +35,9 @@ module Native
       @last_tap_time : Float64 = 0.0
       @on_tap : (Point -> Nil)?
       @on_state_change : (GestureState -> Nil)?
+      property number_of_taps_required : Int32 = 1
+      property number_of_touches_required : Int32 = 1
+  
 
       def initialize
       end
