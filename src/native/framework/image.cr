@@ -126,6 +126,8 @@ module Native
         when ImageFormat::RGBA then 4
         when ImageFormat::RGB then 3
         when ImageFormat::Grayscale then 1
+        else 
+          4
         end
       end
     end
