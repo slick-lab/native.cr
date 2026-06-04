@@ -190,7 +190,7 @@ module Native::Core
           env: env
         )
 
-        puts "[native.cr] App running (PID: #{@current_process.pid})"
+        puts "[native.cr] App running (PID: #{@current_process.not_nil!.pid})"
 
         spawn do
           @current_process.try(&.wait)
