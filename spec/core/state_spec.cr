@@ -65,7 +65,7 @@ describe Native::Core::State do
   
   describe "#valid_json?" do
     it "returns true for valid JSON" do
-      Native::Core::State.valid_json?('{"key":"value"}').should be_true
+      Native::Core::State.valid_json?("{"key":"value"}").should be_true
     end
     
     it "returns false for invalid JSON" do
