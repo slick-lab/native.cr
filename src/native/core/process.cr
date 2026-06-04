@@ -187,9 +187,7 @@ module Native::Core
         @current_process = ::Process.new(
           @config.build_output,
           shell: true,
-          env: env,
-          output: true,
-          error: true
+          env: env
         )
 
         puts "[native.cr] App running (PID: #{@current_process.pid})"
