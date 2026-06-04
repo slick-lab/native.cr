@@ -197,7 +197,6 @@ module Native::Core
           run
         rescue e
           puts "[native.cr] Error in build_and_run: #{e.message}"
-          raise
         end
       end
 
@@ -207,7 +206,6 @@ module Native::Core
           run_mobile
         rescue e
           puts "[native.cr] Error in compile_and_run: #{e.message}"
-          raise
         end
       end
 
