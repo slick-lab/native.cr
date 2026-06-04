@@ -216,27 +216,27 @@ describe Native::Core::State do
   
   describe "#valid_json?" do
     it "returns true for valid JSON object" do
-      Native::Core::State.valid_json?('{"key":"value"}').should be_true
+      Native::Core::State.valid_json?("{\"key\":\"value\"}").should be_true
     end
     
     it "returns true for valid JSON array" do
-      Native::Core::State.valid_json?('[1,2,3]').should be_true
+      Native::Core::State.valid_json?("[1,2,3]").should be_true
     end
     
     it "returns true for valid JSON string" do
-      Native::Core::State.valid_json?('"hello"').should be_true
+      Native::Core::State.valid_json?("\"hello\"").should be_true
     end
     
     it "returns true for valid JSON number" do
-      Native::Core::State.valid_json?('123').should be_true
+      Native::Core::State.valid_json?("123").should be_true
     end
     
     it "returns true for valid JSON boolean" do
-      Native::Core::State.valid_json?('true').should be_true
+      Native::Core::State.valid_json?("true").should be_true
     end
     
     it "returns true for valid JSON null" do
-      Native::Core::State.valid_json?('null').should be_true
+      Native::Core::State.valid_json?("null").should be_true
     end
     
     it "returns false for invalid JSON" do
@@ -248,7 +248,7 @@ describe Native::Core::State do
     end
     
     it "returns false for malformed JSON" do
-      Native::Core::State.valid_json?('{"key":}').should be_false
+      Native::Core::State.valid_json?("{\"key\":}").should be_false
     end
   end
   
