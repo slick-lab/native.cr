@@ -24,7 +24,7 @@ module Native
       property transition : TransitionConfig
       property data : Hash(String, String)?
 
-      def initialize(@name : String, @view : UI::View, 
+      def initialize(@name : String, @view : UI::View,
                      @transition : TransitionConfig = TransitionConfig.new,
                      @data = nil)
       end
@@ -44,15 +44,15 @@ module Native
 
       def push(route : Route) : Nil
         return if @transitioning
-        
+
         @stack << route
-        
+
         if @current_view
           transition_to(route, forward: true)
         else
           show_route(route)
         end
-        
+
         @on_navigate.try &.call(route.name, route.data)
       end
 
@@ -63,29 +63,29 @@ module Native
 
       def pop : Nil
         return if @transitioning || @stack.size <= 1
-        
+
         old_route = @stack.pop
         new_route = @stack.last
-        
+
         transition_to(new_route, forward: false)
-        
+
         @on_back.try &.call(old_route.name, old_route.data)
       end
 
       def pop_to_root : Nil
         return if @transitioning || @stack.size <= 1
-        
+
         while @stack.size > 1
           @stack.pop
         end
-        
+
         root_route = @stack.first
         transition_to(root_route, forward: false)
       end
 
       def replace(route : Route) : Nil
         return if @transitioning
-        
+
         @stack.pop if @stack.any?
         @stack << route
         show_route(route)
@@ -115,15 +115,15 @@ module Native
 
       private def transition_to(route : Route, forward : Bool) : Nil
         @transitioning = true
-        
+
         old_view = @current_view
         new_view = route.view
-        
+
         @container.add_child(new_view)
         new_view.layout(0, 0, @container.width, @container.height)
-        
+
         setup_transition_views(old_view, new_view, forward)
-        
+
         animate_transition(old_view, new_view, forward) do
           complete_transition(old_view, new_view, route)
         end
@@ -140,7 +140,7 @@ module Native
             new_view.x = -offset
             new_view.alpha = 1.0
           end
-          
+
           if old_view
             if forward
               old_view.alpha = 1.0
@@ -148,16 +148,13 @@ module Native
               old_view.alpha = 1.0
             end
           end
-          
         when TransitionType::Fade
           new_view.alpha = 0.0
           new_view.x = 0
-          
         when TransitionType::Scale
           new_view.alpha = 0.0
           new_view.scale = 0.9
           new_view.x = 0
-          
         when TransitionType::None
           new_view.alpha = 1.0
           new_view.x = 0
@@ -165,14 +162,14 @@ module Native
         end
       end
 
-      private def animate_transition(old_view : UI::View?, new_view : UI::View, 
-                                      forward : Bool, &complete : -> Nil) : Nil
+      private def animate_transition(old_view : UI::View?, new_view : UI::View,
+                                     forward : Bool, &complete : -> Nil) : Nil
         duration = route.transition.duration
-        
+
         case route.transition.type
         when TransitionType::Slide
           offset = @container.width
-          
+
           animate(duration: duration) do
             new_view.animate.x(forward ? 0 : -offset)
             if old_view
@@ -181,17 +178,15 @@ module Native
             end
             new_view.animate.alpha(1.0)
           end
-          
+
           after(duration) { complete.call }
-          
         when TransitionType::Fade
           animate(duration: duration) do
             new_view.animate.alpha(1.0)
             old_view.try(&.animate.alpha(0.0))
           end
-          
+
           after(duration) { complete.call }
-          
         when TransitionType::Scale
           animate(duration: duration) do
             new_view.animate.alpha(1.0)
@@ -199,9 +194,8 @@ module Native
             old_view.try(&.animate.alpha(0.0))
             old_view.try(&.animate.scale(1.1))
           end
-          
+
           after(duration) { complete.call }
-          
         when TransitionType::None
           complete.call
         end
@@ -209,12 +203,12 @@ module Native
 
       private def complete_transition(old_view : UI::View?, new_view : UI::View, route : Route) : Nil
         old_view.try { |v| @container.remove_child(v) }
-        
+
         new_view.x = 0
         new_view.y = 0
         new_view.alpha = 1.0
         new_view.scale = 1.0
-        
+
         @current_view = new_view
         @transitioning = false
       end
@@ -230,7 +224,7 @@ module Native
 
       def initialize(container : UI::View, show_header : Bool = true)
         @show_header = show_header
-        
+
         if @show_header
           setup_header
           @navigator = Navigator.new(header_container)
@@ -240,7 +234,7 @@ module Native
         else
           @navigator = Navigator.new(container)
         end
-        
+
         setup_navigation_callbacks
       end
 
@@ -286,7 +280,7 @@ module Native
         @header.height = @header_height
         @header.background_color = Styling::Theme.primary_color
         @header.y = 0
-        
+
         @back_button = UI::Button.new
         @back_button.text = "< Back"
         @back_button.text_color = Styling::Color.white
@@ -294,15 +288,15 @@ module Native
         @back_button.width = 80
         @back_button.height = @header_height
         @back_button.x = 8
-        @back_button.on_click = ->{ @navigator.pop }
+        @back_button.on_click = -> { @navigator.pop }
         @back_button.visible = false
-        
+
         @title_view = UI::Text.new
         @title_view.text = ""
         @title_view.text_size = 18
         @title_view.color = Styling::Color.white
         @title_view.text_alignment = TextAlignment::Center
-        
+
         @header.add_child(@back_button)
         @header.add_child(@title_view)
       end
@@ -319,7 +313,7 @@ module Native
           set_title(name)
           show_back_button(@navigator.can_go_back?)
         end
-        
+
         @navigator.on_back do |name, data|
           if @navigator.can_go_back?
             show_back_button(true)

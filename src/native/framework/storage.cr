@@ -73,39 +73,39 @@ module Native
       end
 
       def contains?(key : String) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.preferences_contains(key.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.preferences_contains(key.to_utf8, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def delete(key : String) : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.preferences_remove(key.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.preferences_remove(key.to_utf8, type_to_int(@storage_type))
-        {{ end }}
+        {% end }}
       end
 
       def clear : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.preferences_clear(type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.preferences_clear(type_to_int(@storage_type))
-        {{ end }}
+        {% end }}
       end
 
       def all_keys : Array(String)
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           keys_ptr = LibAndroid.preferences_get_all_keys(type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           keys_ptr = LibIOS.preferences_get_all_keys(type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           return [] of String
-        {{ end }}
+        {% end }}
         
         keys = [] of String
         if keys_ptr
@@ -122,21 +122,21 @@ module Native
       end
 
       private def save_to_platform(key : String, value : String) : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.preferences_set(key.to_utf8, value.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.preferences_set(key.to_utf8, value.to_utf8, type_to_int(@storage_type))
-        {{ end }}
+        {% end }}
       end
 
       private def get_from_platform(key : String) : String
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           ptr = LibAndroid.preferences_get(key.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           ptr = LibIOS.preferences_get(key.to_utf8, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           return ""
-        {{ end }}
+        {% end }}
         
         if ptr
           value = String.new(ptr)
@@ -166,13 +166,13 @@ module Native
       end
 
       def write(filename : String, data : Bytes) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.file_write(filename.to_utf8, data, data.size, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.file_write(filename.to_utf8, data, data.size, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def write_text(filename : String, content : String) : Bool
@@ -180,15 +180,15 @@ module Native
       end
 
       def read(filename : String) : Bytes?
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           size_ptr = Pointer(Int32).malloc(1)
           data_ptr = LibAndroid.file_read(filename.to_utf8, size_ptr, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           size_ptr = Pointer(Int32).malloc(1)
           data_ptr = LibIOS.file_read(filename.to_utf8, size_ptr, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           return nil
-        {{ end }}
+        {% end }}
         
         if data_ptr && size_ptr.value > 0
           data = Bytes.new(size_ptr.value) { |i| data_ptr[i] }
@@ -205,33 +205,33 @@ module Native
       end
 
       def exists?(filename : String) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.file_exists(filename.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.file_exists(filename.to_utf8, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def delete(filename : String) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.file_delete(filename.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.file_delete(filename.to_utf8, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def list(directory : String = "") : Array(String)
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           files_ptr = LibAndroid.file_list(directory.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           files_ptr = LibIOS.file_list(directory.to_utf8, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           return [] of String
-        {{ end }}
+        {% end }}
         
         files = [] of String
         if files_ptr
@@ -248,13 +248,13 @@ module Native
       end
 
       def size(filename : String) : Int64
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.file_size(filename.to_utf8, type_to_int(@storage_type))
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.file_size(filename.to_utf8, type_to_int(@storage_type))
-        {{ else }}
+        {% else }}
           0
-        {{ end }}
+        {% end }}
       end
 
       private def type_to_int(type : StorageType) : Int32
@@ -277,13 +277,13 @@ module Native
       def open : Bool
         return true if @is_open
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           @db_ptr = LibAndroid.db_open(@name.to_utf8)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           @db_ptr = LibIOS.db_open(@name.to_utf8)
-        {{ else }}
+        {% else }}
           return false
-        {{ end }}
+        {% end }}
         
         @is_open = @db_ptr ? true : false
         @is_open
@@ -292,11 +292,11 @@ module Native
       def close : Nil
         return unless @is_open && @db_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.db_close(@db_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.db_close(@db_ptr)
-        {{ end }}
+        {% end }}
         
         @is_open = false
         @db_ptr = nil
@@ -307,13 +307,13 @@ module Native
         
         param_ptrs = params.map(&.to_utf8)
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibAndroid.db_execute(@db_ptr, sql.to_utf8, param_ptrs, param_ptrs.size)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibIOS.db_execute(@db_ptr, sql.to_utf8, param_ptrs, param_ptrs.size)
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def query(sql : String, params : Array(String) = [] of String) : Array(Hash(String, String))
@@ -323,13 +323,13 @@ module Native
         
         param_ptrs = params.map(&.to_utf8)
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           rows_ptr = LibAndroid.db_query(@db_ptr, sql.to_utf8, param_ptrs, param_ptrs.size)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           rows_ptr = LibIOS.db_query(@db_ptr, sql.to_utf8, param_ptrs, param_ptrs.size)
-        {{ else }}
+        {% else }}
           return results
-        {{ end }}
+        {% end }}
         
         if rows_ptr
           i = 0
@@ -355,13 +355,13 @@ module Native
         values = data.values.to_a
         
         if execute(sql, values)
-          {{ if flag?(:android) }}
+          {% if flag?(:android) }}
             LibAndroid.db_last_insert_rowid(@db_ptr)
-          {{ elsif flag?(:ios) }}
+          {% elsif flag?(:ios) }}
             LibIOS.db_last_insert_rowid(@db_ptr)
-          {{ else }}
+          {% else }}
             -1
-          {{ end }}
+          {% end }}
         else
           -1
         end
@@ -392,17 +392,17 @@ module Native
       end
 
       private def parse_row(row_ptr : Void*) : Hash(String, String)?
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           columns_ptr = LibAndroid.row_get_columns(row_ptr)
           values_ptr = LibAndroid.row_get_values(row_ptr)
           count = LibAndroid.row_get_count(row_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           columns_ptr = LibIOS.row_get_columns(row_ptr)
           values_ptr = LibIOS.row_get_values(row_ptr)
           count = LibIOS.row_get_count(row_ptr)
-        {{ else }}
+        {% else }}
           return nil
-        {{ end }}
+        {% end }}
         
         if columns_ptr && values_ptr && count > 0
           row = {} of String => String
@@ -434,33 +434,33 @@ module Native
       end
 
       def self.cache_dir : String
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           String.new(LibAndroid.get_cache_dir)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           String.new(LibIOS.get_cache_dir)
-        {{ else }}
+        {% else }}
           "./cache"
-        {{ end }}
+        {% end }}
       end
 
       def self.documents_dir : String
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           String.new(LibAndroid.get_documents_dir)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           String.new(LibIOS.get_documents_dir)
-        {{ else }}
+        {% else }}
           "./documents"
-        {{ end }}
+        {% end }}
       end
 
       def self.temp_dir : String
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           String.new(LibAndroid.get_temp_dir)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           String.new(LibIOS.get_temp_dir)
-        {{ else }}
+        {% else }}
           "./temp"
-        {{ end }}
+        {% end }}
       end
     end
   end

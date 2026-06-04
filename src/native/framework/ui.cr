@@ -83,20 +83,20 @@ module Native
       
       protected def draw_rect(renderer : Void*, x : Int32, y : Int32, w : Int32, h : Int32,
                                r : UInt8, g : UInt8, b : UInt8, a : UInt8) : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android)%}
           LibAndroid.draw_rect(renderer, x, y, w, h, r, g, b, a)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios)%}
           LibIOS.draw_rect(renderer, x, y, w, h, r.to_f / 255, g.to_f / 255, b.to_f / 255, a.to_f / 255)
-        {{ end }}
+        {% end %}
       end
       
       protected def draw_text(renderer : Void*, text : String, x : Int32, y : Int32, size : Int32,
                                r : UInt8, g : UInt8, b : UInt8) : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android)%}
           LibAndroid.draw_text(renderer, text.to_utf8, x, y, size, r, g, b)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios)%}
           LibIOS.draw_text(renderer, text.to_utf8, x, y, size, r.to_f / 255, g.to_f / 255, b.to_f / 255)
-        {{ end }}
+        {% end %}
       end
       
       def on_touch_began(x : Int32, y : Int32) : Bool
@@ -138,11 +138,11 @@ module Native
       end
       
       def measure(max_width : Int32, max_height : Int32) : {Int32, Int32}
-        {{ if flag?(:android) }}
+        {% if flag?(:android)%}
           w = LibAndroid.measure_text(@text.to_utf8, @text_size)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           w = LibIOS.measure_text(@text.to_utf8, @text_size)
-        {{ end }}
+        {% end %}
         {w, @text_size}
       end
     end
@@ -180,11 +180,11 @@ module Native
       end
       
       def measure(max_width : Int32, max_height : Int32) : {Int32, Int32}
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           w = LibAndroid.measure_text(@text.to_utf8, @text_size)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           w = LibIOS.measure_text(@text.to_utf8, @text_size)
-        {{ end }}
+        {% end %}
         {[w + 20, 100].max, 40}
       end
     end

@@ -71,19 +71,19 @@ module Native
       end
 
       def self.is_enrolled? : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibBiometric.android_is_biometric_enrolled
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibBiometric.ios_is_biometric_enrolled
-        {{ else }}
+        {% else %}
           false
-        {{ end }}
+        {% end %}
       end
 
       def self.authenticate(config : BiometricConfig = BiometricConfig.new) : BiometricResult
         return BiometricResult.new(success: false, error: BiometricError::NotAvailable) unless is_available?
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           result_code = LibBiometric.android_authenticate(
             config.title.to_utf8,
             config.subtitle.to_utf8,
@@ -93,7 +93,7 @@ module Native
             config.allow_device_credential,
             config.allow_fallback
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           result_code = LibBiometric.ios_authenticate(
             config.title.to_utf8,
             config.subtitle.to_utf8,
@@ -102,9 +102,9 @@ module Native
             config.fallback_title.to_utf8,
             config.allow_fallback
           )
-        {{ else }}
+        {% else %}
           return BiometricResult.new(success: false, error: BiometricError::NotAvailable)
-        {{ end }}
+        {% end %}
         
         parse_result(result_code)
       end
@@ -117,7 +117,7 @@ module Native
       end
 
       private def self.check_availability : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           result = LibBiometric.android_is_biometric_available
           @@is_available = result >= 0
           @@available_type = case result
@@ -126,7 +126,7 @@ module Native
                              when 3 then BiometricType::Iris
                              else BiometricType::None
                              end
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           result = LibBiometric.ios_get_biometric_type
           @@is_available = result != 0
           @@available_type = case result
@@ -134,10 +134,10 @@ module Native
                              when 2 then BiometricType::FaceID
                              else BiometricType::None
                              end
-        {{ else }}
+        {% else %}
           @@is_available = false
           @@available_type = BiometricType::None
-        {{ end }}
+        {% end %}
       end
 
       private def self.parse_result(result_code : Int32) : BiometricResult
@@ -220,7 +220,7 @@ module Native
         BiometricManager.is_enrolled?
       end
 
-      def self.authenticate(title : String = "Authenticate", callback : BiometricResult -> Nil) : Nil
+      def self.authenticate(callback : BiometricResult -> Nil, title : String = "Authenticate") : Nil
         config = BiometricConfig.new
         config.title = title
         BiometricManager.authenticate_async(config, &callback)

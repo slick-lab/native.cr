@@ -1,5 +1,7 @@
 # src/native/framework/camera.cr
 
+require "./ui"
+
 module Native
   module Camera
     enum CameraFacing
@@ -82,19 +84,19 @@ module Native
       def open : Bool
         return true if @is_open
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           @camera_ptr = LibCamera.android_camera_open(
             @config.facing.to_i32,
             @config.flash_mode.to_i32
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           @camera_ptr = LibCamera.ios_camera_open(
             @config.facing.to_i32,
             @config.flash_mode.to_i32
           )
-        {{ else }}
+        {% else %}
           return false
-        {{ end }}
+        {% end %}
         
         @is_open = @camera_ptr ? true : false
         
@@ -108,11 +110,11 @@ module Native
       def close : Nil
         return unless @is_open && @camera_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_close(@camera_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_close(@camera_ptr)
-        {{ end }}
+        {% end %}
         
         @camera_ptr = nil
         @is_open = false
@@ -130,33 +132,33 @@ module Native
       def stop_preview : Nil
         return unless @is_open && @camera_ptr && @preview_view
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_stop_preview(@camera_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_stop_preview(@camera_ptr)
-        {{ end }}
+        {% end %}
       end
 
       def take_photo : Nil
         return unless @is_open && @camera_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_take_photo(@camera_ptr, @config.quality.to_i32)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_take_photo(@camera_ptr, @config.quality.to_i32)
-        {{ end }}
+        {% end %}
       end
 
       def start_recording(file_path : String) : Bool
         return false unless @is_open && @camera_ptr && !@is_recording
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           result = LibCamera.android_camera_start_recording(@camera_ptr, file_path.to_utf8, @config.enable_audio)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           result = LibCamera.ios_camera_start_recording(@camera_ptr, file_path.to_utf8, @config.enable_audio)
-        {{ else }}
+        {% else %}
           result = false
-        {{ end }}
+        {% end %}
         
         if result
           @is_recording = true
@@ -168,30 +170,30 @@ module Native
       def stop_recording : Video?
         return nil unless @is_open && @camera_ptr && @is_recording
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           path_ptr = LibCamera.android_camera_stop_recording(@camera_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           path_ptr = LibCamera.ios_camera_stop_recording(@camera_ptr)
-        {{ else }}
+        {% else %}
           return nil
-        {{ end }}
+        {% end %}
         
         @is_recording = false
         
         if path_ptr
           video = Video.new
           video.file_path = String.new(path_ptr)
-          {{ if flag?(:android) }}
+          {% if flag?(:android) %}
             video.duration = LibCamera.android_video_get_duration(path_ptr)
             video.width = LibCamera.android_video_get_width(path_ptr)
             video.height = LibCamera.android_video_get_height(path_ptr)
             video.file_size = File.size(video.file_path)
-          {{ elsif flag?(:ios) }}
+          {% elsif flag?(:ios) %}
             video.duration = LibCamera.ios_video_get_duration(path_ptr)
             video.width = LibCamera.ios_video_get_width(path_ptr)
             video.height = LibCamera.ios_video_get_height(path_ptr)
             video.file_size = File.size(video.file_path)
-          {{ end }}
+          {% end %}
           LibCamera.free_string(path_ptr)
           video
         else
@@ -205,21 +207,21 @@ module Native
         new_facing = @config.facing == CameraFacing::Back ? CameraFacing::Front : CameraFacing::Back
         @config.facing = new_facing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_switch_facing(@camera_ptr, new_facing.to_i32)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_switch_facing(@camera_ptr, new_facing.to_i32)
-        {{ end }}
+        {% end %}
       end
 
       def flash_mode=(mode : FlashMode)
         @config.flash_mode = mode
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_set_flash_mode(@camera_ptr, mode.to_i32)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_set_flash_mode(@camera_ptr, mode.to_i32)
-        {{ end }}
+        {% end %}
       end
 
       def flash_mode : FlashMode
@@ -230,11 +232,11 @@ module Native
         return unless @is_open && @camera_ptr
         zoom = level.clamp(0.0, 1.0)
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_set_zoom(@camera_ptr, zoom)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_set_zoom(@camera_ptr, zoom)
-        {{ end }}
+        {% end %}
       end
 
       def set_focus(x : Float32, y : Float32) : Nil
@@ -242,11 +244,11 @@ module Native
         fx = x.clamp(0.0, 1.0)
         fy = y.clamp(0.0, 1.0)
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_set_focus(@camera_ptr, fx, fy)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_set_focus(@camera_ptr, fx, fy)
-        {{ end }}
+        {% end %}
       end
 
       def on_photo(&block : Photo -> Nil) : Nil
@@ -275,17 +277,17 @@ module Native
       private def attach_preview : Nil
         return unless @camera_ptr && @preview_view
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_attach_preview(@camera_ptr, @preview_view.not_nil!.native_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_camera_attach_preview(@camera_ptr, @preview_view.not_nil!.native_ptr)
-        {{ end }}
+        {% end %}
       end
 
       private def setup_callbacks : Nil
         return unless @camera_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_camera_set_callbacks(
             @camera_ptr,
             ->(data_ptr : UInt8*, size : Int32, width : Int32, height : Int32) {
@@ -298,9 +300,9 @@ module Native
               Camera.handle_error(error_ptr)
             }
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           # Similar for iOS
-        {{ end }}
+        {% end %}
       end
 
       private def self.handle_photo(data_ptr : UInt8*, size : Int32, width : Int32, height : Int32) : Nil
@@ -357,11 +359,11 @@ module Native
       def initialize
         super
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           @native_ptr = LibCamera.android_create_preview_view
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           @native_ptr = LibCamera.ios_create_preview_view
-        {{ end }}
+        {% end %}
       end
 
       def native_ptr : Void*
@@ -428,43 +430,43 @@ module Native
       end
 
       def self.request_permission : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_request_camera_permission
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_request_camera_permission
-        {{ else }}
+        {% else %}
           false
-        {{ end }}
+        {% end %}
       end
 
       def self.has_permission? : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibCamera.android_has_camera_permission
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibCamera.ios_has_camera_permission
-        {{ else }}
+        {% else %}
           false
-        {{ end }}
+        {% end %}
       end
 
       def self.available_cameras : Array(CameraFacing)
         cameras = [] of CameraFacing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           if LibCamera.android_has_back_camera
             cameras << CameraFacing::Back
           end
           if LibCamera.android_has_front_camera
             cameras << CameraFacing::Front
           end
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           if LibCamera.ios_has_back_camera
             cameras << CameraFacing::Back
           end
           if LibCamera.ios_has_front_camera
             cameras << CameraFacing::Front
           end
-        {{ end }}
+        {% end %}
         
         cameras
       end

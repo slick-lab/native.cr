@@ -244,10 +244,10 @@ describe Native::Animation::ValueAnimator do
     animator = Native::Animation::ValueAnimator.new(0.0, 100.0)
     animator.on_update { |v| values << v }
     animator.start
-    
+
     # Force immediate completion
     animator.update(Time.utc.to_unix_f + 1.0)
-    
+
     values.size.should be > 0
     values.last.should eq(100.0)
   end
@@ -746,15 +746,15 @@ describe Native::Gesture::PinchGestureRecognizer do
     last_scale = 1.0
     recognizer = Native::Gesture::PinchGestureRecognizer.new
     recognizer.on_pinch { |scale, center| last_scale = scale }
-    
+
     p1 = Native::Gesture::Point.new(0.0, 0.0)
     p2 = Native::Gesture::Point.new(100.0, 0.0)
     recognizer.touches_began([p1, p2])
-    
+
     p1 = Native::Gesture::Point.new(0.0, 0.0)
     p2 = Native::Gesture::Point.new(200.0, 0.0)
     recognizer.touches_moved([p1, p2])
-    
+
     last_scale.should eq(2.0)
   end
 end

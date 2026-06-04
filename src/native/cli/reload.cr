@@ -5,7 +5,7 @@ require "../core/process"
 def run_reload(entry_file : String)
   config = Native::Process::Config.new
   config.entry_point = entry_file
-  
+
   manager = Native::Process::Manager.new(config)
   manager.start
 end

@@ -158,23 +158,23 @@ module Native
       end
 
       def self.load_png(path : String) : ImageData?
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           load_png_android(path)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           load_png_ios(path)
-        {{ else }}
+        {% else %}
           load_png_stub(path)
-        {{ end }}
+        {% end %}
       end
 
       def self.load_jpeg(path : String) : ImageData?
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           load_jpeg_android(path)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           load_jpeg_ios(path)
-        {{ else }}
+        {% else %}
           load_jpeg_stub(path)
-        {{ end }}
+        {% end %}
       end
 
       private def self.load_png_android(path : String) : ImageData?
@@ -234,23 +234,23 @@ module Native
       end
 
       private def self.load_png_from_memory(data : Bytes) : ImageData?
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           load_png_memory_android(data)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           load_png_memory_ios(data)
-        {{ else }}
+        {% else %}
           nil
-        {{ end }}
+        {% end %}
       end
 
       private def self.load_jpeg_from_memory(data : Bytes) : ImageData?
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           load_jpeg_memory_android(data)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           load_jpeg_memory_ios(data)
-        {{ else }}
+        {% else %}
           nil
-        {{ end }}
+        {% end %}
       end
 
       private def self.load_png_stub(path : String) : ImageData?
@@ -346,11 +346,11 @@ module Native
       private def draw_scaled(renderer : Void*, img : ImageData, x : Int32, y : Int32, w : Int32, h : Int32) : Nil
         rgba = img.to_rgba
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAndroid.draw_image(renderer, rgba.pixels, rgba.width, rgba.height, x, y, w, h)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibIOS.draw_image(renderer, rgba.pixels, rgba.width, rgba.height, x, y, w, h)
-        {{ end }}
+        {% end %}
       end
 
       def measure(max_width : Int32, max_height : Int32) : {Int32, Int32}

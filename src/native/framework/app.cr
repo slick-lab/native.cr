@@ -1,9 +1,11 @@
-
-
 require "json"
 require "../core/state"
-require "../engine/android/android_main" if flag?(:android)
-require "../engine/ios/bridge" if flag?(:ios)
+{% if flag?(:android) %}
+  require "../engine/android/android_main"
+{% end %}
+{% if flag?(:ios) %}
+  require "../engine/ios/bridge"
+{% end %}
 
 module Native
   annotation Preserve; end
@@ -46,11 +48,11 @@ module Native
       start_event_loop
     end
 
-    def background_color : (UInt8, UInt8, UInt8)
+    def background_color : (UInt8, UInt8, UInt8) -> Tuple(UInt8, UInt8, UInt8)
       {@_bg_r, @_bg_g, @_bg_b}
     end
 
-    def background_color=(color : (UInt8, UInt8, UInt8))
+    def background_color=(color : {UInt8, UInt8, UInt8}) : Nil
       @_bg_r, @_bg_g, @_bg_b = color
       update_background_color
     end
@@ -119,36 +121,36 @@ module Native
     end
 
     private def create_window : Void*
-      {{ if flag?(:android) }}
+      {% if flag?(:android) %}
         LibAndroid.create_native_window
-      {{ elsif flag?(:ios) }}
+      {% elsif flag?(:ios) %}
         LibIOS.create_metal_layer
-      {{ else }}
+      {% else %}
         Pointer(Void).null
-      {{ end }}
+      {% end %}
     end
 
     private def create_renderer : Void*
-      {{ if flag?(:android) }}
+      {% if flag?(:android) %}
         LibAndroid.create_opengl_renderer(@_window)
-      {{ elsif flag?(:ios) }}
+      {% elsif flag?(:ios) %}
         LibIOS.create_metal_renderer(@_window)
-      {{ else }}
+      {% else %}
         Pointer(Void).null
-      {{ end }}
+      {% end %}
     end
 
     private def setup_signal_handlers : Nil
-      {{ if flag?(:android) }}
+      {% if flag?(:android) %}
         Signal::USR1.trap { save_state }
         Signal::TERM.trap { save_state; exit(0) }
-      {{ end }}
+      {% end %}
     end
 
     private def save_state : Nil
       state_file = ENV["NATIVE_CR_STATE_FILE"]?
       return unless state_file
-      
+
       begin
         File.write(state_file, to_json)
       rescue ex
@@ -159,7 +161,7 @@ module Native
     private def load_saved_state : Nil
       state_file = ENV["NATIVE_CR_STATE_FILE"]?
       return unless state_file && File.exists?(state_file)
-      
+
       begin
         json = File.read(state_file)
         from_json(json)
@@ -170,11 +172,11 @@ module Native
     end
 
     private def setup_callbacks : Nil
-      {{ if flag?(:android) }}
+      {% if flag?(:android) %}
         setup_android_callbacks
-      {{ elsif flag?(:ios) }}
+      {% elsif flag?(:ios) %}
         setup_ios_callbacks
-      {{ end }}
+      {% end %}
     end
 
     private def setup_android_callbacks : Nil
@@ -201,28 +203,28 @@ module Native
 
     private def start_event_loop : Nil
       setup
-      
-      {{ if flag?(:android) }}
+
+      {% if flag?(:android) %}
         loop do
           break if LibAndroid.poll_events(@_window) == 0
           update
           draw
           LibAndroid.swap_buffers(@_renderer)
         end
-      {{ elsif flag?(:ios) }}
+      {% elsif flag?(:ios) %}
         # iOS uses CADisplayLink, callback handled by bridge
         loop do
           NSRunLoop.current_run_loop.run
         end
-      {{ end }}
+      {% end %}
     end
 
     private def update_background_color : Nil
-      {{ if flag?(:android) }}
+      {% if flag?(:android) %}
         LibAndroid.set_clear_color(@_renderer, @_bg_r, @_bg_g, @_bg_b)
-      {{ elsif flag?(:ios) }}
+      {% elsif flag?(:ios) %}
         LibIOS.set_clear_color(@_renderer, @_bg_r / 255.0, @_bg_g / 255.0, @_bg_b / 255.0)
-      {{ end }}
+      {% end %}
     end
 
     @@current : App?

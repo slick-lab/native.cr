@@ -33,26 +33,26 @@ module Native
       end
 
       def load(path : String) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           result = load_android(path)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           result = load_ios(path)
-        {{ else }}
+        {% else %}
           result = false
-        {{ end }}
+        {% end %}
         
         @is_loaded = result
         result
       end
 
       def load_from_memory(data : Bytes, format : AudioFormat) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           result = load_memory_android(data, format)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           result = load_memory_ios(data, format)
-        {{ else }}
+        {% else %}
           result = false
-        {{ end }}
+        {% end %}
         
         @is_loaded = result
         result
@@ -61,13 +61,13 @@ module Native
       def play(config : SoundConfig = SoundConfig.new) : SoundInstance?
         return nil unless @is_loaded && @sound_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           instance_ptr = LibAudio.sound_play(@sound_ptr, config.volume, config.loop, config.pitch, config.pan)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           instance_ptr = LibAudio.sound_play(@sound_ptr, config.volume, config.loop, config.pitch, config.pan)
-        {{ else }}
+        {% else %}
           return nil
-        {{ end }}
+        {% end %}
         
         instance_ptr ? SoundInstance.new(instance_ptr) : nil
       end
@@ -75,11 +75,13 @@ module Native
       def stop_all : Nil
         return unless @is_loaded && @sound_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_stop_all(@sound_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_stop_all(@sound_ptr)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def duration : Float64
@@ -93,11 +95,11 @@ module Native
       def unload : Nil
         return unless @is_loaded && @sound_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_unload(@sound_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_unload(@sound_ptr)
-        {{ end }}
+        {% end %}
         
         @sound_ptr = nil
         @is_loaded = false
@@ -158,11 +160,11 @@ module Native
       def stop : Nil
         return unless @is_playing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_instance_stop(@instance_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_instance_stop(@instance_ptr)
-        {{ end }}
+        {% end %}
         
         @is_playing = false
       end
@@ -170,49 +172,57 @@ module Native
       def pause : Nil
         return unless @is_playing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_instance_pause(@instance_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_instance_pause(@instance_ptr)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def resume : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_instance_resume(@instance_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_instance_resume(@instance_ptr)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
         
         @is_playing = true
       end
 
       def volume=(value : Float32)
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_instance_set_volume(@instance_ptr, value)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_instance_set_volume(@instance_ptr, value)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def pitch=(value : Float32)
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_instance_set_pitch(@instance_ptr, value)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_instance_set_pitch(@instance_ptr, value)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def is_playing? : Bool
         return false unless @is_playing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.sound_instance_is_playing(@instance_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.sound_instance_is_playing(@instance_ptr)
-        {{ else }}
+        {% else %}
           false
-        {{ end }}
+        {% end %}
       end
     end
 
@@ -226,13 +236,13 @@ module Native
       end
 
       def load(path : String) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           ptr = LibAndroid.music_load(path.to_utf8)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           ptr = LibIOS.music_load(path.to_utf8)
-        {{ else }}
+        {% else %}
           ptr = nil
-        {{ end }}
+        {% end %}
         
         if ptr
           @music_ptr = ptr
@@ -245,11 +255,13 @@ module Native
       def play(loop : Bool = false) : Nil
         return unless @music_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_play(@music_ptr, loop)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_play(@music_ptr, loop)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
         
         @is_playing = true
       end
@@ -257,11 +269,13 @@ module Native
       def pause : Nil
         return unless @music_ptr && @is_playing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_pause(@music_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_pause(@music_ptr)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
         
         @is_playing = false
       end
@@ -269,11 +283,13 @@ module Native
       def resume : Nil
         return unless @music_ptr && !@is_playing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_resume(@music_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_resume(@music_ptr)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
         
         @is_playing = true
       end
@@ -281,11 +297,13 @@ module Native
       def stop : Nil
         return unless @music_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_stop(@music_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_stop(@music_ptr)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
         
         @is_playing = false
       end
@@ -293,11 +311,13 @@ module Native
       def volume=(value : Float32)
         @volume = value.clamp(0.0, 1.0)
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_set_volume(@music_ptr, @volume)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_set_volume(@music_ptr, @volume)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def volume : Float32
@@ -311,45 +331,49 @@ module Native
       def seek(position : Float64) : Nil
         return unless @music_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_seek(@music_ptr, position)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_seek(@music_ptr, position)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def current_position : Float64
         return 0.0 unless @music_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_get_position(@music_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_get_position(@music_ptr)
-        {{ else }}
+        {% else %}
           0.0
-        {{ end }}
+        {% end %}
       end
 
       def duration : Float64
         return 0.0 unless @music_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_get_duration(@music_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_get_duration(@music_ptr)
-        {{ else }}
+        {% else %}
           0.0
-        {{ end }}
+        {% end %}
       end
 
       def unload : Nil
         stop
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.music_unload(@music_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.music_unload(@music_ptr)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
         
         @music_ptr = nil
       end
@@ -365,13 +389,13 @@ module Native
       def start : Bool
         return false if @is_recording
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           @recorder_ptr = LibAndroid.recorder_start
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           @recorder_ptr = LibIOS.recorder_start
-        {{ else }}
+        {% else %}
           return false
-        {{ end }}
+        {% end %}
         
         @is_recording = @recorder_ptr ? true : false
         @is_recording
@@ -380,15 +404,15 @@ module Native
       def stop : Bytes?
         return nil unless @is_recording && @recorder_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           data_ptr = LibAndroid.recorder_stop(@recorder_ptr)
           size = LibAndroid.recorder_get_size(@recorder_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           data_ptr = LibIOS.recorder_stop(@recorder_ptr)
           size = LibIOS.recorder_get_size(@recorder_ptr)
-        {{ else }}
+        {% else %}
           return nil
-        {{ end }}
+        {% end %}
         
         @is_recording = false
         @recorder_ptr = nil
@@ -438,13 +462,15 @@ module Native
       end
 
       private def self.apply_volumes
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.set_master_volume(@master_volume * @music_volume)
           LibAudio.set_sfx_volume(@master_volume * @sfx_volume)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.set_master_volume(@master_volume * @music_volume)
           LibAudio.set_sfx_volume(@master_volume * @sfx_volume)
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
     end
 
@@ -461,33 +487,39 @@ module Native
       end
 
       def self.stop_all : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.stop_all_sounds
           LibAudio.stop_music
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.stop_all_sounds
           LibAudio.stop_music
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def self.pause_all : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.pause_all_sounds
           LibAudio.pause_music
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.pause_all_sounds
           LibAudio.pause_music
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
 
       def self.resume_all : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibAudio.resume_all_sounds
           LibAudio.resume_music
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibAudio.resume_all_sounds
           LibAudio.resume_music
-        {{ end }}
+        {% else %}
+          return
+        {% end %}
       end
     end
   end

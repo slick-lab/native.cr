@@ -149,7 +149,9 @@ module Native
       end
 
       protected abstract def apply(t : Float64) : Nil
+
       protected def on_start : Nil; end
+
       protected def on_complete : Nil; end
 
       private def now : Float64
@@ -241,18 +243,18 @@ module Native
       protected def apply(t : Float64) : Nil
         x = (@start_x + (@end_x - @start_x) * t).to_i
         y = (@start_y + (@end_y - @start_y) * t).to_i
-        
+
         if @view
           @view.not_nil!.x = x
           @view.not_nil!.y = y
         end
-        
+
         @on_update.try &.call(x, y)
       end
     end
 
     class SequenceAnimator < Animator
-      @animators : Array(Animator) = []
+      @animators : Array(Animator) = [] of String | Nil | Array(Animator)
       @current_index : Int32 = 0
 
       def add(animator : Animator) : Nil
@@ -279,7 +281,7 @@ module Native
     end
 
     class ParallelAnimator < Animator
-      @animators : Array(Animator) = []
+      @animators : Array(Animator) = [] of String | Nil | Array(Animator)
 
       def add(animator : Animator) : Nil
         @animators << animator
@@ -295,7 +297,7 @@ module Native
     end
 
     module AnimationDSL
-      def animate(duration : Float64 = 0.3, curve : Curve = Curve::EaseInOut)
+      def animate(duration : Float64 = 0.3, curve : Curve = Curve::EaseInOut, &)
         config = AnimationConfig.new(duration: duration, curve: curve)
         yield AnimationBuilder.new(config)
       end
@@ -347,7 +349,7 @@ module Native
     end
 
     class AnimationManager
-      @animators : Array(Animator) = []
+      @animators : Array(Animator) = [] of Array(Animator) | String | Nil
       @previous_time : Float64 = 0.0
 
       def initialize

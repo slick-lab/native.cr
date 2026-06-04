@@ -57,7 +57,7 @@ module Native
       def show : Nil
         return if @is_showing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           @dialog_ptr = LibDialog.android_show_alert(
             @config.title.to_utf8,
             @config.message.to_utf8,
@@ -65,7 +65,7 @@ module Native
           )
           
           setup_button_callbacks
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           @dialog_ptr = LibDialog.ios_show_alert(
             @config.title.to_utf8,
             @config.message.to_utf8,
@@ -73,7 +73,7 @@ module Native
           )
           
           setup_button_callbacks
-        {{ end }}
+        {% end %}
         
         @is_showing = true
       end
@@ -81,11 +81,11 @@ module Native
       def dismiss : Nil
         return unless @is_showing && @dialog_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibDialog.android_dismiss_dialog(@dialog_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibDialog.ios_dismiss_alert(@dialog_ptr)
-        {{ end }}
+        {% end %}
         
         @is_showing = false
         @dialog_ptr = nil
@@ -94,22 +94,22 @@ module Native
       private def update_native_title : Nil
         return unless @dialog_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibDialog.android_set_dialog_title(@dialog_ptr, @config.title.to_utf8)
-        {{ end }}
+        {% end %}
       end
 
       private def update_native_message : Nil
         return unless @dialog_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibDialog.android_set_dialog_message(@dialog_ptr, @config.message.to_utf8)
-        {{ end }}
+        {% end %}
       end
 
       private def setup_button_callbacks : Nil
         @config.buttons.each_with_index do |button, index|
-          {{ if flag?(:android) }}
+          {% if flag?(:android) %}
             LibDialog.android_add_dialog_button(
               @dialog_ptr,
               button.title.to_utf8,
@@ -118,21 +118,21 @@ module Native
               button.is_default,
               button.is_cancel
             )
-          {{ elsif flag?(:ios) }}
+          {% elsif flag?(:ios) %}
             LibDialog.ios_add_alert_button(
               @dialog_ptr,
               button.title.to_utf8,
               button.action.to_i32,
               index
             )
-          {{ end }}
+          {% end %}
         end
         
         set_global_callback
       end
 
       private def set_global_callback : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibDialog.android_set_dialog_callback(
             @dialog_ptr,
             ->(index : Int32) {
@@ -142,14 +142,14 @@ module Native
               handle_dismiss
             }
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibDialog.ios_set_alert_callback(
             @dialog_ptr,
             ->(index : Int32) {
               handle_button_click(index)
             }
           )
-        {{ end }}
+        {% end %}
       end
 
       private def handle_button_click(index : Int32) : Nil
@@ -191,11 +191,11 @@ module Native
       end
 
       def self.show(message : String, duration : Duration = Duration::Short) : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibDialog.android_show_toast(message.to_utf8, duration == Duration::Short ? 0 : 1)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibDialog.ios_show_toast(message.to_utf8, duration == Duration::Short ? 2.0 : 3.5)
-        {{ end }}
+        {% end %}
       end
     end
 
@@ -209,11 +209,11 @@ module Native
       def show : Nil
         return if @is_showing
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           @dialog_ptr = LibDialog.android_show_loading(@message.to_utf8)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           @dialog_ptr = LibDialog.ios_show_loading(@message.to_utf8)
-        {{ end }}
+        {% end %}
         
         @is_showing = true
       end
@@ -221,11 +221,11 @@ module Native
       def dismiss : Nil
         return unless @is_showing && @dialog_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibDialog.android_dismiss_loading(@dialog_ptr)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibDialog.ios_dismiss_loading(@dialog_ptr)
-        {{ end }}
+        {% end %}
         
         @is_showing = false
         @dialog_ptr = nil
@@ -235,9 +235,9 @@ module Native
         @message = message
         return unless @is_showing && @dialog_ptr
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) %}
           LibDialog.android_set_loading_message(@dialog_ptr, message.to_utf8)
-        {{ end }}
+        {% end %}
       end
 
       def showing? : Bool
@@ -258,7 +258,7 @@ module Native
       end
 
       def show : Nil
-        {{ if flag?(:ios) }}
+        {% if flag?(:ios) %}
           @sheet_ptr = LibDialog.ios_show_action_sheet(
             @config.title.to_utf8,
             @config.message.to_utf8
@@ -283,16 +283,16 @@ module Native
               @sheet_ptr = nil
             }
           )
-        {{ else }}
+        {% else %}
           alert = AlertDialog.new(@config)
           @config.buttons.each { |b| alert.add_button(b.title, b.action, &b.callback) }
           alert.show
-        {{ end }}
+        {% end %}
       end
     end
 
     module Dialog
-      def self.alert(title : String, message : String, &callback : -> Nil = ->{})
+      def self.alert(title : String, message : String, &callback : -> Nil) : Nil
         dialog = AlertDialog.new(AlertConfig.new(title: title, message: message))
         dialog.add_button("OK", DialogAction::Positive, &callback)
         dialog.show
@@ -306,9 +306,8 @@ module Native
         DestructiveConfirmationDialog.new(title, message, on_confirm, on_cancel).show
       end
 
-      def self.prompt(title : String, message : String, placeholder : String = "", 
-                      on_result : String -> Nil, on_cancel : -> Nil = ->{})
-        {{ if flag?(:android) }}
+      def self.prompt(title : String, message : String, on_result : String -> Nil, placeholder : String = "", on_cancel : -> Nil = ->{})
+        {% if flag?(:android) %}
           LibDialog.android_show_prompt_dialog(
             title.to_utf8,
             message.to_utf8,
@@ -321,7 +320,7 @@ module Native
               on_cancel.call
             }
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) %}
           LibDialog.ios_show_prompt_alert(
             title.to_utf8,
             message.to_utf8,
@@ -334,7 +333,7 @@ module Native
               on_cancel.call
             }
           )
-        {{ end }}
+        {% end %}
       end
 
       def self.toast(message : String, long : Bool = false)

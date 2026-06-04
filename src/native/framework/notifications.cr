@@ -76,7 +76,7 @@ module Native
       def self.initialize(channels : Array(NotificationChannel) = [] of NotificationChannel) : Nil
         return if @@initialized
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           channels.each do |channel|
             LibNotifications.android_create_channel(
               channel.id.to_utf8,
@@ -89,10 +89,10 @@ module Native
               channel.light_color || 0
             )
           end
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_request_permission
           setup_delegate
-        {{ end }}
+        {% end }}
         
         @@initialized = true
       end
@@ -100,7 +100,7 @@ module Native
       def self.show(notification : Notification) : Bool
         return false unless @@initialized
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           action_titles = notification.actions.map(&.title.to_utf8)
           action_ids = notification.actions.map(&.id.to_utf8)
           
@@ -124,7 +124,7 @@ module Native
             notification.actions.size,
             notification.payload.to_json.to_utf8
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_show_notification(
             notification.id,
             notification.title.to_utf8,
@@ -133,9 +133,9 @@ module Native
             notification.sound.to_utf8?,
             notification.payload.to_json.to_utf8
           )
-        {{ else }}
+        {% else }}
           return false
-        {{ end }}
+        {% end }}
         
         true
       end
@@ -143,7 +143,7 @@ module Native
       def self.schedule(notification : Notification) : Bool
         return false unless notification.schedule_time
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           timestamp = notification.schedule_time.not_nil!.to_unix * 1000
           
           LibNotifications.android_schedule_notification(
@@ -155,7 +155,7 @@ module Native
             notification.body.to_utf8,
             notification.payload.to_json.to_utf8
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           trigger = LibNotifications.ios_create_time_trigger(
             notification.schedule_time.not_nil!.to_unix_f,
             notification.repeat_interval.try(&.to_i) == 86400
@@ -168,35 +168,35 @@ module Native
             trigger,
             notification.payload.to_json.to_utf8
           )
-        {{ else }}
+        {% else }}
           return false
-        {{ end }}
+        {% end }}
         
         true
       end
 
       def self.cancel(id : Int32) : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibNotifications.android_cancel_notification(id)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_cancel_notification(id)
-        {{ end }}
+        {% end }}
       end
 
       def self.cancel_all : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibNotifications.android_cancel_all_notifications
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_cancel_all_notifications
-        {{ end }}
+        {% end }}
       end
 
       def self.set_badge_number(count : Int32) : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibNotifications.android_set_badge_number(count)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_set_badge_number(count)
-        {{ end }}
+        {% end }}
       end
 
       def self.clear_badge : Nil
@@ -204,23 +204,23 @@ module Native
       end
 
       def self.get_permission_status : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibNotifications.android_has_permission
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_has_permission
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def self.request_permission : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibNotifications.android_request_permission
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_request_permission
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       @on_notification_callbacks = [] of (Notification -> Nil)
@@ -239,7 +239,7 @@ module Native
       private def self.setup_delegate : Nil
         return if @delegate_setup
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibNotifications.android_set_notification_delegate(
             ->(action_id_ptr : UInt8*, payload_json_ptr : UInt8*) {
               handle_notification_action(action_id_ptr, payload_json_ptr)
@@ -248,7 +248,7 @@ module Native
               handle_notification_received(payload_json_ptr)
             }
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibNotifications.ios_set_notification_delegate(
             ->(action_id_ptr : UInt8*, payload_json_ptr : UInt8*) {
               handle_notification_action(action_id_ptr, payload_json_ptr)
@@ -257,7 +257,7 @@ module Native
               handle_notification_received(payload_json_ptr)
             }
           )
-        {{ end }}
+        {% end }}
         
         @delegate_setup = true
       end

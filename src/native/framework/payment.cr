@@ -96,13 +96,13 @@ module Native
       def self.initialize(merchant_id : String = "") : Bool
         return true if @@initialized
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           result = LibPayment.android_initialize_billing
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           result = LibPayment.ios_initialize_payment(merchant_id.to_utf8)
-        {{ else }}
+        {% else }}
           result = false
-        {{ end }}
+        {% end }}
         
         if result
           @@initialized = true
@@ -120,13 +120,13 @@ module Native
         missing = product_ids.reject { |id| @@products_cache.has_key?(id) }
         
         if missing.any?
-          {{ if flag?(:android) }}
+          {% if flag?(:android) }}
             fetched = fetch_products_android(missing)
-          {{ elsif flag?(:ios) }}
+          {% elsif flag?(:ios) }}
             fetched = fetch_products_ios(missing)
-          {{ else }}
+          {% else }}
             fetched = [] of Product
-          {{ end }}
+          {% end }}
           
           fetched.each { |p| @@products_cache[p.id] = p }
           cached + fetched
@@ -140,13 +140,13 @@ module Native
         
         @@purchase_callbacks << callback
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibPayment.android_purchase_product(product_id.to_utf8)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibPayment.ios_purchase_product(product_id.to_utf8)
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def self.restore_purchases(&callback : RestoreResult -> Nil) : Bool
@@ -154,53 +154,53 @@ module Native
         
         @@restore_callbacks << callback
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibPayment.android_restore_purchases
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibPayment.ios_restore_purchases
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def self.is_purchased?(product_id : String) : Bool
         return false unless @@initialized
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibPayment.android_is_purchased(product_id.to_utf8)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibPayment.ios_is_purchased(product_id.to_utf8)
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def self.is_subscription_active?(product_id : String) : Bool
         return false unless @@initialized
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibPayment.android_is_subscription_active(product_id.to_utf8)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibPayment.ios_is_subscription_active(product_id.to_utf8)
-        {{ else }}
+        {% else }}
           false
-        {{ end }}
+        {% end }}
       end
 
       def self.get_subscription_expiry(product_id : String) : Int64?
         return nil unless @@initialized
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibPayment.android_get_subscription_expiry(product_id.to_utf8)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibPayment.ios_get_subscription_expiry(product_id.to_utf8)
-        {{ else }}
+        {% else }}
           nil
-        {{ end }}
+        {% end }}
       end
 
       private def self.setup_callbacks : Nil
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }}
           LibPayment.android_set_purchase_callback(
             ->(product_id_ptr : UInt8*, transaction_id_ptr : UInt8*, receipt_ptr : UInt8*, success : Bool) {
               handle_purchase_result(product_id_ptr, transaction_id_ptr, receipt_ptr, success)
@@ -209,7 +209,7 @@ module Native
               handle_restore_result(product_ids_ptr, count, success)
             }
           )
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }}
           LibPayment.ios_set_purchase_callback(
             ->(product_id_ptr : UInt8*, transaction_id_ptr : UInt8*, receipt_ptr : UInt8*, success : Bool) {
               handle_purchase_result(product_id_ptr, transaction_id_ptr, receipt_ptr, success)
@@ -218,7 +218,7 @@ module Native
               handle_restore_result(product_ids_ptr, count, success)
             }
           )
-        {{ end }}
+        {% end }}
       end
 
       private def self.handle_purchase_result(product_id_ptr : UInt8*, transaction_id_ptr : UInt8*,

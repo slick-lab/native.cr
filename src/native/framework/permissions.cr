@@ -46,13 +46,13 @@ module Native
       @@callbacks = {} of PermissionType => Array(PermissionStatus -> Nil)
 
       def self.check(type : PermissionType) : PermissionStatus
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }
           result = LibPermissions.android_check_permission(type.to_i32)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }
           result = LibPermissions.ios_check_permission(type.to_i32)
-        {{ else }}
+        {% else }
           result = 0
-        {{ end }}
+        {% end }
         
         PermissionStatus.from_value(result)
       end
@@ -68,11 +68,11 @@ module Native
         @@callbacks[type] = [] of PermissionStatus -> Nil unless @@callbacks.has_key?(type)
         @@callbacks[type] << callback
         
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }
           LibPermissions.android_request_permission(type.to_i32)
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }
           LibPermissions.ios_request_permission(type.to_i32)
-        {{ end }}
+        {% end }
       end
 
       def self.request_multiple(types : Array(PermissionType), &callback : Hash(PermissionType, PermissionStatus) -> Nil) : Nil
@@ -118,21 +118,21 @@ module Native
       end
 
       def self.open_settings : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }
           LibPermissions.android_open_settings
-        {{ elsif flag?(:ios) }}
+        {% elsif flag?(:ios) }
           LibPermissions.ios_open_settings
-        {{ else }}
+        {% else }
           false
-        {{ end }}
+        {% end }
       end
 
       def self.should_show_rationale?(type : PermissionType) : Bool
-        {{ if flag?(:android) }}
+        {% if flag?(:android) }
           LibPermissions.android_should_show_rationale(type.to_i32)
-        {{ else }}
+        {% else }
           false
-        {{ end }}
+        {% end }
       end
 
       private def self.handle_permission_result(type : PermissionType, granted : Bool) : Nil
@@ -278,13 +278,13 @@ module Native
     end
 
     # Platform callbacks for permission results
-    {{ if flag?(:android) }}
+    {% if flag?(:android) }
       @[Export("native_cr_permission_result")]
       fun native_cr_permission_result(permission_type : Int32, granted : Bool) : Void
         PermissionManager.handle_permission_result(PermissionType.from_value(permission_type), granted)
       end
-    {{ elsif flag?(:ios) }}
+    {% elsif flag?(:ios) }
       # iOS delegates will call back through the bridge
-    {{ end }}
+    {% end }
   end
 end

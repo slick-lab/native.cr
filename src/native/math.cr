@@ -2,9 +2,9 @@
 
 module Native
   module Math
-    PI = 3.141592653589793
-    TAU = 6.283185307179586
-    HALF_PI = 1.5707963267948966
+    PI         =  3.141592653589793
+    TAU        =  6.283185307179586
+    HALF_PI    = 1.5707963267948966
     DEG_TO_RAD = PI / 180.0
     RAD_TO_DEG = 180.0 / PI
 
@@ -286,12 +286,12 @@ module Native
 
       def intersection(other : Rect) : Rect?
         return nil unless intersects(other)
-        
+
         new_x = Math.max(@x, other.x)
         new_y = Math.max(@y, other.y)
         new_w = Math.min(right, other.right) - new_x
         new_h = Math.min(bottom, other.bottom) - new_y
-        
+
         Rect.new(new_x, new_y, new_w, new_h)
       end
 
@@ -344,7 +344,7 @@ module Native
         result = Matrix3.new
         a = @m
         b = other.m
-        
+
         result.m[0] = a[0] * b[0] + a[1] * b[3] + a[2] * b[6]
         result.m[1] = a[0] * b[1] + a[1] * b[4] + a[2] * b[7]
         result.m[2] = a[0] * b[2] + a[1] * b[5] + a[2] * b[8]
@@ -354,7 +354,7 @@ module Native
         result.m[6] = a[6] * b[0] + a[7] * b[3] + a[8] * b[6]
         result.m[7] = a[6] * b[1] + a[7] * b[4] + a[8] * b[7]
         result.m[8] = a[6] * b[2] + a[7] * b[5] + a[8] * b[8]
-        
+
         result
       end
 

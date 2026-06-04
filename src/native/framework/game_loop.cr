@@ -31,14 +31,14 @@ module Native
       @fixed_delta : Float64
       @frame_time_avg : Float64 = 0.0
       @frame_times : Array(Float64) = [] of Float64
-      
+
       @on_update : (Float64 -> Nil)?
       @on_fixed_update : (Float64 -> Nil)?
       @on_render : (Float64 -> Nil)?
-      @on_start : ( -> Nil)?
-      @on_pause : ( -> Nil)?
-      @on_resume : ( -> Nil)?
-      @on_stop : ( -> Nil)?
+      @on_start : (-> Nil)?
+      @on_pause : (-> Nil)?
+      @on_resume : (-> Nil)?
+      @on_stop : (-> Nil)?
 
       def initialize(@config : LoopConfig = LoopConfig.new)
         @fixed_delta = @config.fixed_update_rate
@@ -46,16 +46,16 @@ module Native
 
       def start : Nil
         return if @is_running
-        
+
         @is_running = true
         @is_paused = false
         @last_time = now
         @accumulator = 0.0
         @frame_count = 0
         @frame_times.clear
-        
+
         @on_start.try &.call
-        
+
         spawn do
           while @is_running
             update_loop
@@ -144,17 +144,17 @@ module Native
 
       private def update_loop : Nil
         return if @is_paused
-        
+
         current_time = now
         frame_time = current_time - @last_time
         @last_time = current_time
-        
+
         if frame_time > @config.max_frame_time
           frame_time = @config.max_frame_time
         end
-        
+
         @delta_time = frame_time
-        
+
         case @config.mode
         when LoopMode::Fixed
           fixed_update_loop(frame_time)
@@ -163,19 +163,19 @@ module Native
         when LoopMode::Adaptive
           adaptive_update_loop(frame_time)
         end
-        
+
         calculate_fps(frame_time)
         @frame_count += 1
       end
 
       private def fixed_update_loop(frame_time : Float64) : Nil
         @accumulator += frame_time
-        
+
         while @accumulator >= @fixed_delta
           @on_fixed_update.try &.call(@fixed_delta)
           @accumulator -= @fixed_delta
         end
-        
+
         alpha = @accumulator / @fixed_delta
         @on_update.try &.call(@delta_time) if @on_update
         @on_render.try &.call(alpha) if @on_render
@@ -189,7 +189,7 @@ module Native
 
       private def adaptive_update_loop(frame_time : Float64) : Nil
         target_frame_time = 1.0 / @config.target_fps
-        
+
         if frame_time > target_frame_time
           @on_update.try &.call(frame_time)
           @on_fixed_update.try &.call(frame_time)
@@ -197,7 +197,7 @@ module Native
           @on_update.try &.call(frame_time)
           @on_fixed_update.try &.call(frame_time)
         end
-        
+
         @on_render.try &.call(frame_time)
       end
 
@@ -237,35 +237,35 @@ module Native
     module GameLoopDSL
       def game_loop(target_fps : Int32 = 60, mode : LoopMode = LoopMode::Adaptive)
         @__game_loop = GameLoop.new(LoopConfig.new(mode: mode, target_fps: target_fps))
-        
+
         @__game_loop.on_start do
           game_start if responds_to?(:game_start)
         end
-        
+
         @__game_loop.on_update do |delta|
           game_update(delta) if responds_to?(:game_update)
         end
-        
+
         @__game_loop.on_fixed_update do |delta|
           game_fixed_update(delta) if responds_to?(:game_fixed_update)
         end
-        
+
         @__game_loop.on_render do |alpha|
           game_render(alpha) if responds_to?(:game_render)
         end
-        
+
         @__game_loop.on_pause do
           game_pause if responds_to?(:game_pause)
         end
-        
+
         @__game_loop.on_resume do
           game_resume if responds_to?(:game_resume)
         end
-        
+
         @__game_loop.on_stop do
           game_stop if responds_to?(:game_stop)
         end
-        
+
         @__game_loop.start
       end
 

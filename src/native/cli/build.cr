@@ -160,12 +160,12 @@ module Native::CLI
       MODULE
 
       File.write("#{framework_dir}/module.modulemap", module_map)
-      
+
       header = <<-HEADER
       #import <Foundation/Foundation.h>
       extern void native_cr_main(void);
       HEADER
-      
+
       File.write("#{framework_dir}/Headers/NativeCr.h", header)
     end
   end

@@ -73,7 +73,7 @@ module Native::CLI
 
       begin
         response = `curl -s --connect-timeout 5 https://api.github.com/repos/slick-lab/native.cr/releases/latest 2>/dev/null`
-        
+
         if response.empty?
           puts "[WARN] Cannot check latest version (offline or GitHub unreachable)"
           return
@@ -83,7 +83,7 @@ module Native::CLI
         if match
           latest = match[1]
           current = Native::VERSION
-          
+
           if latest == current
             puts "[OK] You are on the latest version: #{current}"
           else

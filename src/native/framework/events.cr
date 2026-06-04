@@ -20,18 +20,18 @@ module Native
     end
 
     enum KeyCode
-      Unknown = 0
-      Back = 4
-      Home = 3
-      Menu = 82
-      VolumeUp = 24
-      VolumeDown = 25
-      Enter = 66
-      Delete = 67
-      Tab = 61
-      Space = 62
-      Escape = 111
-      
+      Unknown    =   0
+      Back       =   4
+      Home       =   3
+      Menu       =  82
+      VolumeUp   =  24
+      VolumeDown =  25
+      Enter      =  66
+      Delete     =  67
+      Tab        =  61
+      Space      =  62
+      Escape     = 111
+
       A = 29
       B = 30
       C = 31
@@ -58,10 +58,10 @@ module Native
       X = 52
       Y = 53
       Z = 54
-      
-      Num0 = 7
-      Num1 = 8
-      Num2 = 9
+
+      Num0 =  7
+      Num1 =  8
+      Num2 =  9
       Num3 = 10
       Num4 = 11
       Num5 = 12
@@ -107,7 +107,7 @@ module Native
       property velocity_x : Float32
       property velocity_y : Float32
 
-      def initialize(@type = GestureType::Tap, @center_x = 0.0, @center_y = 0.0, 
+      def initialize(@type = GestureType::Tap, @center_x = 0.0, @center_y = 0.0,
                      @scale = 1.0, @rotation = 0.0, @velocity_x = 0.0, @velocity_y = 0.0)
       end
     end
@@ -243,11 +243,9 @@ module Native
           @touch_start_time = Time.utc
           @long_press_triggered = false
           start_long_press_timer
-          
         when TouchAction::Moved
           check_long_press(touch)
           check_pan(touch)
-          
         when TouchAction::Ended
           check_tap(touch)
           check_swipe(touch)

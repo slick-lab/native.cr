@@ -57,7 +57,7 @@ module Native
 
       def touches_began(touches : Array(Point)) : Nil
         return if touches.size != @number_of_touches_required
-        
+
         @start_point = touches.first
         @current_point = touches.first
         @state = GestureState::Began
@@ -66,10 +66,10 @@ module Native
 
       def touches_moved(touches : Array(Point)) : Nil
         return unless @state == GestureState::Began || @state == GestureState::Changed
-        
+
         @current_point = touches.first
         distance = @start_point.distance_to(@current_point)
-        
+
         if distance > 10
           @state = GestureState::Failed
           @on_state_change.try &.call(@state)
@@ -81,7 +81,7 @@ module Native
 
       def touches_ended(touches : Array(Point)) : Nil
         return unless @state == GestureState::Began || @state == GestureState::Changed
-        
+
         now = Time.utc.to_unix_f
         if now - @last_tap_time < 0.3
           @tap_count += 1
@@ -89,7 +89,7 @@ module Native
           @tap_count = 1
         end
         @last_tap_time = now
-        
+
         if @tap_count >= @number_of_taps_required
           @state = GestureState::Ended
           @on_tap.try &.call(@current_point)
@@ -139,16 +139,16 @@ module Native
         @current_point = touches.first
         @state = GestureState::Began
         @on_state_change.try &.call(@state)
-        
+
         start_timer
       end
 
       def touches_moved(touches : Array(Point)) : Nil
         return unless @state == GestureState::Began || @state == GestureState::Changed
-        
+
         @current_point = touches.first
         distance = @start_point.distance_to(@current_point)
-        
+
         if distance > @allowable_movement
           cancel_timer
           @state = GestureState::Failed
@@ -240,7 +240,7 @@ module Native
           @current_point.x - @start_point.x,
           @current_point.y - @start_point.y
         )
-        
+
         now = Time.utc.to_unix_f
         delta_time = now - @last_time
         if delta_time > 0
@@ -249,11 +249,11 @@ module Native
             (@current_point.y - @previous_point.y) / delta_time
           )
         end
-        
+
         @state = GestureState::Changed
         @on_pan.try &.call(@translation, @velocity, @current_point)
         @on_state_change.try &.call(@state)
-        
+
         @previous_point = @current_point
         @last_time = now
       end
@@ -302,7 +302,7 @@ module Native
 
       def touches_began(touches : Array(Point)) : Nil
         return if touches.size < 2
-        
+
         @start_distance = distance_between(touches[0], touches[1])
         @current_distance = @start_distance
         @start_scale = @scale
@@ -312,15 +312,15 @@ module Native
 
       def touches_moved(touches : Array(Point)) : Nil
         return if touches.size < 2
-        
+
         @current_distance = distance_between(touches[0], touches[1])
         @scale = @start_scale * (@current_distance / @start_distance)
-        
+
         center = Point.new(
           (touches[0].x + touches[1].x) / 2,
           (touches[0].y + touches[1].y) / 2
         )
-        
+
         @state = GestureState::Changed
         @on_pinch.try &.call(@scale, center)
         @on_state_change.try &.call(@state)
@@ -371,7 +371,7 @@ module Native
 
       def touches_began(touches : Array(Point)) : Nil
         return if touches.size < 2
-        
+
         @start_angle = angle_between(touches[0], touches[1])
         @current_angle = @start_angle
         @start_rotation = @rotation
@@ -381,15 +381,15 @@ module Native
 
       def touches_moved(touches : Array(Point)) : Nil
         return if touches.size < 2
-        
+
         @current_angle = angle_between(touches[0], touches[1])
         @rotation = @start_rotation + (@current_angle - @start_angle)
-        
+
         center = Point.new(
           (touches[0].x + touches[1].x) / 2,
           (touches[0].y + touches[1].y) / 2
         )
-        
+
         @state = GestureState::Changed
         @on_rotate.try &.call(@rotation, center)
         @on_state_change.try &.call(@state)
@@ -437,19 +437,19 @@ module Native
       def touches_ended(touches : Array(Point)) : Nil
         end_point = touches.first
         end_time = Time.utc.to_unix_f
-        
+
         dx = end_point.x - @start_point.x
         dy = end_point.y - @start_point.y
         distance = Math.sqrt(dx * dx + dy * dy)
         duration = end_time - @start_time
-        
+
         if distance >= @minimum_distance && duration <= @maximum_duration
           if dx.abs > dy.abs
             @direction = dx > 0 ? 1 : 2
           else
             @direction = dy > 0 ? 3 : 4
           end
-          
+
           @state = GestureState::Ended
           @on_swipe.try &.call(@direction)
           @on_state_change.try &.call(@state)
@@ -512,54 +512,54 @@ module Native
       def on_touch_began(x : Int32, y : Int32) : Bool
         point = Point.new(x.to_f64, y.to_f64)
         @active_touches << point
-        
+
         @tap_recognizer.try(&.touches_began([point]))
         @long_press_recognizer.try(&.touches_began([point]))
         @pan_recognizer.try(&.touches_began([point]))
         @pinch_recognizer.try(&.touches_began(@active_touches))
         @rotation_recognizer.try(&.touches_began(@active_touches))
         @swipe_recognizer.try(&.touches_began([point]))
-        
+
         true
       end
 
       def on_touch_moved(x : Int32, y : Int32) : Bool
         point = Point.new(x.to_f64, y.to_f64)
-        
+
         @tap_recognizer.try(&.touches_moved([point]))
         @long_press_recognizer.try(&.touches_moved([point]))
         @pan_recognizer.try(&.touches_moved([point]))
         @pinch_recognizer.try(&.touches_moved(@active_touches))
         @rotation_recognizer.try(&.touches_moved(@active_touches))
-        
+
         true
       end
 
       def on_touch_ended(x : Int32, y : Int32) : Bool
         point = Point.new(x.to_f64, y.to_f64)
         @active_touches.pop
-        
+
         @tap_recognizer.try(&.touches_ended([point]))
         @long_press_recognizer.try(&.touches_ended([point]))
         @pan_recognizer.try(&.touches_ended([point]))
         @pinch_recognizer.try(&.touches_ended(@active_touches))
         @rotation_recognizer.try(&.touches_ended(@active_touches))
         @swipe_recognizer.try(&.touches_ended([point]))
-        
+
         true
       end
 
       def on_touch_cancelled(x : Int32, y : Int32) : Bool
         point = Point.new(x.to_f64, y.to_f64)
         @active_touches.clear
-        
+
         @tap_recognizer.try(&.touches_cancelled([point]))
         @long_press_recognizer.try(&.touches_cancelled([point]))
         @pan_recognizer.try(&.touches_cancelled([point]))
         @pinch_recognizer.try(&.touches_cancelled(@active_touches))
         @rotation_recognizer.try(&.touches_cancelled(@active_touches))
         @swipe_recognizer.try(&.touches_cancelled([point]))
-        
+
         true
       end
     end
