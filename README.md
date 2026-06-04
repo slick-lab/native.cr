@@ -7,7 +7,7 @@
 # Native.cr
 
 [![Crystal](https://img.shields.io/badge/Crystal-1.20%2B-000000?logo=crystal)](https://crystal-lang.org/)
-[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-blue)](https://github.com/slick-lab/native.cr)
+[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Desktop-blue)](https://github.com/slick-lab/native.cr)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 [![Discord](https://img.shields.io/badge/chat-discord-5865F2)](https://discord.gg/nativecr)
@@ -18,67 +18,92 @@ Write mobile apps in Crystal. Compile directly to native ARM64 code. No JavaScri
 
 ---
 
-## Why I Built This
+## Installation
 
-I love Crystal. I love its speed, its Ruby-like syntax, its type system. But every time I wanted to build a mobile app, I had to leave Crystal behind.
+Add to your `shard.yml`:
 
-React Native proved that cross-platform mobile development works. But JavaScript shouldn't have all the fun. Crystal is faster, safer, and just as expressive.
+```yaml
+dependencies:
+  native:
+    github: slick-lab/native.cr
+    version: ~> 0.1.0
+```
 
-So I built native.cr. Not because it was easy. Because it was necessary.
+Then run:
+
+```bash
+shards install
+```
+
+The post-install script will:
+
+- Build the native.cr CLI
+- Install it to /usr/local/bin
+- Compile Android and iOS engines (if NDK/Xcode available)
+
+Verify installation:
+
+```bash
+native.cr doctor
+```
 
 ---
 
 ## Quick Start
 
 ```bash
-# Install native.cr
-git clone https://github.com/slick-lab/native.cr
-cd native.cr && make install
-
-# Create your first app
+# Create a new project
 native.cr create my_app
 cd my_app
 
-# Build for Android
+# Build APK directly
 native.cr build android
+# APK created at build/app.apk
 
-# Build for iOS
+# Or build for iOS
 native.cr build ios
-```
+# Framework created at build/NativeCr.framework
 
-Then open Android Studio or Xcode to package your APK or IPA. I compile Crystal to native libraries. You handle the final packaging with the tools you already know.
+# Desktop preview (development)
+native.cr reload
+# Opens a window showing your app
+```
 
 ---
 
-What It Looks Like
+## What It Looks Like
 
 ```crystal
 class MyApp < Native::App
   @[Preserve]
-  property counter : Int32 = 0
+  property count : Int32 = 0
 
   def setup
-    set_background_color(240, 240, 245)
-    
-    label = UI::Text.new
-    label.text = "Hello, native.cr!"
-    label.text_size = 24
+    @label = UI::Text.new
+    @label.text = "Tap: 0"
+    @label.text_size = 24
     
     button = UI::Button.new
-    button.text = "Tap me"
-    button.on_click = ->{ increment_counter }
+    button.text = "Tap Me"
+    button.width = 120
+    button.height = 44
+    button.on_click = ->{ increment }
     
     column = UI::Column.new
     column.spacing = 20
-    column.add_child(label)
+    column.add_child(@label)
     column.add_child(button)
     
     @root = column
   end
   
-  def increment_counter
-    @counter += 1
-    change_color(100 + (@counter * 10) % 155, 100, 100)
+  def increment
+    @count += 1
+    @label.text = "Tap: #{@count}"
+  end
+
+  def draw
+    @root.draw(renderer)
   end
 end
 
@@ -87,84 +112,78 @@ Native::App.start(MyApp)
 
 ---
 
-Features
+## Features
 
-|Feature | Android |  iOS |
+Feature | Android | iOS |
 | ----- | ----- | ----- |
-|UI Components (View, Text, Button, etc.  ) |  ✅ | ✅ | 
-|Touch Events & Gestures|  ✅ | ✅ | 
-|Animations | ✅|  ✅ |
-|Camera|  ✅ | ✅ |
-|Notifications| ✅  | ✅ |
-|Biometric Auth (Fingerprint/Face ID) | ✅ | ✅ |
-|In-App Purchases | ✅ | ✅ |
-|HTTP & WebSocket|  ✅ | ✅ |
-|SQLite Storage | ✅ | ✅ | 
-|Audio Playback & Recording | ✅  | ✅ |
-|Video Playback | ✅ | ✅
-|Game Loop | ✅ |  ✅ |
+| UI Components|  ✅ | ✅ |
+| Touch Events & Gestures|  ✅ | ✅ |
+| Animations | ✅ | ✅ |
+| Camera | ✅ | ✅ |
+| Notifications| ✅|  ✅ |
+| Biometric Auth| ✅ | ✅ |
+| In-App Purchases| ✅| ✅ |
+| HTTP & WebSocket| ✅| ✅ |
+| SQLite Storage| ✅ |✅ |
+| Audio| ✅| ✅ |
+| Video| ✅| ✅ |
+| Game Loop| ✅| ✅ |
 
 ---
 
-The Challenges I Faced
+## Commands
 
-1. Android Has No Crystal Support
-
-Android does not know what Crystal is. It speaks Java and C++ through the NDK. I had to write a C engine that embeds the Crystal runtime and bridges to JNI. Thousands of lines of C code just to get "Hello World" on screen.
-
-2. iOS Requires Objective-C
-
-You cannot write a pure C entry point on iOS. Every iOS app must have a UIApplication and UIViewController written in Objective-C or Swift. I wrote a thin Obj-C wrapper that loads a Crystal static library and calls into it.
-
-3. No JIT on Mobile
-
-Crystal's JIT is experimental and not available on mobile. I rely entirely on AOT compilation. Fast restarts are not hot reload. They are "save state, recompile, restart, restore state." It takes ~300ms. I decided that is good enough.
-
-4. Platform APIs Are Different
-
-Android cameras work through JNI and Java objects. iOS cameras work through AVFoundation and Objective-C. I wrapped both behind the same Crystal interface. You write one camera call. The framework compiles to the right platform code.
-
-5. The Bridge Problem
-
-React Native has a JSON bridge between JS and native. It is slow. Crystal has no bridge. It compiles directly to native code. But that means I cannot change code at runtime. Hot reload is not possible the way React Native does it. I had to invent a different approach: fast restart with state preservation.
-
-6. Keeping It Simple
-
-I could have built a full APK packager, a Gradle plugin, an Xcode integration. That would have taken months. I decided to stop at compiling Crystal to .so and .framework files. You already know how to use Android Studio and Xcode. You handle the final packaging.
+| Command |  Description | 
+| ----- | ----- |
+| native.cr create NAME | Create new project |
+| native.cr build | android Build APK |
+| native.cr build ios | Build iOS framework|
+| native.cr reload | Desktop preview with fast restart|
+| native.cr doctor | Check toolchain|
+| native.cr --version | Show version|
 
 ---
 
-## Decisions I Made
+## How It Works
 
-Decision Why
-AOT only, no JIT Mobile platforms restrict runtime code generation
-Fast restart instead of hot reload Crystal compiles to native code. State preservation works well enough
-User handles APK/IPA packaging Android Studio and Xcode already exist. I focus on the Crystal part
-Direct FFI, no bridge Serialization is slow. Crystal calls C/Obj-C directly
-Metal on iOS, OpenGL on Android Metal is required for modern iOS. OpenGL works everywhere on Android
-State preservation via @[Preserve] macro Developers mark what to save. I handle the rest
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Your Crystal App (src/main.cr)                            │
+├─────────────────────────────────────────────────────────────┤
+│  native.cr Framework                                        │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │   Android   │ │     iOS     │ │  Desktop    │           │
+│  │  C + JNI    │ │  Obj-C +    │ │  SDL2 +     │           │
+│  │  OpenGL     │ │  Metal      │ │  OpenGL     │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘           │
+├─────────────────────────────────────────────────────────────┤
+│  Android NDK │ iOS SDK │ SDL2                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Requirements
+
+Platform Requirements
+Android Android NDK, Android SDK, Java 11+
+iOS macOS, Xcode 14+, CocoaPods
+Desktop SDL2 (brew install sdl2 or apt install libsdl2-dev)
 
 ---
 
 ## Documentation
 
-Full documentation is available at: [docs](https://github.com/slick-lab/native.cr/blob/main/docs)
-
-For API reference, guides, and examples, visit the docs site.
-
----
-
-Community
-
-- Discord - Chat with me and other developers
-- GitHub Issues - Report bugs or request features
-- Twitter - Follow for updates
+- API Reference
+- UI Components Guide
+- Examples
 
 ---
 
-License
+## License
 
-MIT License. See LICENSE for details.
+MIT License
 
 ---
 
