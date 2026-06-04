@@ -130,6 +130,7 @@ module Native
       end
 
       private def get_from_platform(key : String) : String
+        ptr = nil
         {% if flag?(:android) %}
           ptr = LibAndroid.preferences_get(key.to_utf8, type_to_int(@storage_type))
         {% elsif flag?(:ios) %}
@@ -138,10 +139,14 @@ module Native
           return ""
         {% end %}
         
-        if ptr
+        if ptr && !ptr.null?
           value = String.new(ptr)
-          LibAndroid.free_string(ptr)
-          value
+        {% if flag?(:andriod) %}
+          LibAndriod.free_string(ptr)
+        {% elsif flag?(:ios) %}
+           LibIOS.free_string(ptr)
+        {% end %}
+         value
         else
           ""
         end
