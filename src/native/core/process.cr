@@ -70,7 +70,7 @@ module Native::Core
         Dir.mkdir_p(File.dirname(@config.build_output))
         Dir.mkdir_p(File.dirname(@config.state_file))
 
-        @is_mobile = flag?(:android) || flag?(:ios)
+        @is_mobile = {% if flag?(:android) || flag?(:ios) %}true{% else %}false{% end %}
       end
 
       def start

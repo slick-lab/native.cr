@@ -254,7 +254,7 @@ module Native
     end
 
     class SequenceAnimator < Animator
-      @animators : Array(Animator) = [] of String | Nil | Array(Animator)
+      @animators : Array(Animator) = [] of Animator
       @current_index : Int32 = 0
 
       def add(animator : Animator) : Nil
@@ -281,7 +281,7 @@ module Native
     end
 
     class ParallelAnimator < Animator
-      @animators : Array(Animator) = [] of String | Nil | Array(Animator)
+      @animators : Array(Animator) = [] of Animator
 
       def add(animator : Animator) : Nil
         @animators << animator
@@ -349,7 +349,7 @@ module Native
     end
 
     class AnimationManager
-      @animators : Array(Animator) = [] of Array(Animator) | String | Nil
+      @animators : Array(Animator) = [] of Animator
       @previous_time : Float64 = 0.0
 
       def initialize

@@ -222,7 +222,7 @@ module Native
     end
 
     class GestureDetector
-      @last_tap_time : Time = Time.utc(2000)
+      @last_tap_time : Time = Time.utc(2000, 1, 1)
       @tap_count : Int32 = 0
       @touch_start_x : Float32 = 0.0
       @touch_start_y : Float32 = 0.0

@@ -153,7 +153,7 @@ module Native
       property text_r : UInt8 = 255
       property text_g : UInt8 = 255
       property text_b : UInt8 = 255
-      property on_click : -> Nil
+      property on_click : (-> Nil)?
       
       def initialize
         super

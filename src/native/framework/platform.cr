@@ -184,7 +184,7 @@ module Native
 
     module Sensors
       class Accelerometer
-        @callback : (Float64, Float64, Float64) -> Nil = ->(x, y, z) {}
+        @callback : (Float64, Float64, Float64) -> Nil = ->(x : Float64, y : Float64, z : Float64) {}
         @is_listening = false
 
         def on_change(&block : Float64, Float64, Float64 -> Nil) : Nil
@@ -239,7 +239,7 @@ module Native
       end
 
       class Gyroscope
-        @callback : (Float64, Float64, Float64) -> Nil = ->(x, y, z) {}
+        @callback : (Float64, Float64, Float64) -> Nil = ->(x : Float64, y : Float64, z : Float64) {}
         @is_listening = false
 
         def on_change(&block : Float64, Float64, Float64 -> Nil) : Nil
@@ -295,9 +295,9 @@ module Native
     end
 
     module Geolocation
-      @on_location : Location -> Nil = ->(loc) {}
-      @on_error : String -> Nil = ->(err) {}
-      @is_listening = false
+      @@on_location : Location -> Nil = ->(loc : Location) {}
+      @@on_error : String -> Nil = ->(err : String) {}
+      @@is_listening = false
 
       def self.get_current_location : Location?
         {% if flag?(:android) %}
@@ -318,7 +318,7 @@ module Native
       end
 
       def self.start_listening(accuracy : Float32 = 10.0) : Nil
-        return if @is_listening
+        return if @@is_listening
         
         {% if flag?(:android) %}
           LibPlatform.android_geolocation_start(accuracy)
@@ -326,12 +326,12 @@ module Native
           LibPlatform.ios_geolocation_start(accuracy)
         {% end %}
         
-        @is_listening = true
+        @@is_listening = true
         start_polling
       end
 
       def self.stop_listening : Nil
-        return unless @is_listening
+        return unless @@is_listening
         
         {% if flag?(:android) %}
           LibPlatform.android_geolocation_stop
@@ -339,22 +339,22 @@ module Native
           LibPlatform.ios_geolocation_stop
         {% end %}
         
-        @is_listening = false
+        @@is_listening = false
       end
 
       def self.on_location(&block : Location -> Nil) : Nil
-        @on_location = block
+        @@on_location = block
       end
 
       def self.on_error(&block : String -> Nil) : Nil
-        @on_error = block
+        @@on_error = block
       end
 
       private def self.start_polling : Nil
         spawn do
-          while @is_listening
+          while @@is_listening
             if loc = get_current_location
-              @on_location.call(loc)
+              @@on_location.call(loc)
             end
             sleep 1.0
           end

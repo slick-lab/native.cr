@@ -1,12 +1,12 @@
-# src/native/cli/reload.cr
+
 
 require "../core/process"
 
 def run_reload(entry_file : String)
-  config = Native::Process::Config.new
+  config = Native::Core::Process::Config.new
   config.entry_point = entry_file
 
-  manager = Native::Process::Manager.new(config)
+  manager = Native::Core::Process::Manager.new(config)
   manager.start
 end
 
