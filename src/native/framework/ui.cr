@@ -14,7 +14,7 @@ module Native
       Vertical
     end
 
-    abstract class View
+     class View
       property x : Int32 = 0
       property y : Int32 = 0
       property width : Int32 = 0
