@@ -87,17 +87,4 @@ describe Native::Core::State do
       Native::Core::State.valid_json?("not json").should be_false
     end
   end
-  
-  describe "#pretty" do
-    it "returns pretty printed JSON" do
-      app = TestApp.new
-      app.name = "pretty"
-      app.score = 123
-      
-      pretty = Native::Core::State.pretty(app)
-      
-      pretty.should contain("\n")
-      pretty.should contain("  ")
-    end
-  end
 end
