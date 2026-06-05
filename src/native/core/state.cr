@@ -14,10 +14,8 @@ module Native::Core
       raise SerializationError.new("Failed to save state: #{ex.message}")
     end
 
-    def self.load(json : String, obj : JSON::Serializable) : Nil
-      obj.from_json(json)
-    rescue ex : Exception
-      raise DeserializationError.new("Failed to load state: #{ex.message}")
+    def self.load(json : String, klass : JSON::Serializable.class) : JSON::Serializable
+      klass.from_json(json)
     end
 
     def self.capture_and_restore(obj : JSON::Serializable, &block) : Nil
