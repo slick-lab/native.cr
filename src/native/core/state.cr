@@ -34,7 +34,11 @@ module Native::Core
     end
 
     def self.pretty(obj : JSON::Serializable) : String
-      obj.to_json(pretty: true)
+      io = IO::Memory.new
+      JSON::PrettyWriter.new(io).write(obj)
+      io.to_s
+    rescue ex : Exception
+      raise SerializationError.new("Failed to pretty print state: #{ex.message}")
     end
   end
 end
