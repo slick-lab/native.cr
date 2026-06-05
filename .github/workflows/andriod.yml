@@ -1,0 +1,65 @@
+# .github/workflows/android.yml
+
+name: Android Build
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/native/engine/android/**'
+      - 'src/native/framework/**'
+      - 'src/native/core/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/native/engine/android/**'
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25c
+          add-to-path: false
+      
+      - name: Setup Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.20.0
+      
+      - name: Install shards
+        run: shards install
+      
+      - name: Build Android engine
+        working-directory: src/native/engine/android
+        run: |
+          mkdir -p build
+          cd build
+          cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+                -DANDROID_ABI=arm64-v8a \
+                -DANDROID_PLATFORM=android-24 \
+                -DCMAKE_BUILD_TYPE=Release ..
+          make
+      
+      - name: Upload engine library
+        uses: actions/upload-artifact@v4
+        with:
+          name: libnative_cr_engine
+          path: src/native/engine/android/build/libnative_cr_engine.so
+      
+      - name: Build Crystal library for Android
+        run: |
+          mkdir -p build/lib/arm64-v8a
+          crystal build src/native.cr -D android --target aarch64-linux-android --link-flags="-shared" -o build/lib/arm64-v8a/libnative_cr.so
+      
+      - name: Upload Crystal library
+        uses: actions/upload-artifact@v4
+        with:
+          name: libnative_cr
+          path: build/lib/arm64-v8a/libnative_cr.so
