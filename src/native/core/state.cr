@@ -14,8 +14,18 @@ module Native::Core
       raise SerializationError.new("Failed to save state: #{ex.message}")
     end
 
-    def self.load(json : String, klass : JSON::Serializable.class) : JSON::Serializable
-      klass.from_json(json)
+    def self.load(json : String, obj : JSON::Serializable) : Nil
+      temp = obj.class.from_json(json)
+      copy_properties(temp, obj)
+    rescue ex : Exception
+      raise DeserializationError.new("Failed to load state: #{ex.message}")
+    end
+
+    def self.copy_properties(source : JSON::Serializable, target : JSON::Serializable) : Nil
+      source_json = source.to_json
+      target.from_json(source_json)
+    rescue ex : Exception
+      raise DeserializationError.new("Failed to copy properties: #{ex.message}")
     end
 
     def self.capture_and_restore(obj : JSON::Serializable, &block) : Nil
