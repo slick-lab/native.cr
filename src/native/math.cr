@@ -98,7 +98,7 @@ module Native
       end
 
       def magnitude : Float64
-        Math.sqrt(@x * @x + @y * @y)
+        ::Math.sqrt(@x * @x + @y * @y)
       end
 
       def magnitude_squared : Float64
@@ -132,23 +132,23 @@ module Native
       end
 
       def angle_to(other : Vector2) : Float64
-        Math.atan2(cross(other), dot(other))
+        ::Math.atan2(cross(other), dot(other))
       end
 
       def angle : Float64
-        Math.atan2(@y, @x)
+        ::Math.atan2(@y, @x)
       end
 
       def rotate(radians : Float64) : Vector2
-        cos = Math.cos(radians)
-        sin = Math.sin(radians)
+        cos = ::Math.cos(radians)
+        sin = ::Math.sin(radians)
         Vector2.new(@x * cos - @y * sin, @x * sin + @y * cos)
       end
 
       def lerp(to : Vector2, t : Float64) : Vector2
         Vector2.new(
-          @x + (to.x - @x) * clamp(t, 0.0, 1.0),
-          @y + (to.y - @y) * clamp(t, 0.0, 1.0)
+          @x + (to.x - @x) * Native::Math.clamp(t, 0.0, 1.0),
+          @y + (to.y - @y) * Native::Math.clamp(t, 0.0, 1.0)
         )
       end
 
@@ -205,7 +205,7 @@ module Native
       end
 
       def magnitude : Float64
-        Math.sqrt(@x * @x + @y * @y + @z * @z)
+        ::Math.sqrt(@x * @x + @y * @y + @z * @z)
       end
 
       def magnitude_squared : Float64
@@ -287,10 +287,10 @@ module Native
       def intersection(other : Rect) : Rect?
         return nil unless intersects(other)
 
-        new_x = Math.max(@x, other.x)
-        new_y = Math.max(@y, other.y)
-        new_w = Math.min(right, other.right) - new_x
-        new_h = Math.min(bottom, other.bottom) - new_y
+        new_x = ::Math.max(@x, other.x)
+        new_y = ::Math.max(@y, other.y)
+        new_w = ::Math.min(right, other.right) - new_x
+        new_h = ::Math.min(bottom, other.bottom) - new_y
 
         Rect.new(new_x, new_y, new_w, new_h)
       end
@@ -331,8 +331,8 @@ module Native
 
       def self.rotation(angle : Float64) : Matrix3
         mat = Matrix3.new
-        cos = Math.cos(angle)
-        sin = Math.sin(angle)
+        cos = ::Math.cos(angle)
+        sin = ::Math.sin(angle)
         mat.m[0] = cos
         mat.m[1] = -sin
         mat.m[3] = sin
