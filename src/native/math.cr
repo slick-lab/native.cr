@@ -536,12 +536,12 @@ module Native
       end
 
       def to_hex : UInt32
-        r = (@r * 255).to_i
-        g = (@g * 255).to_i
-        b = (@b * 255).to_i
-        a = (@a * 255).to_i
-        (a.to_u32 << 24) | (r.to_u32 << 16) | (g.to_u32 << 8) | b.to_u32
-      end
+       r = (@r * 255).to_i
+       g = (@g * 255).to_i
+       b = (@b * 255).to_i
+       a = (@a * 255).to_i
+       (r.to_u32 << 16) | (g.to_u32 << 8) | b.to_u32 | (a.to_u32 << 24)
+     end
     end
   end
 end
