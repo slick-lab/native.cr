@@ -2,11 +2,39 @@
 
 module Native
   module Math
-    PI         =  3.141592653589793
-    TAU        =  6.283185307179586
+    PI         = 3.141592653589793
+    TAU        = 6.283185307179586
     HALF_PI    = 1.5707963267948966
     DEG_TO_RAD = PI / 180.0
     RAD_TO_DEG = 180.0 / PI
+
+    def self.abs(x : Int) : Int
+      x.abs
+    end
+
+    def self.abs(x : Float) : Float
+      x.abs
+    end
+
+    def self.acos(x : Float64) : Float64
+      ::Math.acos(x)
+    end
+
+    def self.asin(x : Float64) : Float64
+      ::Math.asin(x)
+    end
+
+    def self.atan(x : Float64) : Float64
+      ::Math.atan(x)
+    end
+
+    def self.atan2(y : Float64, x : Float64) : Float64
+      ::Math.atan2(y, x)
+    end
+
+    def self.cbrt(x : Float64) : Float64
+      ::Math.cbrt(x)
+    end
 
     def self.clamp(value : T, min : T, max : T) forall T
       return min if value < min
@@ -14,12 +42,72 @@ module Native
       value
     end
 
+    def self.cos(x : Float64) : Float64
+      ::Math.cos(x)
+    end
+
+    def self.deg_to_rad(degrees : Float64) : Float64
+      degrees * DEG_TO_RAD
+    end
+
+    def self.exp(x : Float64) : Float64
+      ::Math.exp(x)
+    end
+
+    def self.gamma(x : Float64) : Float64
+      ::Math.gamma(x)
+    end
+
+    def self.ldexp(x : Float64, n : Int32) : Float64
+      ::Math.ldexp(x, n)
+    end
+
     def self.lerp(a : Float64, b : Float64, t : Float64) : Float64
       a + (b - a) * clamp(t, 0.0, 1.0)
     end
 
+    def self.lgamma(x : Float64) : Float64
+      ::Math.lgamma(x)
+    end
+
+    def self.log(x : Float64) : Float64
+      ::Math.log(x)
+    end
+
+    def self.log10(x : Float64) : Float64
+      ::Math.log10(x)
+    end
+
+    def self.log2(x : Float64) : Float64
+      ::Math.log2(x)
+    end
+
     def self.map(value : Float64, from_min : Float64, from_max : Float64, to_min : Float64, to_max : Float64) : Float64
       to_min + (to_max - to_min) * ((value - from_min) / (from_max - from_min))
+    end
+
+    def self.max(a : Float64, b : Float64) : Float64
+      a > b ? a : b
+    end
+
+    def self.max(a : Int, b : Int) : Int
+      a > b ? a : b
+    end
+
+    def self.min(a : Float64, b : Float64) : Float64
+      a < b ? a : b
+    end
+
+    def self.min(a : Int, b : Int) : Int
+      a < b ? a : b
+    end
+
+    def self.pow(x : Float64, y : Float64) : Float64
+      ::Math.pow(x, y)
+    end
+
+    def self.rad_to_deg(radians : Float64) : Float64
+      radians * RAD_TO_DEG
     end
 
     def self.random(min : Float64 = 0.0, max : Float64 = 1.0) : Float64
@@ -30,12 +118,32 @@ module Native
       min + Random.rand(max - min + 1)
     end
 
-    def self.deg_to_rad(degrees : Float64) : Float64
-      degrees * DEG_TO_RAD
+    def self.sin(x : Float64) : Float64
+      ::Math.sin(x)
     end
 
-    def self.rad_to_deg(radians : Float64) : Float64
-      radians * RAD_TO_DEG
+    def self.sqrt(x : Float64) : Float64
+      ::Math.sqrt(x)
+    end
+
+    def self.tan(x : Float64) : Float64
+      ::Math.tan(x)
+    end
+
+    def self.tanh(x : Float64) : Float64
+      ::Math.tanh(x)
+    end
+
+    def self.hypot(x : Float64, y : Float64) : Float64
+      ::Math.hypot(x, y)
+    end
+
+    def self.erf(x : Float64) : Float64
+      ::Math.erf(x)
+    end
+
+    def self.erfc(x : Float64) : Float64
+      ::Math.erfc(x)
     end
 
     struct Vector2
@@ -98,7 +206,7 @@ module Native
       end
 
       def magnitude : Float64
-        ::Math.sqrt(@x * @x + @y * @y)
+        Native::Math.sqrt(@x * @x + @y * @y)
       end
 
       def magnitude_squared : Float64
@@ -132,16 +240,16 @@ module Native
       end
 
       def angle_to(other : Vector2) : Float64
-        ::Math.atan2(cross(other), dot(other))
+        Native::Math.atan2(cross(other), dot(other))
       end
 
       def angle : Float64
-        ::Math.atan2(@y, @x)
+        Native::Math.atan2(@y, @x)
       end
 
       def rotate(radians : Float64) : Vector2
-        cos = ::Math.cos(radians)
-        sin = ::Math.sin(radians)
+        cos = Native::Math.cos(radians)
+        sin = Native::Math.sin(radians)
         Vector2.new(@x * cos - @y * sin, @x * sin + @y * cos)
       end
 
@@ -205,7 +313,7 @@ module Native
       end
 
       def magnitude : Float64
-        ::Math.sqrt(@x * @x + @y * @y + @z * @z)
+        Native::Math.sqrt(@x * @x + @y * @y + @z * @z)
       end
 
       def magnitude_squared : Float64
@@ -287,10 +395,10 @@ module Native
       def intersection(other : Rect) : Rect?
         return nil unless intersects(other)
 
-        new_x = ::Math.max(@x, other.x)
-        new_y = ::Math.max(@y, other.y)
-        new_w = ::Math.min(right, other.right) - new_x
-        new_h = ::Math.min(bottom, other.bottom) - new_y
+        new_x = Native::Math.max(@x, other.x)
+        new_y = Native::Math.max(@y, other.y)
+        new_w = Native::Math.min(right, other.right) - new_x
+        new_h = Native::Math.min(bottom, other.bottom) - new_y
 
         Rect.new(new_x, new_y, new_w, new_h)
       end
@@ -331,8 +439,8 @@ module Native
 
       def self.rotation(angle : Float64) : Matrix3
         mat = Matrix3.new
-        cos = ::Math.cos(angle)
-        sin = ::Math.sin(angle)
+        cos = Native::Math.cos(angle)
+        sin = Native::Math.sin(angle)
         mat.m[0] = cos
         mat.m[1] = -sin
         mat.m[3] = sin
