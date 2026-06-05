@@ -20,17 +20,10 @@ module Native::Core
       raise DeserializationError.new("Failed to load state: #{ex.message}")
     end
 
-    def self.capture_and_restore(obj : JSON::Serializable, &block)
+    def self.capture_and_restore(obj : JSON::Serializable, &block) : JSON::Serializable
       saved_state = save(obj)
-      result = block.call
-      loaded = load(saved_state, obj.class)
-      copy_properties(loaded, obj)
-      result
-    end
-
-    private def self.copy_properties(source : JSON::Serializable, target : JSON::Serializable) : Nil
-      source_json = source.to_json
-      target.from_json(source_json)
+      block.call
+      load(saved_state, obj.class)
     end
 
     def self.valid_json?(json : String) : Bool
