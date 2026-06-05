@@ -4,7 +4,7 @@ require "../spec_helper"
 require "file_utils"
 
 describe Native::Core::Process do
-  describe Config do
+  describe Native::Core::Process::Config do
     it "has default values" do
       config = Native::Core::Process::Config.new
 
