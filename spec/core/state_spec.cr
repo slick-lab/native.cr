@@ -3,16 +3,14 @@
 require "../spec_helper"
 
 class TestApp
-  include JSON::Serializable
-  
-  property name : String
-  property score : Int32
-  property active : Bool
-
+  JSON.mapping(
+    name: String,
+    score: Int32,
+    active: Bool
+  )
   def initialize(@name = "", @score = 0, @active = false)
   end
 end
-
 class GameState
   include JSON::Serializable
   
