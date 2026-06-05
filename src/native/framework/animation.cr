@@ -137,7 +137,7 @@ module Native
             p = 0.3
             s = p / 4.0
             t - 1.0
-            (2.0 ** (-10.0 * t)) * Math.sin((t - s) * (2.0 * Math::PI) / p) + 1.0
+            (2.0 ** (-10.0 * t)) * ::Math.sin((t - s) * (2.0 * Math::PI) / p) + 1.0
           end
         else
           t
