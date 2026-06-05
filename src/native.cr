@@ -5,6 +5,7 @@ require "file_utils"
 require "signal"
 
 # Load all core modules
+require "./native/math"
 require "./native/core/*"
 
 # Load all framework modules
