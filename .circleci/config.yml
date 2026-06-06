@@ -25,6 +25,30 @@ jobs:
             make NDK_PATH=$ANDROID_HOME/ndk/25.2.9519653
 
       - run:
+          name: Build PCRE2 for Android arm64
+          command: |
+            export NDK=$ANDROID_HOME/ndk/25.2.9519653
+            export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+
+            wget -q https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz
+            tar xzf pcre2-10.42.tar.gz
+            cd pcre2-10.42
+
+            ./configure \
+              --host=aarch64-linux-android \
+              --prefix=/tmp/pcre2-android \
+              --enable-static \
+              --disable-shared \
+              --disable-jit \
+              CC="$TOOLCHAIN/bin/aarch64-linux-android24-clang" \
+              CXX="$TOOLCHAIN/bin/aarch64-linux-android24-clang++" \
+              AR="$TOOLCHAIN/bin/llvm-ar" \
+              RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
+
+            make -j$(nproc)
+            make install
+
+      - run:
           name: Build Crystal Library
           command: |
             export NDK=$ANDROID_HOME/ndk/25.2.9519653
@@ -32,14 +56,14 @@ jobs:
             export API=24
             export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
             export CC=$TOOLCHAIN/bin/$TARGET$API-clang
-            
+
             sudo mkdir -p /system/lib64
             sudo touch /system/lib64/libdl.so
-            
+
             mkdir -p build/lib/arm64-v8a
-            
+
             crystal build src/native.cr -D android --target $TARGET \
-              --link-flags="-shared -fPIC" \
+              --link-flags="-shared -fPIC -L/tmp/pcre2-android/lib" \
               -o build/lib/arm64-v8a/libnative_cr.so
 
 workflows:
