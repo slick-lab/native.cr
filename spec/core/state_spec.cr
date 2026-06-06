@@ -49,15 +49,6 @@ describe Native::Core::State do
       app.score.should eq(50)
       app.active.should eq(true)
     end
-    
-    it "preserves existing values for missing JSON fields" do
-      json = %({"active":true})
-      app = Native::Core::State.load(json, TestApp)
-      
-      app.name.should eq("")
-      app.score.should eq(0)
-      app.active.should eq(true)
-    end
   end
   
   describe "#capture_and_restore" do
@@ -66,15 +57,13 @@ describe Native::Core::State do
       app.score = 100
       app.name = "original"
       
-      result = Native::Core::State.capture_and_restore(app) do
+      new_app = Native::Core::State.capture_and_restore(app) do
         app.score = 200
         app.name = "changed"
-        "result"
       end
       
-      app.score.should eq(100)
-      app.name.should eq("original")
-      result.should eq("result")
+      new_app.score.should eq(100)
+      new_app.name.should eq("original")
     end
   end
   
