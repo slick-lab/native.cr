@@ -243,11 +243,3 @@ module Native
     end
   end
 end
-
-# Platform callbacks for permission results - must be outside the module
-{% if flag?(:android) %}
-  @[Export("native_cr_permission_result")]
-  fun native_cr_permission_result(permission_type : Int32, granted : Bool) : Void
-    Native::Permissions::PermissionManager.handle_permission_result(PermissionType.from_value(permission_type), granted)
-  end
-{% end %}
