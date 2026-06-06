@@ -28,12 +28,23 @@ jobs:
           ndk-version: r25c
           add-to-path: false
 
-      - name: Build Android engine with Docker
+      - name: Setup Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.20.0
+
+      - name: Install build dependencies
         run: |
-          docker run --rm -v ${{ github.workspace }}:/app \
-            -e ANDROID_NDK=/usr/local/lib/android/sdk/ndk/25.2.9519653 \
-            crystallang/crystal:1.20.0-android \
-            bash -c "cd /app/src/native/engine/android && make NDK_PATH=$ANDROID_NDK"
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - name: Install shards
+        run: shards install
+
+      - name: Build Android engine
+        working-directory: src/native/engine/android
+        run: |
+          make NDK_PATH=$ANDROID_NDK
 
       - name: Upload engine library
         uses: actions/upload-artifact@v4
@@ -41,12 +52,11 @@ jobs:
           name: libnative_cr_engine
           path: src/native/engine/android/libnative_cr_engine.so
 
-      - name: Build Crystal library with Docker
+      - name: Build Crystal library for Android
         run: |
+          rm -rf .native_cache
           mkdir -p build/lib/arm64-v8a
-          docker run --rm -v ${{ github.workspace }}:/app \
-            crystallang/crystal:1.20.0-android \
-            bash -c "cd /app && crystal build src/native.cr -D android --target aarch64-linux-android --link-flags='-shared -fPIC' -o build/lib/arm64-v8a/libnative_cr.so"
+          crystal build src/native.cr -D android --target aarch64-linux-android --link-flags="-shared -fPIC" -o build/lib/arm64-v8a/libnative_cr.so
 
       - name: Upload Crystal library
         uses: actions/upload-artifact@v4
