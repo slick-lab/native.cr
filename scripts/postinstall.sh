@@ -4,44 +4,33 @@ set -e
 
 echo "[native.cr] Post-install setup"
 
-# Build CLI
-echo "[native.cr] Building CLI..."
-shards build --release
+# Detect OS
+OS=$(uname -s)
 
-# Install CLI
-if [ -w /usr/local/bin ]; then
-    cp bin/native.cr /usr/local/bin/
-else
-    sudo cp bin/native.cr /usr/local/bin/
-fi
-chmod +x /usr/local/bin/native.cr
+# Create lib directory
+mkdir -p lib/native
 
-# Build Android engine
-if command -v cmake &> /dev/null && [ -n "$ANDROID_NDK" ] && [ -n "$ANDROID_HOME" ]; then
-    echo "[native.cr] Building Android engine..."
-    cd src/native/engine/android
-    mkdir -p build
-    cd build
-    cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-          -DANDROID_ABI=arm64-v8a \
-          -DANDROID_PLATFORM=android-24 ..
-    make
-    cd ../../../..
-    echo "[native.cr] Android engine built"
-else
-    echo "[native.cr] Skipping Android engine (NDK or CMake not found)"
+# Get latest version from GitHub
+LATEST_VERSION=$(curl -s https://api.github.com/repos/slick-lab/native.cr/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
+
+if [ -z "$LATEST_VERSION" ]; then
+    LATEST_VERSION="v0.1.0"
 fi
 
-# Build iOS engine
-if [[ "$OSTYPE" == "darwin"* ]] && command -v xcodebuild &> /dev/null; then
-    echo "[native.cr] Building iOS engine..."
-    cd src/native/engine/ios
-    make
-    cd ../../../..
-    echo "[native.cr] iOS engine built"
+# Only download Android prebuilt libraries on non-macOS
+if [[ "$OS" != "Darwin" ]]; then
+    echo "[native.cr] Downloading prebuilt Android libraries from $LATEST_VERSION..."
+    
+    curl -L -o lib/native/libnative_cr.so \
+        "https://github.com/slick-lab/native.cr/releases/download/$LATEST_VERSION/libnative_cr.so"
+    
+    curl -L -o lib/native/libnative_cr_engine.so \
+        "https://github.com/slick-lab/native.cr/releases/download/$LATEST_VERSION/libnative_cr_engine.so"
+    
+    echo "[native.cr] Android libraries saved to lib/native/"
 else
-    echo "[native.cr] Skipping iOS engine (not on macOS or Xcode missing)"
+    echo "[native.cr] macOS detected - skipping Android library download"
+    echo "[native.cr] For Android builds, use Linux or Windows"
 fi
 
-echo "[native.cr] Installation complete"
-echo "[native.cr] Run 'native.cr doctor' to verify setup"
+echo "[native.cr] Post-install complete"
