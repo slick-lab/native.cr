@@ -3,69 +3,91 @@
 
 This directory contains the Android platform engine that allows Crystal apps to run natively on Android devices.
 
-## Overview
-
-The Android engine uses Google's NativeActivity to run Crystal code directly without any Java or Kotlin.
-
-## File Structure
-
-```
-
-engine/android/
-├── native.c                    # C rendering engine (OpenGL ES 2.0)
-├── android_native_app_glue.c   # created by ndk
-├── Makefile              # Build configuration
-└── AndroidManifest.xml         # App manifest
-
-```
-
-## How Each File Works
+## Files
 
 | File | Purpose |
 |------|---------|
-| native.c | Creates OpenGL context, draws frames, handles touch input, communicates with Android NDK |
-| android_native_app_glue.c | Bridges Android Java lifecycle to C, manages event loop, queues input |
-| Makefile | Compiles C files with NDK, cross-compiles Crystal to ARM64, links into .so |
-| AndroidManifest.xml | Tells Android to launch NativeActivity and load libnative_cr_engine.so |
+| `native.c` | C engine with OpenGL ES rendering, input handling, and bridge functions |
+| `Makefile` | Build script that compiles the engine using Android NDK |
 
-## Build Process
+## How It Works
 
-1. make reads Makefile
-2. C files are compiled with Android NDK toolchain
-3. Crystal compiler cross-compiles android_main.cr to ARM64 Linux
-4. Both are linked into libnative_cr_engine.so
-5. .so is packaged with AndroidManifest.xml into an APK
+1. Android launches the app and calls `android_main()` in `native.c`
+2. The C engine initializes OpenGL ES and sets up the display
+3. The engine calls `crystal_android_main()` (exported from your Crystal code)
+4. Your Crystal app runs and calls back into the engine for rendering and events
 
-## Runtime Flow
+## Bridge Functions
 
-1. Android launches NativeActivity
-2. android_native_app_glue.c creates event loop thread
-3. Glue calls android_main() from native.c
-4. native.c initializes OpenGL and calls crystal_android_main
-5. Crystal code takes over and runs the app
+The C engine provides these functions for Crystal to call:
 
-## Requirements
+| Function | Purpose |
+|----------|---------|
+| `poll_events(state)` | Process pending Android events |
+| `destroy_requested(state)` | Check if app should exit |
+| `has_window(state)` | Check if window is ready for drawing |
+| `set_color(state, r, g, b)` | Set background color (0-255 each) |
+| `swap_buffers(state)` | Swap OpenGL buffers to display |
 
-- Android NDK r25 or later
-- Crystal compiler with Android ARM64 target support
-- CMake 3.10 or later
-
-## Commands
+## Building the Engine
 
 ```bash
-# Build the engine
-mkdir build && cd build
-cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-      -DANDROID_ABI=arm64-v8a \
-      -DANDROID_PLATFORM=android-24 ..
-make
+# Set NDK path
+export ANDROID_NDK=/path/to/ndk
 
-# Output: build/libnative_cr_engine.so
+# Build
+make NDK_PATH=$ANDROID_NDK
+
+# Output: libnative_cr_engine.so
 ```
+
+Requirements
+
+- Android NDK r25 or later
+- Target API level: 24 (Android 7.0) or higher
+- Architecture: arm64-v8a only
+
+Integration with Crystal
+
+Your Crystal code must export crystal_android_main:
+
+```crystal
+@[Export("crystal_android_main")]
+fun crystal_android_main(state : Void*) : Void
+  GC.init
+  # Your app code here
+end
+```
+
+The state pointer is the android_app struct from the NDK.
+
+Event Loop Pattern
+
+```crystal
+loop do
+  LibEngine.poll_events(state)
+  break if LibEngine.destroy_requested(state)
+  
+  if LibEngine.has_window(state)
+    # Update and render
+    LibEngine.set_color(state, 100, 150, 200)
+    LibEngine.swap_buffers(state)
+  end
+end
+```
+
+Building Complete APK
+
+1. Compile Crystal code to libnative_cr.so
+2. Compile C engine to libnative_cr_engine.so
+3. Package both into APK with proper AndroidManifest.xml
+4. Sign and align the APK
 
 Notes
 
-- Minimum Android SDK: 24 (Android 7.0)
-- Only arm64-v8a architecture is supported
-- No Java/Kotlin code required
-- OpenGL ES 2.0 for rendering
+- OpenGL ES 2.0 is used for rendering
+- Touch events change the background color in the example
+- The engine supports single-touch input (multi-touch can be added)
+
+```
+```
