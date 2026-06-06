@@ -52,6 +52,27 @@ jobs:
           name: libnative_cr_engine
           path: src/native/engine/android/libnative_cr_engine.so
 
+      - name: Create Crystal wrapper script
+        run: |
+          cat > crystal-android-wrapper << 'EOF'
+          #!/bin/bash
+          export CRYSTAL_LIBRARY_PATH="$ANDROID_NDK/sysroot/usr/lib/aarch64-linux-android/24"
+          
+          raw_command=$(crystal build "$@" --verbose 2>&1 >/dev/null | grep "cc " | tail -n1)
+          
+          if [ -z "$raw_command" ]; then
+              echo "Error: Could not find linker command from --verbose output"
+              exit 1
+          fi
+          
+          filtered_command=$(echo "$raw_command" | sed 's|/system/lib64/libdl.so||g' | sed 's|-ldl||g')
+          
+          echo "Running filtered linker command:"
+          echo "$filtered_command"
+          eval "$filtered_command"
+          EOF
+          chmod +x crystal-android-wrapper
+
       - name: Build Crystal library for Android
         run: |
           rm -rf .native_cache
@@ -64,8 +85,9 @@ jobs:
           export CXX=$TOOLCHAIN/bin/$TARGET$API-clang++
           export AR=$TOOLCHAIN/bin/llvm-ar
           export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
-          crystal build src/native.cr -D android --target $TARGET \
-            --link-flags="-shared -fPIC -L$TOOLCHAIN/sysroot/usr/lib/$TARGET/$API -lc -lm" \
+          
+          ./crystal-android-wrapper build src/native.cr -D android --target $TARGET \
+            --link-flags="-shared -fPIC" \
             -o build/lib/arm64-v8a/libnative_cr.so
 
       - name: Upload Crystal library
