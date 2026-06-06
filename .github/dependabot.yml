@@ -1,33 +1,25 @@
-# .github/dependabot.yml
-
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
     labels:
       - "dependencies"
-      - "github-actions"
     commit-message:
       prefix: "ci"
-      include: "scope"
 
-  - package-ecosystem: "gitsubmodule"
+  - package-ecosystem: "crystal"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
     labels:
       - "dependencies"
-      - "submodules"
+    commit-message:
+      prefix: "deps"
 
+  # Disable Docker updates since this is not a Docker project
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-    labels:
-      - "dependencies"
-      - "docker"
+      interval: "never"
