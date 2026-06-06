@@ -68,17 +68,9 @@ jobs:
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           export CC=$TOOLCHAIN/bin/$TARGET$API-clang
           
-          mkdir -p dummy_lib
-          cat > dummy.c << 'EOF'
-          int dlopen() { return 0; }
-          int dlsym() { return 0; }
-          int dlclose() { return 0; }
-          int dlerror() { return 0; }
-          EOF
-          
-          $CC -shared -o dummy_lib/libdl.so dummy.c
-          
-          export CRYSTAL_LIBRARY_PATH=$(pwd)/dummy_lib:$TOOLCHAIN/sysroot/usr/lib/$TARGET/$API
+          # Create the exact path Crystal expects
+          sudo mkdir -p /system/lib64
+          sudo touch /system/lib64/libdl.so
           
           crystal build src/native.cr -D android --target $TARGET \
             --link-flags="-shared -fPIC" \
