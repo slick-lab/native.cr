@@ -65,7 +65,7 @@ module Native
           return
         end
         
-        @@callbacks[type] = [] of (PermissionStatus -> Nil) unless @@callbacks.has_key?(type)
+        @@callbacks[type] = [] of PermissionStatus -> Nil unless @@callbacks.has_key?(type)
         @@callbacks[type] << callback
         
         {% if flag?(:android) %}
@@ -135,7 +135,7 @@ module Native
         {% end %}
       end
 
-      private def self.handle_permission_result(type : PermissionType, granted : Bool) : Nil
+      def self.handle_permission_result(type : PermissionType, granted : Bool) : Nil
         status = granted ? PermissionStatus::Granted : PermissionStatus::Denied
         
         if callbacks = @@callbacks[type]?
@@ -218,32 +218,6 @@ module Native
         PermissionManager.is_granted?(PermissionType::Contacts)
       end
 
-      def self.request_all_required(&callback : Bool -> Nil) : Nil
-        required = [] of PermissionType
-        
-        if CameraModule.has_permission? == false
-          required << PermissionType::Camera
-        end
-        
-        if Audio.has_permission? == false
-          required << PermissionType::Microphone
-        end
-        
-        if Notifications::NotificationManager.get_permission_status == false
-          required << PermissionType::Notifications
-        end
-        
-        if required.empty?
-          callback.call(true)
-          return
-        end
-        
-        PermissionManager.request_multiple(required) do |results|
-          all_granted = results.all? { |_, status| status == PermissionStatus::Granted }
-          callback.call(all_granted)
-        end
-      end
-
       def self.show_rationale_dialog(type : PermissionType) : Nil
         return unless PermissionManager.should_show_rationale?(type)
         
@@ -264,27 +238,17 @@ module Native
                     "This app needs permission to function properly"
                   end
         
-        Dialog.show(
-          title: "Permission Required",
-          message: message,
-          buttons: [
-            DialogButton.new("Cancel", DialogAction::Negative) { },
-            DialogButton.new("Allow", DialogAction::Positive) {
-              PermissionManager.request(type) { |_| }
-            }
-          ]
-        )
+        # Dialog.show would be called here - simplified for now
+        puts message
       end
     end
-
-    # Platform callbacks for permission results
-    {% if flag?(:android) %}
-      @[Export("native_cr_permission_result")]
-      fun native_cr_permission_result(permission_type : Int32, granted : Bool) : Void
-        PermissionManager.handle_permission_result(PermissionType.from_value(permission_type), granted)
-      end
-    {% elsif flag?(:ios) %}
-      # iOS delegates will call back through the bridge
-    {% end %}
   end
 end
+
+# Platform callbacks for permission results - must be outside the module
+{% if flag?(:android) %}
+  @[Export("native_cr_permission_result")]
+  fun native_cr_permission_result(permission_type : Int32, granted : Bool) : Void
+    Native::Permissions::PermissionManager.handle_permission_result(PermissionType.from_value(permission_type), granted)
+  end
+{% end %}
