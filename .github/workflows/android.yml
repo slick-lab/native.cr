@@ -12,11 +12,6 @@ on:
       - 'src/native.cr'
   pull_request:
     branches: [main]
-    paths:
-      - 'src/native/engine/android/**'
-      - 'src/native/framework/**'
-      - 'src/native/core/**'
-      - 'src/native.cr'
   workflow_dispatch:
 
 jobs:
@@ -41,7 +36,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          sudo apt-get install -y cmake ninja-build autoconf automake libtool
 
       - name: Install shards
         run: shards install
@@ -57,6 +52,23 @@ jobs:
           name: libnative_cr_engine
           path: src/native/engine/android/libnative_cr_engine.so
 
+      - name: Build PCRE2 for Android
+        run: |
+          export NDK=$ANDROID_NDK
+          export TARGET=aarch64-linux-android
+          export API=24
+          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          export CC=$TOOLCHAIN/bin/$TARGET$API-clang
+          export CXX=$TOOLCHAIN/bin/$TARGET$API-clang++
+          
+          wget -q https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz
+          tar -xzf pcre2-10.42.tar.gz
+          cd pcre2-10.42
+          ./configure --host=aarch64-linux-android --prefix=$(pwd)/install --disable-shared --enable-static
+          make -j4
+          make install
+          cd ..
+
       - name: Build Crystal library for Android
         run: |
           rm -rf .native_cache
@@ -68,9 +80,10 @@ jobs:
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           export CC=$TOOLCHAIN/bin/$TARGET$API-clang
           
-          # Create the exact path Crystal expects
           sudo mkdir -p /system/lib64
           sudo touch /system/lib64/libdl.so
+          
+          export CRYSTAL_LIBRARY_PATH=$(pwd)/pcre2-10.42/install/lib:$TOOLCHAIN/sysroot/usr/lib/$TARGET/$API
           
           crystal build src/native.cr -D android --target $TARGET \
             --link-flags="-shared -fPIC" \
