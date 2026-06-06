@@ -93,9 +93,8 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
 }
 
 void android_main(struct android_app* state) {
-  app_dummy();
-  
   struct engine engine;
+  
   memset(&engine, 0, sizeof(engine));
   engine.color_r = 100;
   engine.color_g = 150;
@@ -110,8 +109,10 @@ void android_main(struct android_app* state) {
     int events;
     struct android_poll_source* source;
     
-    while ((ident = ALooper_pollAll(0, NULL, &events, (void**)&source)) >= 0) {
-      if (source != NULL) source->process(state, source);
+    while ((ident = ALooper_pollOnce(0, NULL, &events, (void**)&source)) >= 0) {
+      if (source != NULL) {
+        source->process(state, source);
+      }
       if (state->destroyRequested != 0) {
         engine_terminate_display(&engine);
         return;
