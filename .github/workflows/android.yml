@@ -64,7 +64,7 @@ jobs:
           export CC=$TOOLCHAIN/bin/$TARGET$API-clang
           
           # Step 1: Compile to object files (no linking)
-          crystal build src/native.cr -D android --target $TARGET --no-debug --no-link
+          crystal build src/native.cr -D android --target $TARGET --no-debug --emit obj
           
           # Step 2: Link with NDK linker
           $CC -shared -fPIC \
