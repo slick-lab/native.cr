@@ -92,6 +92,47 @@ static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
   }
 }
 
+// Bridge functions called from Crystal
+int poll_events(struct android_app* state) {
+  int ident;
+  int events;
+  struct android_poll_source* source;
+  
+  ident = ALooper_pollOnce(0, NULL, &events, (void**)&source);
+  if (source != NULL) {
+    source->process(state, source);
+  }
+  return ident;
+}
+
+int destroy_requested(struct android_app* state) {
+  return state->destroyRequested;
+}
+
+int has_window(struct android_app* state) {
+  return state->window != NULL;
+}
+
+void set_color(struct android_app* state, int r, int g, int b) {
+  struct engine* engine = (struct engine*)state->userData;
+  if (engine != NULL) {
+    engine->color_r = r;
+    engine->color_g = g;
+    engine->color_b = b;
+    engine_draw_frame(engine);
+  }
+}
+
+void swap_buffers(struct android_app* state) {
+  struct engine* engine = (struct engine*)state->userData;
+  if (engine != NULL && engine->display != EGL_NO_DISPLAY) {
+    eglSwapBuffers(engine->display, engine->surface);
+  }
+}
+
+// Forward declaration of Crystal entry point
+extern void crystal_android_main(struct android_app* state);
+
 void android_main(struct android_app* state) {
   struct engine engine;
   
@@ -104,19 +145,6 @@ void android_main(struct android_app* state) {
   state->onInputEvent = engine_handle_input;
   engine.app = state;
   
-  while (1) {
-    int ident;
-    int events;
-    struct android_poll_source* source;
-    
-    while ((ident = ALooper_pollOnce(0, NULL, &events, (void**)&source)) >= 0) {
-      if (source != NULL) {
-        source->process(state, source);
-      }
-      if (state->destroyRequested != 0) {
-        engine_terminate_display(&engine);
-        return;
-      }
-    }
-  }
+  // Call into Crystal code
+  crystal_android_main(state);
 }
