@@ -9,6 +9,7 @@
 [![Crystal](https://img.shields.io/badge/Crystal-1.20%2B-000000?logo=crystal)](https://crystal-lang.org/)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Desktop-blue)](https://github.com/slick-lab/native.cr)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI](https://github.com/slick-lab/native.cr/actions/workflows/ci.yml/badge.svg)](https://github.com/slick-lab/native.cr/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 [![Discord](https://img.shields.io/badge/chat-discord-5865F2)](https://discord.gg/nativecr)
 
