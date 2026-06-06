@@ -536,11 +536,11 @@ module Native
       end
 
       def to_hex : UInt32
-       r = (@r * 255).to_i
-       g = (@g * 255).to_i
-       b = (@b * 255).to_i
-       a = (@a * 255).to_i
-       (r.to_u32 << 16) | (g.to_u32 << 8) | b.to_u32 | (a.to_u32 << 24)
+      r = (@r * 255).round.to_i
+      g = (@g * 255).round.to_i
+      b = (@b * 255).round.to_i
+      a = (@a * 255).round.to_i
+      (r.to_u32 << 24) | (g.to_u32 << 16) | (b.to_u32 << 8) | a.to_u32
      end
     end
   end
