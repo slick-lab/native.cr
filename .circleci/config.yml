@@ -1,119 +1,96 @@
 version: 2.1
 
 jobs:
-  build:
+  build-android:
     machine:
       image: android:2024.11.1
     steps:
       - checkout
 
       - run:
-          name: Install Android NDK
+          name: Download Termux APK
           command: |
-            yes | sdkmanager --licenses || true
-            sdkmanager "ndk;25.2.9519653"
+            wget https://github.com/termux/termux-app/releases/download/v0.118.0/termux-app_v0.118.0+github-debug_arm64-v8a.apk -O termux.apk
 
       - run:
-          name: Install Crystal
+          name: Start Emulator and Build
           command: |
-            curl -fsSL https://crystal-lang.org/install.sh | sudo bash
+            # Start emulator with KVM acceleration
+            echo "y" | sdkmanager "system-images;android-30;google_apis;arm64-v8a"
+            echo "no" | avdmanager create avd -n test -k "system-images;android-30;google_apis;arm64-v8a" --force
+            $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window -no-snapshot -gpu swiftshader_indicator &
+            
+            # Wait for boot
+            adb wait-for-device
+            while [ "$(adb shell getprop sys.boot_completed)" != "1" ]; do sleep 5; done
+            
+            adb install termux.apk
+            adb shell am start -n com.termux/.app.TermuxActivity
+            sleep 5
 
+            adb shell "input text 'pkg update -y && pkg upgrade -y' && input keyevent KEYCODE_ENTER"
+            sleep 15
+            adb shell "input text 'pkg install -y crystal git make clang openssl' && input keyevent KEYCODE_ENTER"
+            sleep 45
+
+            adb shell "input text 'cd /sdcard && git clone https://github.com/slick-lab/native.cr.git' && input keyevent KEYCODE_ENTER"
+            sleep 10
+            adb shell "input text 'cd native.cr && shards install' && input keyevent KEYCODE_ENTER"
+            sleep 20
+            adb shell "input text 'crystal build src/native.cr -o native.cr' && input keyevent KEYCODE_ENTER"
+            sleep 30
+
+            mkdir -p /tmp/artifacts
+            adb pull /sdcard/native.cr/native.cr /tmp/artifacts/
+            adb pull /sdcard/native.cr/src/native/engine/android/libnative_cr_engine.so /tmp/artifacts/ 2>/dev/null || true
+            adb pull /sdcard/native.cr/build/lib/arm64-v8a/libnative_cr.so /tmp/artifacts/ 2>/dev/null || true
+
+      - persist_to_workspace:
+          root: /tmp/artifacts
+          paths:
+            - native.cr
+            - libnative_cr_engine.so
+            - libnative_cr.so
+
+  release:
+    machine:
+      image: ubuntu-2204:2023.07.2
+    steps:
+      - attach_workspace:
+          at: /tmp/artifacts
       - run:
-          name: Build Android Engine
+          name: Package artifacts
           command: |
-            cd src/native/engine/android
-            make NDK_PATH=$ANDROID_HOME/ndk/25.2.9519653
-
+            mkdir -p release
+            cp /tmp/artifacts/* release/ 2>/dev/null || true
+            cd release
+            tar -czf ../native.cr-android.tar.gz * || echo "No artifacts to package"
+            cd ..
       - run:
-          name: Build PCRE2 for Android arm64
+          name: Create GitHub Release
           command: |
-            export NDK=$ANDROID_HOME/ndk/25.2.9519653
-            export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
-
-            wget -q https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-10.42.tar.gz
-            tar xzf pcre2-10.42.tar.gz
-            cd pcre2-10.42
-
-            ./configure \
-              --host=aarch64-linux-android \
-              --prefix=/tmp/pcre2-android \
-              --enable-static \
-              --disable-shared \
-              --disable-jit \
-              CC="$TOOLCHAIN/bin/aarch64-linux-android24-clang" \
-              CXX="$TOOLCHAIN/bin/aarch64-linux-android24-clang++" \
-              AR="$TOOLCHAIN/bin/llvm-ar" \
-              RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
-
-            make -j$(nproc)
-            make install
-
-      - run:
-          name: Build GC stub for Android arm64
-          command: |
-            export NDK=$ANDROID_HOME/ndk/25.2.9519653
-            export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
-
-            mkdir -p /tmp/gc-android-arm64
-
-            cat > /tmp/gc_stub.c << 'EOF'
-            #include <stdlib.h>
-            #include <stddef.h>
-            typedef void (*GC_finalization_proc)(void *, void *);
-            typedef int GC_bool;
-            void GC_init(void) {}
-            void *GC_malloc(size_t size) { return malloc(size); }
-            void *GC_malloc_atomic(size_t size) { return malloc(size); }
-            void *GC_malloc_uncollectable(size_t size) { return malloc(size); }
-            void GC_free(void *ptr) { free(ptr); }
-            void *GC_realloc(void *ptr, size_t size) { return realloc(ptr, size); }
-            void GC_gcollect(void) {}
-            void GC_enable(void) {}
-            void GC_disable(void) {}
-            GC_bool GC_is_disabled(void) { return 0; }
-            void *GC_base(void *ptr) { return NULL; }
-            void GC_register_finalizer_no_order(void *obj, GC_finalization_proc fn, void *cd, GC_finalization_proc *ofn, void **ocd) {}
-            int GC_register_disappearing_link(void **link) { return 0; }
-            int GC_unregister_disappearing_link(void **link) { return 0; }
-            size_t GC_get_heap_size(void) { return 0; }
-            size_t GC_get_free_bytes(void) { return 0; }
-            size_t GC_get_unmapped_bytes(void) { return 0; }
-            size_t GC_get_bytes_since_gc(void) { return 0; }
-            size_t GC_get_total_bytes(void) { return 0; }
-            void GC_set_max_heap_size(size_t n) {}
-            int GC_invoke_finalizers(void) { return 0; }
-            void GC_atfork_prepare(void) {}
-            void GC_atfork_parent(void) {}
-            void GC_atfork_child(void) {}
-            EOF
-
-            $TOOLCHAIN/bin/aarch64-linux-android24-clang \
-              -c /tmp/gc_stub.c \
-              -o /tmp/gc-android-arm64/gc_stub.o
-
-            $TOOLCHAIN/bin/llvm-ar rcs /tmp/gc-android-arm64/libgc.a \
-              /tmp/gc-android-arm64/gc_stub.o
-
-      - run:
-          name: Build Crystal Library
-          command: |
-            export NDK=$ANDROID_HOME/ndk/25.2.9519653
-            export TARGET=aarch64-linux-android
-            export API=24
-            export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
-            export CC=$TOOLCHAIN/bin/$TARGET$API-clang
-
-            sudo mkdir -p /system/lib64
-            sudo touch /system/lib64/libdl.so
-
-            mkdir -p build/lib/arm64-v8a
-
-            crystal build src/native.cr -D android -D without_gc --target $TARGET \
-              --link-flags="-shared -fPIC -L/tmp/gc-android-arm64 -L/tmp/pcre2-android/lib" \
-              -o build/lib/arm64-v8a/libnative_cr.so
+            if [ -n "$CIRCLE_TAG" ]; then
+              curl -X POST \
+                -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{\"tag_name\":\"$CIRCLE_TAG\",\"name\":\"Release $CIRCLE_TAG\",\"draft\":false,\"prerelease\":false}" \
+                https://api.github.com/repos/slick-lab/native.cr/releases
+            fi
+      - store_artifacts:
+          path: native.cr-android.tar.gz
+          destination: release
 
 workflows:
   version: 2
-  build:
+  build-and-release:
     jobs:
-      - build
+      - build-android:
+          filters:
+            tags:
+              only: /^v.*/
+      - release:
+          requires:
+            - build-android
+          filters:
+            tags:
+              only: /^v.*/
