@@ -6,6 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef APP_CMD_INIT_WINDOW
+#define APP_CMD_INIT_WINDOW 2
+#endif
+
+#ifndef APP_CMD_TERM_WINDOW
+#define APP_CMD_TERM_WINDOW 4
+#endif
+
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native.cr", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "native.cr", __VA_ARGS__))
 
@@ -105,13 +113,9 @@ void android_main(struct android_app* state) {
   state->onInputEvent = engine_handle_input;
   engine.app = state;
   
-  // ==========================================
   // CALLS CRYSTAL CODE - DO NOT REMOVE
-  // This calls the Crystal entry point (crystal_android_main in app.cr)
-  // ==========================================
   extern void crystal_android_main(struct android_app* state);
   crystal_android_main(state);
-  // ==========================================
   
   while (1) {
     int ident;
