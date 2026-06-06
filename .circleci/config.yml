@@ -1,3 +1,8 @@
+version: 2.1
+
+orbs:
+  android: circleci/android@2.4.0
+
 jobs:
   build:
     executor:
@@ -38,12 +43,17 @@ jobs:
             export API=24
             export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
             export CC=$TOOLCHAIN/bin/$TARGET$API-clang
-            
+
             sudo mkdir -p /system/lib64
             sudo touch /system/lib64/libdl.so
-            
+
             mkdir -p build/lib/arm64-v8a
-            
+
             crystal build src/native.cr -D android --target $TARGET \
               --link-flags="-shared -fPIC" \
               -o build/lib/arm64-v8a/libnative_cr.so
+
+workflows:
+  build:
+    jobs:
+      - build
