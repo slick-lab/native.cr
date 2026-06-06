@@ -39,19 +39,13 @@ jobs:
       - name: Build Android engine
         working-directory: src/native/engine/android
         run: |
-          mkdir -p build
-          cd build
-          cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-                -DANDROID_ABI=arm64-v8a \
-                -DANDROID_PLATFORM=android-24 \
-                -DCMAKE_BUILD_TYPE=Release ..
-          make
+          make NDK_PATH=$ANDROID_NDK
       
       - name: Upload engine library
         uses: actions/upload-artifact@v4
         with:
           name: libnative_cr_engine
-          path: src/native/engine/android/build/libnative_cr_engine.so
+          path: src/native/engine/android/libnative_cr_engine.so
       
       - name: Build Crystal library for Android
         run: |
