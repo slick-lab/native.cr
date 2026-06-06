@@ -63,13 +63,13 @@ jobs:
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           export CC=$TOOLCHAIN/bin/$TARGET$API-clang
           
-          # Step 1: Compile to object files
-          crystal build src/native.cr -D android --target $TARGET -c
+          # Step 1: Compile to object files (no linking)
+          crystal build src/native.cr -D android --target $TARGET --no-debug --no-link
           
           # Step 2: Link with NDK linker
           $CC -shared -fPIC \
             -o build/lib/arm64-v8a/libnative_cr.so \
-            $(find . -name "*.o" -path "./.native_cache/*" 2>/dev/null) \
+            $(find .native_cache -name "*.o" 2>/dev/null) \
             -L$TOOLCHAIN/sysroot/usr/lib/$TARGET/$API -lc -lm
 
       - name: Upload Crystal library
