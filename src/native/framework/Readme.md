@@ -31,4 +31,3 @@ This directory contains the UI and API framework for native.cr apps.
 | `gesture.cr` | Tap, long press, pan, pinch, rotation, swipe recognizers |
 | `video.cr` | VideoView, video playback, controls |
 
-#%
