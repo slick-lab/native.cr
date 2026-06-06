@@ -1,5 +1,5 @@
 # src/native/framework/app.cr
-
+# main framework entry
 require "json"
 require "signal"
 require "../core/state"
