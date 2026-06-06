@@ -96,7 +96,7 @@ abstract class NativeApp
 
   abstract def setup : Nil
   abstract def draw : Nil
-
+   # stub method
   def on_touch_began(x : Float32, y : Float32) : Nil
   end
 
