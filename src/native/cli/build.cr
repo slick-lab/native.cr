@@ -92,124 +92,129 @@ module Native::CLI
     end
 
     private def build_android
-      puts "[native.cr] Building Android..."
-
-      # Create output directories
-      lib_dir = "#{@output}/lib/arm64-v8a"
-      Dir.mkdir_p(lib_dir)
-
-      # Find Android project
-      android_project = find_android_project
-      if android_project.nil?
-        puts "[native.cr] Error: Android project not found"
-        puts "[native.cr] Run 'native.cr create --android' first"
+      # Check for Android NDK
+      ndk = ENV["ANDROID_NDK"]?
+      unless ndk && Dir.exists?(ndk)
+        puts "[native.cr] Error: ANDROID_NDK environment variable not set"
+        puts "[native.cr] Install Android NDK and set ANDROID_NDK to its path"
+        puts "[native.cr] Example: export ANDROID_NDK=/path/to/ndk"
         exit(1)
       end
 
-      # Compile Crystal to shared library
-      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android"
-      cmd += " --release" if @release
-      cmd += " --link-flags=\"-shared\""
-      cmd += " -o #{lib_dir}/libnative_cr.so"
+      # Check for prebuilt libraries from postinstall
+      lib_dir = "lib/native"
+      engine_so = "#{lib_dir}/libnative_cr_engine.so"
+      crystal_so = "#{lib_dir}/libnative_cr.so"
 
-      puts "[native.cr] Compiling Crystal..."
+      unless File.exists?(engine_so) && File.exists?(crystal_so)
+        puts "[native.cr] Error: Prebuilt Android libraries not found"
+        puts "[native.cr] Run 'shards install' first to download them"
+        exit(1)
+      end
+
+      puts "[native.cr] Found prebuilt libraries in #{lib_dir}/"
+      puts "[native.cr] Using NDK at: #{ndk}"
+
+      # Setup NDK toolchain
+      toolchain = "#{ndk}/toolchains/llvm/prebuilt/linux-x86_64"
+      clang = "#{toolchain}/bin/aarch64-linux-android24-clang"
+
+      unless File.exists?(clang)
+        puts "[native.cr] Error: NDK toolchain not found at #{toolchain}"
+        exit(1)
+      end
+
+      # Create output directories
+      lib_dir_out = "#{@output}/lib/arm64-v8a"
+      Dir.mkdir_p(lib_dir_out)
+
+      # Copy prebuilt libraries to output
+      FileUtils.cp(engine_so, lib_dir_out)
+      FileUtils.cp(crystal_so, lib_dir_out)
+      puts "[native.cr] Copied prebuilt libraries to #{lib_dir_out}"
+
+      # Compile user's Crystal code to object file
+      puts "[native.cr] Compiling user code..."
+      user_o = "#{@output}/user_code.o"
+      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android -c -o #{user_o}"
       output = `#{cmd} 2>&1`
 
-      if $?.success?
-        puts "[native.cr] Crystal compilation successful"
-      else
+      unless $?.success?
         puts "[native.cr] Compilation failed:"
         puts output
         exit(1)
       end
 
-      # Copy library to Android project
-      jni_dir = "#{android_project}/app/src/main/jniLibs/arm64-v8a"
-      Dir.mkdir_p(jni_dir)
-      FileUtils.cp("#{lib_dir}/libnative_cr.so", "#{jni_dir}/libnative_cr.so")
-      puts "[native.cr] Copied library to Android project"
+      # Link user code with prebuilt libraries
+      puts "[native.cr] Linking final library..."
+      final_so = "#{@output}/lib/arm64-v8a/libuser_app.so"
+      link_cmd = "#{clang} -shared -fPIC -o #{final_so} #{user_o} #{lib_dir_out}/libnative_cr_engine.so #{lib_dir_out}/libnative_cr.so"
 
-      # Run Gradle build
-      puts "[native.cr] Building APK with Gradle..."
-      gradle_cmd = "./gradlew assembleRelease"
-      if !@release
-        gradle_cmd = "./gradlew assembleDebug"
+      link_output = `#{link_cmd} 2>&1`
+      unless $?.success?
+        puts "[native.cr] Linking failed:"
+        puts link_output
+        exit(1)
       end
 
-      Dir.cd(android_project) do
-        output = `#{gradle_cmd} 2>&1`
-        if $?.success?
-          puts "[native.cr] APK build successful"
-        else
-          puts "[native.cr] Gradle build failed:"
-          puts output
-          exit(1)
+      # Copy to Android project if exists
+      android_project = find_android_project
+      if android_project
+        jni_dir = "#{android_project}/app/src/main/jniLibs/arm64-v8a"
+        Dir.mkdir_p(jni_dir)
+        FileUtils.cp(final_so, "#{jni_dir}/libnative_cr.so")
+        FileUtils.cp(engine_so, jni_dir)
+        FileUtils.cp(crystal_so, jni_dir)
+        puts "[native.cr] Copied libraries to Android project: #{jni_dir}"
+
+        # Build APK with Gradle
+        puts "[native.cr] Building APK with Gradle..."
+        Dir.cd(android_project) do
+          gradle_cmd = @release ? "./gradlew assembleRelease" : "./gradlew assembleDebug"
+          system(gradle_cmd)
         end
+        puts "[native.cr] APK created at #{android_project}/app/build/outputs/apk/"
+      else
+        puts ""
+        puts "[native.cr] Android build complete"
+        puts "[native.cr] Library: #{final_so}"
+        puts ""
+        puts "Next steps:"
+        puts "  1. Copy #{@output}/lib/arm64-v8a/*.so to your Android project's jniLibs/arm64-v8a/"
+        puts "  2. Build your APK with Android Studio or Gradle"
       end
-
-      # Find and copy APK
-      apk_dir = if @release
-                  "#{android_project}/app/build/outputs/apk/release"
-                else
-                  "#{android_project}/app/build/outputs/apk/debug"
-                end
-
-      apk_files = Dir.glob("#{apk_dir}/*.apk")
-      if apk_files.any?
-        FileUtils.cp(apk_files.first, "#{@output}/app.apk")
-        puts "[native.cr] APK copied to #{@output}/app.apk"
-      end
-
-      puts ""
-      puts "[native.cr] Android build complete"
-      puts "[native.cr] APK: #{@output}/app.apk"
     end
 
     private def build_ios
-      puts "[native.cr] Building iOS..."
-
       framework_dir = "#{@output}/NativeCr.framework"
       Dir.mkdir_p(framework_dir)
       Dir.mkdir_p("#{framework_dir}/Headers")
 
-      # Compile Crystal to static library
       cmd = "crystal build #{@entry_point} -D ios --target aarch64-apple-ios"
       cmd += " --release" if @release
       cmd += " --link-flags=\"-static\""
       cmd += " -o #{framework_dir}/NativeCr"
 
-      puts "[native.cr] Compiling Crystal..."
+      puts "[native.cr] Compiling Crystal for iOS..."
       output = `#{cmd} 2>&1`
 
       if $?.success?
-        puts "[native.cr] Crystal compilation successful"
+        puts "[native.cr] Compilation successful"
       else
         puts "[native.cr] Compilation failed:"
         puts output
         exit(1)
       end
 
-      # Create module map
-      module_map = <<-MODULE
-      framework module NativeCr {
-        umbrella header "NativeCr.h"
-        export *
-        module * { export * }
-      }
-      MODULE
-      File.write("#{framework_dir}/module.modulemap", module_map)
-
-      # Create header
-      header = <<-HEADER
-      #import <Foundation/Foundation.h>
-      extern void native_cr_main(void);
-      HEADER
-      File.write("#{framework_dir}/Headers/NativeCr.h", header)
+      create_ios_module_map(framework_dir)
 
       puts ""
       puts "[native.cr] iOS build complete"
       puts "[native.cr] Framework: #{framework_dir}"
-      puts "[native.cr] Add this framework to your Xcode project"
+      puts ""
+      puts "Next steps:"
+      puts "  1. Drag #{framework_dir} into your Xcode project"
+      puts "  2. Build your IPA with Xcode"
     end
 
     private def find_android_project : String?
@@ -219,6 +224,25 @@ module Native::CLI
         end
       end
       nil
+    end
+
+    private def create_ios_module_map(framework_dir : String)
+      module_map = <<-MODULE
+      framework module NativeCr {
+        umbrella header "NativeCr.h"
+        export *
+        module * { export * }
+      }
+      MODULE
+
+      File.write("#{framework_dir}/module.modulemap", module_map)
+      
+      header = <<-HEADER
+      #import <Foundation/Foundation.h>
+      extern void native_cr_main(void);
+      HEADER
+      
+      File.write("#{framework_dir}/Headers/NativeCr.h", header)
     end
   end
 end
