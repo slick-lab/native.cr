@@ -56,7 +56,17 @@ jobs:
         run: |
           rm -rf .native_cache
           mkdir -p build/lib/arm64-v8a
-          crystal build src/native.cr -D android --target aarch64-linux-android --link-flags="-shared -fPIC" -o build/lib/arm64-v8a/libnative_cr.so
+          export NDK=$ANDROID_NDK
+          export TARGET=aarch64-linux-android
+          export API=24
+          export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+          export CC=$TOOLCHAIN/bin/$TARGET$API-clang
+          export CXX=$TOOLCHAIN/bin/$TARGET$API-clang++
+          export AR=$TOOLCHAIN/bin/llvm-ar
+          export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
+          crystal build src/native.cr -D android --target $TARGET \
+            --link-flags="-shared -fPIC -L$TOOLCHAIN/sysroot/usr/lib/$TARGET/$API -lc -lm" \
+            -o build/lib/arm64-v8a/libnative_cr.so
 
       - name: Upload Crystal library
         uses: actions/upload-artifact@v4
