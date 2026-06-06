@@ -3,6 +3,9 @@
 require "json"
 require "signal"
 require "../core/state"
+{% if flag?(:android) %}
+ require "./native/engine/android/android_entry"
+{%end%}
 
 abstract class NativeApp
   include JSON::Serializable
@@ -190,29 +193,3 @@ abstract class NativeApp
     end
   end
 end
-
-# ==========================================
-# ANDROID ENTRY POINT - Called from native.c
-# ==========================================
-{% if flag?(:android) %}
-  @[Export("crystal_android_main")]
-  fun crystal_android_main(state : Void*) : Void
-    GC.init
-    app = NativeApp.current
-    app.renderer = state
-    app.run
-  end
-{% end %}
-
-# ==========================================
-# IOS ENTRY POINT - Called from Objective-C
-# ==========================================
-{% if flag?(:ios) %}
-  @[Export("crystal_ios_main")]
-  fun crystal_ios_main(state : Void*) : Void
-    GC.init
-    app = NativeApp.current
-    app.renderer = state
-    app.run
-  end
-{% end %}
