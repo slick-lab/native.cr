@@ -1,21 +1,24 @@
 version: 2.1
 
-orbs:
-  android: circleci/android@2.4.0
-
 jobs:
   build:
-    executor:
-      name: android/android-machine
-      resource-class: large
+    machine:
+      image: ubuntu-2204:2023.07.2
     steps:
       - checkout
 
       - run:
-          name: Install Crystal Dependencies
+          name: Install Android SDK & NDK
           command: |
             sudo apt-get update
-            sudo apt-get install -y gnupg ca-certificates apt-transport-https wget
+            sudo apt-get install -y wget unzip
+            wget https://dl.google.com/android/repository/commandlinetools-linux-latest.zip
+            unzip commandlinetools-linux-latest.zip -d $HOME/android-sdk
+            echo 'export ANDROID_HOME=$HOME/android-sdk' >> $BASH_ENV
+            echo 'export PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin' >> $BASH_ENV
+            source $BASH_ENV
+            yes | sdkmanager --licenses
+            sdkmanager "ndk;25.2.9519653"
 
       - run:
           name: Install Crystal
@@ -23,21 +26,15 @@ jobs:
             curl -fsSL https://crystal-lang.org/install.sh | sudo bash
 
       - run:
-          name: Set Android NDK Path
-          command: |
-            echo 'export ANDROID_NDK=$ANDROID_HOME/ndk/25.2.9519653' >> $BASH_ENV
-            source $BASH_ENV
-
-      - run:
           name: Build Android Engine
           command: |
             cd src/native/engine/android
-            make NDK_PATH=$ANDROID_NDK
+            make NDK_PATH=$ANDROID_HOME/ndk/25.2.9519653
 
       - run:
           name: Build Crystal Library
           command: |
-            export NDK=$ANDROID_NDK
+            export NDK=$ANDROID_HOME/ndk/25.2.9519653
             export TARGET=aarch64-linux-android
             export API=24
             export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
@@ -54,6 +51,6 @@ jobs:
 
 workflows:
   version: 2
-  build-and-test:
+  build:
     jobs:
       - build
