@@ -3,20 +3,13 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: ubuntu-2204:2023.07.2
+      image: android:2024.11.1
     steps:
       - checkout
 
       - run:
-          name: Install Android SDK & NDK
+          name: Install Android NDK
           command: |
-            sudo apt-get update
-            sudo apt-get install -y wget unzip
-            wget https://dl.google.com/android/repository/commandlinetools-linux-latest.zip
-            unzip commandlinetools-linux-latest.zip -d $HOME/android-sdk
-            echo 'export ANDROID_HOME=$HOME/android-sdk' >> $BASH_ENV
-            echo 'export PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin' >> $BASH_ENV
-            source $BASH_ENV
             yes | sdkmanager --licenses
             sdkmanager "ndk;25.2.9519653"
 
