@@ -1,0 +1,49 @@
+jobs:
+  build-android:
+    executor:
+      name: android/android-machine
+      resource-class: large
+      tag: default
+    steps:
+      - checkout
+
+      - run:
+          name: Install Crystal Dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y gnupg ca-certificates apt-transport-https wget
+
+      - run:
+          name: Install Crystal
+          command: |
+            curl -fsSL https://crystal-lang.org/install.sh | sudo bash
+
+      - run:
+          name: Set Android NDK Path
+          command: |
+            echo 'export ANDROID_NDK=$ANDROID_HOME/ndk/25.2.9519653' >> $BASH_ENV
+            source $BASH_ENV
+
+      - run:
+          name: Build Android Engine
+          command: |
+            cd src/native/engine/android
+            make NDK_PATH=$ANDROID_NDK
+
+      - run:
+          name: Build Crystal Library
+          command: |
+            export NDK=$ANDROID_NDK
+            export TARGET=aarch64-linux-android
+            export API=24
+            export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+            export CC=$TOOLCHAIN/bin/$TARGET$API-clang
+            
+            sudo mkdir -p /system/lib64
+            sudo touch /system/lib64/libdl.so
+            
+            mkdir -p build/lib/arm64-v8a
+            
+            crystal build src/native.cr -D android --target $TARGET \
+              --link-flags="-shared -fPIC" \
+              -o build/lib/arm64-v8a/libnative_cr.so
