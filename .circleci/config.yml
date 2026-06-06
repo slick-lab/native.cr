@@ -49,6 +49,52 @@ jobs:
             make install
 
       - run:
+          name: Build GC stub for Android arm64
+          command: |
+            export NDK=$ANDROID_HOME/ndk/25.2.9519653
+            export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
+
+            mkdir -p /tmp/gc-android-arm64
+
+            cat > /tmp/gc_stub.c << 'EOF'
+            #include <stdlib.h>
+            #include <stddef.h>
+            typedef void (*GC_finalization_proc)(void *, void *);
+            typedef int GC_bool;
+            void GC_init(void) {}
+            void *GC_malloc(size_t size) { return malloc(size); }
+            void *GC_malloc_atomic(size_t size) { return malloc(size); }
+            void *GC_malloc_uncollectable(size_t size) { return malloc(size); }
+            void GC_free(void *ptr) { free(ptr); }
+            void *GC_realloc(void *ptr, size_t size) { return realloc(ptr, size); }
+            void GC_gcollect(void) {}
+            void GC_enable(void) {}
+            void GC_disable(void) {}
+            GC_bool GC_is_disabled(void) { return 0; }
+            void *GC_base(void *ptr) { return NULL; }
+            void GC_register_finalizer_no_order(void *obj, GC_finalization_proc fn, void *cd, GC_finalization_proc *ofn, void **ocd) {}
+            int GC_register_disappearing_link(void **link) { return 0; }
+            int GC_unregister_disappearing_link(void **link) { return 0; }
+            size_t GC_get_heap_size(void) { return 0; }
+            size_t GC_get_free_bytes(void) { return 0; }
+            size_t GC_get_unmapped_bytes(void) { return 0; }
+            size_t GC_get_bytes_since_gc(void) { return 0; }
+            size_t GC_get_total_bytes(void) { return 0; }
+            void GC_set_max_heap_size(size_t n) {}
+            int GC_invoke_finalizers(void) { return 0; }
+            void GC_atfork_prepare(void) {}
+            void GC_atfork_parent(void) {}
+            void GC_atfork_child(void) {}
+            EOF
+
+            $TOOLCHAIN/bin/aarch64-linux-android24-clang \
+              -c /tmp/gc_stub.c \
+              -o /tmp/gc-android-arm64/gc_stub.o
+
+            $TOOLCHAIN/bin/llvm-ar rcs /tmp/gc-android-arm64/libgc.a \
+              /tmp/gc-android-arm64/gc_stub.o
+
+      - run:
           name: Build Crystal Library
           command: |
             export NDK=$ANDROID_HOME/ndk/25.2.9519653
@@ -63,7 +109,7 @@ jobs:
             mkdir -p build/lib/arm64-v8a
 
             crystal build src/native.cr -D android -D without_gc --target $TARGET \
-              --link-flags="-shared -fPIC -L/tmp/pcre2-android/lib" \
+              --link-flags="-shared -fPIC -L/tmp/gc-android-arm64 -L/tmp/pcre2-android/lib" \
               -o build/lib/arm64-v8a/libnative_cr.so
 
 workflows:
