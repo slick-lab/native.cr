@@ -114,7 +114,7 @@ void android_main(struct android_app* state) {
   engine.app = state;
   
   // CALLS CRYSTAL CODE - DO NOT REMOVE
-  extern void crystal_android_main(struct android_app* state);
+  void crystal_android_main(struct android_app* state);
   crystal_android_main(state);
   
   while (1) {
