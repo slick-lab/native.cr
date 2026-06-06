@@ -62,7 +62,7 @@ jobs:
 
             mkdir -p build/lib/arm64-v8a
 
-            crystal build src/native.cr -D android --target $TARGET \
+            crystal build src/native.cr -D android -D without_gc --target $TARGET \
               --link-flags="-shared -fPIC -L/tmp/pcre2-android/lib" \
               -o build/lib/arm64-v8a/libnative_cr.so
 
