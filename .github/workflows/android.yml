@@ -9,10 +9,14 @@ on:
       - 'src/native/engine/android/**'
       - 'src/native/framework/**'
       - 'src/native/core/**'
+      - 'src/native.cr'
   pull_request:
     branches: [main]
     paths:
       - 'src/native/engine/android/**'
+      - 'src/native/framework/**'
+      - 'src/native/core/**'
+      - 'src/native.cr'
   workflow_dispatch:
 
 jobs:
@@ -57,20 +61,28 @@ jobs:
         run: |
           rm -rf .native_cache
           mkdir -p build/lib/arm64-v8a
+          
           export NDK=$ANDROID_NDK
           export TARGET=aarch64-linux-android
           export API=24
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
           export CC=$TOOLCHAIN/bin/$TARGET$API-clang
           
-          # Step 1: Compile to object files (no linking)
-          crystal build src/native.cr -D android --target $TARGET --no-debug --emit obj
+          mkdir -p dummy_lib
+          cat > dummy.c << 'EOF'
+          int dlopen() { return 0; }
+          int dlsym() { return 0; }
+          int dlclose() { return 0; }
+          int dlerror() { return 0; }
+          EOF
           
-          # Step 2: Link with NDK linker
-          $CC -shared -fPIC \
-            -o build/lib/arm64-v8a/libnative_cr.so \
-            $(find .native_cache -name "*.o" 2>/dev/null) \
-            -L$TOOLCHAIN/sysroot/usr/lib/$TARGET/$API -lc -lm
+          $CC -shared -o dummy_lib/libdl.so dummy.c
+          
+          export CRYSTAL_LIBRARY_PATH=$(pwd)/dummy_lib:$TOOLCHAIN/sysroot/usr/lib/$TARGET/$API
+          
+          crystal build src/native.cr -D android --target $TARGET \
+            --link-flags="-shared -fPIC" \
+            -o build/lib/arm64-v8a/libnative_cr.so
 
       - name: Upload Crystal library
         uses: actions/upload-artifact@v4
