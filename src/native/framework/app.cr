@@ -3,9 +3,6 @@
 require "json"
 require "signal"
 require "../core/state"
-{% if flag?(:android) %}
- require "./native/engine/android/android_entry"
-{%end%}
 
 abstract class NativeApp
   include JSON::Serializable
