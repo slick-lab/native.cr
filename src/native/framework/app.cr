@@ -1,5 +1,5 @@
 # src/native/framework/app.cr
-# main framework entry
+
 require "json"
 require "signal"
 require "../core/state"
@@ -32,6 +32,11 @@ abstract class NativeApp
 
   def initialize
     @renderer = nil
+    @bg_r = 100
+    @bg_g = 100
+    @bg_b = 100
+    @screen_width = 0
+    @screen_height = 0
     setup_signal_handlers
   end
 
@@ -87,16 +92,16 @@ abstract class NativeApp
   end
 
   def screen_width : Int32
-    @screen_width ||= 0
+    @screen_width
   end
 
   def screen_height : Int32
-    @screen_height ||= 0
+    @screen_height
   end
 
   abstract def setup : Nil
   abstract def draw : Nil
-   # stub method
+
   def on_touch_began(x : Float32, y : Float32) : Nil
   end
 
@@ -146,6 +151,10 @@ abstract class NativeApp
     @@current.not_nil!
   end
 
+  def self.current=(app : NativeApp)
+    @@current = app
+  end
+
   def self.start(app_class : NativeApp.class)
     app = app_class.new
     @@current = app
@@ -153,14 +162,57 @@ abstract class NativeApp
     app.setup
     
     {% if flag?(:android) %}
-      crystal_android_main(app)
+      # Android: C engine will call crystal_android_main
+      # The app is created and ready, just need to run the event loop
+      app.run
     {% elsif flag?(:ios) %}
-      crystal_ios_main(app)
+      # iOS: Obj-C engine will call crystal_ios_main
+      app.run
     {% else %}
+      # Desktop: run directly
       app.run
     {% end %}
   end
 
   def run : Nil
+    loop do
+      {% if flag?(:android) %}
+        # On Android, the C engine handles the event loop
+        # This is a placeholder - actual loop is in native.c
+        sleep 1
+      {% elsif flag?(:ios) %}
+        # On iOS, the Obj-C engine handles the event loop
+        sleep 1
+      {% else %}
+        # Desktop mode - needs implementation
+        sleep 0.016
+      {% end %}
+    end
   end
 end
+
+# ==========================================
+# ANDROID ENTRY POINT - Called from native.c
+# ==========================================
+{% if flag?(:android) %}
+  @[Export("crystal_android_main")]
+  fun crystal_android_main(state : Void*) : Void
+    GC.init
+    app = NativeApp.current
+    app.renderer = state
+    app.run
+  end
+{% end %}
+
+# ==========================================
+# IOS ENTRY POINT - Called from Objective-C
+# ==========================================
+{% if flag?(:ios) %}
+  @[Export("crystal_ios_main")]
+  fun crystal_ios_main(state : Void*) : Void
+    GC.init
+    app = NativeApp.current
+    app.renderer = state
+    app.run
+  end
+{% end %}
