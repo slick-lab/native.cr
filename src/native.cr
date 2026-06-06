@@ -1,4 +1,3 @@
-# src/native.cr
 
 require "json"
 require "file_utils"
