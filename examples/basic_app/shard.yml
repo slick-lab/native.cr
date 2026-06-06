@@ -1,0 +1,16 @@
+# examples/basic_app/shard.yml
+
+name: basic_app
+version: 0.1.0
+
+authors:
+  - Your Name <you@example.com>
+
+dependencies:
+  native:
+    github: slick-lab/native.cr
+    version: ~> 0.1.0
+
+crystal: ">= 1.20.0"
+
+license: MIT
