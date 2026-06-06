@@ -13,9 +13,8 @@ The Android engine uses Google's NativeActivity to run Crystal code directly wit
 
 engine/android/
 ├── native.c                    # C rendering engine (OpenGL ES 2.0)
-├── android_native_app_glue.c   # Google's event loop and lifecycle
-├── android_main.cr             # Crystal entry point
-├── CMakeLists.txt              # Build configuration
+├── android_native_app_glue.c   # created by ndk
+├── Makefile              # Build configuration
 └── AndroidManifest.xml         # App manifest
 
 ```
@@ -26,13 +25,12 @@ engine/android/
 |------|---------|
 | native.c | Creates OpenGL context, draws frames, handles touch input, communicates with Android NDK |
 | android_native_app_glue.c | Bridges Android Java lifecycle to C, manages event loop, queues input |
-| android_main.cr | Exports crystal_android_main to C, runs Crystal app logic, calls C rendering functions |
-| CMakeLists.txt | Compiles C files with NDK, cross-compiles Crystal to ARM64, links into .so |
+| Makefile | Compiles C files with NDK, cross-compiles Crystal to ARM64, links into .so |
 | AndroidManifest.xml | Tells Android to launch NativeActivity and load libnative_cr_engine.so |
 
 ## Build Process
 
-1. CMake reads CMakeLists.txt
+1. make reads Makefile
 2. C files are compiled with Android NDK toolchain
 3. Crystal compiler cross-compiles android_main.cr to ARM64 Linux
 4. Both are linked into libnative_cr_engine.so
