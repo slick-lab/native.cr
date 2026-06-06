@@ -17,41 +17,44 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
           add-to-path: false
-      
+
       - name: Setup Crystal
         uses: crystal-lang/install-crystal@v1
         with:
           crystal: 1.20.0
-      
+
       - name: Install shards
         run: shards install
-      
+
       - name: Build Android engine
         working-directory: src/native/engine/android
         run: |
           make NDK_PATH=$ANDROID_NDK
-      
+          ls -la libnative_cr_engine.so
+
       - name: Upload engine library
         uses: actions/upload-artifact@v4
         with:
           name: libnative_cr_engine
           path: src/native/engine/android/libnative_cr_engine.so
-      
+
       - name: Build Crystal library for Android
         run: |
+          rm -rf .native_cache
           mkdir -p build/lib/arm64-v8a
-          crystal build src/native.cr -D android --target aarch64-linux-android --link-flags="-shared" -o build/lib/arm64-v8a/libnative_cr.so
-      
+          export PATH=$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+          crystal build src/native.cr -D android --target aarch64-linux-android --link-flags="-shared -fPIC" -o build/lib/arm64-v8a/libnative_cr.so
+
       - name: Upload Crystal library
         uses: actions/upload-artifact@v4
         with:
