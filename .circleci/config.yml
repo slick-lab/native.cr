@@ -2,7 +2,6 @@ jobs:
   build:
     executor:
       name: android/android-machine
-      tag: default
     steps:
       - checkout
 
