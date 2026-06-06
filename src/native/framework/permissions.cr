@@ -43,7 +43,7 @@ module Native
     end
 
     class PermissionManager
-      @@callbacks = {} of PermissionType => Array(PermissionStatus -> Nil)
+      @@callbacks = {} of PermissionType => Array(Proc(PermissionStatus, Nil))
 
       def self.check(type : PermissionType) : PermissionStatus
         {% if flag?(:android) %}
@@ -57,7 +57,7 @@ module Native
         PermissionStatus.from_value(result)
       end
 
-      def self.request(type : PermissionType, &callback : PermissionStatus -> Nil) : Nil
+      def self.request(type : PermissionType, &callback : Proc(PermissionStatus, Nil)) : Nil
         status = check(type)
         
         if status != PermissionStatus::NotDetermined
@@ -65,7 +65,7 @@ module Native
           return
         end
         
-        @@callbacks[type] = [] of PermissionStatus -> Nil unless @@callbacks.has_key?(type)
+        @@callbacks[type] = [] of Proc(PermissionStatus, Nil) unless @@callbacks.has_key?(type)
         @@callbacks[type] << callback
         
         {% if flag?(:android) %}
@@ -150,7 +150,7 @@ module Native
         PermissionManager.check(PermissionType::Camera)
       end
 
-      def self.request_camera(&callback : PermissionStatus -> Nil) : Nil
+      def self.request_camera(&callback : Proc(PermissionStatus, Nil)) : Nil
         PermissionManager.request(PermissionType::Camera, &callback)
       end
 
@@ -162,7 +162,7 @@ module Native
         PermissionManager.check(PermissionType::Microphone)
       end
 
-      def self.request_microphone(&callback : PermissionStatus -> Nil) : Nil
+      def self.request_microphone(&callback : Proc(PermissionStatus, Nil)) : Nil
         PermissionManager.request(PermissionType::Microphone, &callback)
       end
 
@@ -174,7 +174,7 @@ module Native
         PermissionManager.check(PermissionType::Location)
       end
 
-      def self.request_location(&callback : PermissionStatus -> Nil) : Nil
+      def self.request_location(&callback : Proc(PermissionStatus, Nil)) : Nil
         PermissionManager.request(PermissionType::Location, &callback)
       end
 
@@ -186,7 +186,7 @@ module Native
         PermissionManager.check(PermissionType::Notifications)
       end
 
-      def self.request_notifications(&callback : PermissionStatus -> Nil) : Nil
+      def self.request_notifications(&callback : Proc(PermissionStatus, Nil)) : Nil
         PermissionManager.request(PermissionType::Notifications, &callback)
       end
 
@@ -198,7 +198,7 @@ module Native
         PermissionManager.check(PermissionType::Storage)
       end
 
-      def self.request_storage(&callback : PermissionStatus -> Nil) : Nil
+      def self.request_storage(&callback : Proc(PermissionStatus, Nil)) : Nil
         PermissionManager.request(PermissionType::Storage, &callback)
       end
 
@@ -210,7 +210,7 @@ module Native
         PermissionManager.check(PermissionType::Contacts)
       end
 
-      def self.request_contacts(&callback : PermissionStatus -> Nil) : Nil
+      def self.request_contacts(&callback : Proc(PermissionStatus, Nil)) : Nil
         PermissionManager.request(PermissionType::Contacts, &callback)
       end
 
@@ -238,7 +238,6 @@ module Native
                     "This app needs permission to function properly"
                   end
         
-        # Dialog.show would be called here - simplified for now
         puts message
       end
     end
