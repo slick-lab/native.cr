@@ -1,41 +1,79 @@
-# src/native/framework/app.cr
-
 require "json"
 require "signal"
-require "../core/state"
 
 module Native
   abstract class App
-    include JSON::Serializable
+    macro inherited
+      preserve
+    end
 
     macro preserve
       {% preserve_vars = @type.instance_vars.select { |var| var.has_annotation! Preserve } %}
-      
-      def to_json : String
-        {
+
+      def save_state
+        state_file = ENV["NATIVE_CR_STATE_FILE"]?
+        return unless state_file
+
+        File.open(state_file, "w") do |file|
           {% for var in preserve_vars %}
-            {{var.name.stringify}}: @{{var.name}},
+            value = @{{var.name}}
+            {% if var.type.resolve == Int32 %}
+              file.puts "{{var.name}}=i:#{value}"
+            {% elsif var.type.resolve == String %}
+              file.puts "{{var.name}}=s:#{value}"
+            {% elsif var.type.resolve == Float32 || var.type.resolve == Float64 %}
+              file.puts "{{var.name}}=f:#{value}"
+            {% elsif var.type.resolve == Bool %}
+              file.puts "{{var.name}}=b:#{value}"
+            {% else %}
+              file.puts "{{var.name}}={{value}}"
+            {% end %}
           {% end %}
-        }.to_json
+        end
       end
-      
-      def from_json(json : String) : Nil
-        data = JSON.parse(json)
-        {% for var in preserve_vars %}
-          if data.has_key?({{var.name.stringify}})
-            @{{var.name}} = data[{{var.name.stringify}}].as({{var.type}})
+
+      def load_state
+        state_file = ENV["NATIVE_CR_STATE_FILE"]?
+        return unless state_file && File.exists?(state_file)
+
+        File.each_line(state_file) do |line|
+          key, rest = line.split('=', 2)
+          next unless rest
+
+          type_char = rest[0]?
+          value = rest[2..-1] if rest.size > 2
+          next unless value
+
+          case key
+          {% for var in preserve_vars %}
+          when "{{var.name}}"
+            {% if var.type.resolve == Int32 %}
+              @{{var.name}} = value.to_i
+            {% elsif var.type.resolve == String %}
+              @{{var.name}} = value
+            {% elsif var.type.resolve == Float32 %}
+              @{{var.name}} = value.to_f.to_f32
+            {% elsif var.type.resolve == Float64 %}
+              @{{var.name}} = value.to_f
+            {% elsif var.type.resolve == Bool %}
+              @{{var.name}} = value == "true"
+            {% else %}
+              @{{var.name}} = value
+            {% end %}
+          {% end %}
           end
-        {% end %}
+        end
+        File.delete(state_file)
       end
     end
 
     annotation Preserve; end
 
     def initialize
-      @renderer = nil
-      @bg_r = 100
-      @bg_g = 100
-      @bg_b = 100
+      @renderer = Pointer(Void).null
+      @bg_r = 100_u8
+      @bg_g = 100_u8
+      @bg_b = 100_u8
       @screen_width = 0
       @screen_height = 0
       setup_signal_handlers
@@ -45,40 +83,14 @@ module Native
       Signal::USR1.trap do
         save_state
       end
-      
       Signal::TERM.trap do
         save_state
         exit(0)
       end
     end
 
-    private def save_state
-      state_file = ENV["NATIVE_CR_STATE_FILE"]?
-      
-      if state_file
-        begin
-          json = to_json
-          File.write(state_file, json)
-          STDERR.puts "[native.cr] State saved to #{state_file}"
-        rescue ex
-          STDERR.puts "[native.cr] Failed to save state: #{ex.message}"
-        end
-      end
-    end
-
     protected def load_saved_state
-      state_file = ENV["NATIVE_CR_STATE_FILE"]?
-      
-      if state_file && File.exists?(state_file)
-        begin
-          json = File.read(state_file)
-          from_json(json)
-          STDERR.puts "[native.cr] State loaded from #{state_file}"
-          File.delete(state_file)
-        rescue ex
-          STDERR.puts "[native.cr] Failed to load state: #{ex.message}"
-        end
-      end
+      load_state
     end
 
     def set_background_color(r : UInt8, g : UInt8, b : UInt8) : Nil
@@ -156,14 +168,7 @@ module Native
       @@current = app
       app.load_saved_state
       app.setup
-      
-      {% if flag?(:android) %}
-        app.run
-      {% elsif flag?(:ios) %}
-        app.run
-      {% else %}
-        app.run
-      {% end %}
+      app.run
     end
 
     def run : Nil
