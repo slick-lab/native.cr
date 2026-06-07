@@ -126,11 +126,12 @@ module Native::CLI
 
     private def create_app_template
       File.write("#{@path}/src/main.cr", <<-CR
+        require "native"
         class MyApp < Native::App
           @[Preserve]
           property count : Int32 = 0
 
-          def setup
+          def setup : Nil
             @label = UI::Text.new
             @label.text = "Tap: 0"
             @label.text_size = 24
@@ -154,7 +155,7 @@ module Native::CLI
             @label.text = "Tap: \#{@count}"
           end
 
-          def draw
+          def draw : Nil
             @root.draw(renderer)
           end
         end
@@ -219,9 +220,9 @@ module Native::CLI
           - Your Name <you@example.com>
 
         dependencies:
-          native:
+          native.cr:
             github: slick-lab/native.cr
-            version: ~> 0.1.0
+            version: ~> 0.0.97
 
         crystal: ">= 1.20.0"
 
@@ -384,6 +385,7 @@ module Native::CLI
       ios_dir = "#{@path}/ios"
       Dir.mkdir_p(ios_dir)
       Dir.mkdir_p("#{ios_dir}/NativeCr.xcodeproj")
+      Dir.mkdir_p("#{ios_dir}/Base.lproj")
 
       create_ios_pbxproj(ios_dir)
       create_ios_main_storyboard(ios_dir)
