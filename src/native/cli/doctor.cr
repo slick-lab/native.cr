@@ -3,10 +3,6 @@
 require "semantic_version"
 require "http/client"
 
-module Native
-  VERSION = "0.0.98"
-end
-
 module Native::CLI
   class DoctorCommand
     def initialize(args : Array(String))
