@@ -10,11 +10,14 @@ OS=$(uname -s)
 # Create lib directory
 mkdir -p lib/native
 
+# Create bin directory
+mkdir -p bin
+
 # Get latest version from GitHub
 LATEST_VERSION=$(curl -s https://api.github.com/repos/slick-lab/native.cr/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$LATEST_VERSION" ]; then
-    LATEST_VERSION="v0.0.97"
+    LATEST_VERSION="v0.0.98"
 fi
 
 echo "[native.cr] Latest version: $LATEST_VERSION"
@@ -34,11 +37,11 @@ else
     echo "[native.cr] macOS detected - skipping Android library download"
 fi
 
-# Build CLI
+# Build CLI using crystal build directly
 echo "[native.cr] Building CLI..."
-shards build --release
+crystal build src/native.cr -o bin/native.cr --release
 
-# Install CLI to user directory (no sudo needed)
+# Install CLI to user directory
 mkdir -p ~/.local/bin
 cp bin/native.cr ~/.local/bin/
 
@@ -48,20 +51,10 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     echo "[native.cr] Added ~/.local/bin to PATH in ~/.bashrc"
 fi
 
-# Also try system-wide if user has sudo and wants it
-if command -v sudo &> /dev/null; then
-    read -p "Install to /usr/local/bin? (requires sudo) [y/N]: " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        sudo cp bin/native.cr /usr/local/bin/
-        echo "[native.cr] Installed to /usr/local/bin"
-    fi
-fi
-
-echo "[native.cr] Post-install complete"
-echo "[native.cr] Run 'native.cr doctor' to verify setup"
-
 # Source bashrc to update PATH in current session
 if [[ -f ~/.bashrc ]]; then
     source ~/.bashrc
 fi
+
+echo "[native.cr] Post-install complete"
+echo "[native.cr] Run 'native.cr doctor' to verify setup"
