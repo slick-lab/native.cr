@@ -1,11 +1,15 @@
 # src/native/cli/doctor.cr
+
 require "semantic_version"
 require "http/client"
+
+module Native
+  VERSION = "0.0.98"
+end
 
 module Native::CLI
   class DoctorCommand
     def initialize(args : Array(String))
-      @online = args.includes?("--online")
     end
 
     def run
@@ -16,13 +20,7 @@ module Native::CLI
       check_android
       check_ios
       check_native_cr
-
-      if @online
-        check_latest_version
-      else
-        puts ""
-        puts "Run with --online to check for latest version"
-      end
+      check_latest_version
     end
 
     private def check_crystal
@@ -72,33 +70,36 @@ module Native::CLI
     private def check_latest_version
       puts ""
       puts "Checking for updates..."
-      begin 
-       url = "https://api.github.com/repos/slick-lab/native.cr/tags"
-       response = HTTP::Client.get(url)
-       if response.status_code == 200 
-         tags = JSON.parse(response.body)
-         latest_version = tags[0]["name"].as_s
-         current_version = Native::Version.as_s
-         v1 = SemanticVersion.parse(latest_version)
-         v2 = SemanticVersion.parse(current_version)
-         if v2 > v1
-          puts "[Warn] You are running on an older version pls update with shards update to #{current_version}"
-         elsif v2 == v1
-           puts "[Ok] native.cr js up to date"
-         elsif v2 < v1
-          puts "[info] invalid version can't be behind pls run shards install"
-         else 
-          puts "[Warn] invalid version"
-         end
-       else
-        puts "error can't github returned error"
-       end 
-    rescue 
-     puts "an error occurred"
+
+      begin
+        url = "https://api.github.com/repos/slick-lab/native.cr/releases/latest"
+        response = HTTP::Client.get(url)
+
+        if response.status_code == 200
+          data = JSON.parse(response.body)
+          latest_version = data["tag_name"].as_s
+          current_version = Native::VERSION
+
+          v_current = SemanticVersion.parse(current_version)
+          v_latest = SemanticVersion.parse(latest_version)
+
+          if v_current < v_latest
+            puts "[WARN] New version available: #{latest_version}"
+            puts "[WARN] Run 'shards update' to upgrade"
+          elsif v_current == v_latest
+            puts "[OK] Native.cr is up to date"
+          else
+            puts "[INFO] You are on a development version: #{current_version}"
+          end
+        else
+          puts "[WARN] Could not check for updates (GitHub API returned #{response.status_code})"
+        end
+      rescue ex
+        puts "[WARN] Failed to check for updates: #{ex.message}"
+      end
     end
-   end
- end 
-end 
+  end
+end
 
 if ARGV.size > 0 && ARGV[0] == "doctor"
   args = ARGV[1..-1] || [] of String
