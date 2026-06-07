@@ -1,7 +1,7 @@
 
 # <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/slick-lab/native.cr/main/assets/logo.svg">
-  <img src="https://raw.githubusercontent.com/slick-lab/native.cr/main/assets/logo.svg" width="120" alt="Native.cr">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/slick-lab/native.cr/refs/heads/main/assets/logo.svg">
+  <img src="https://raw.githubusercontent.com/slick-lab/native.cr/refs/heads/main/assets/logo.svg" width="120" alt="Native.cr">
 </picture>
 
 # Native.cr
