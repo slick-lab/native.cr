@@ -2,7 +2,7 @@
 
 fun crystal_android_main(state : Void*) : Void
   GC.init
-  app = NativeApp.current
+  app = Native::App.current
   app.renderer = state
   app.run
 end
