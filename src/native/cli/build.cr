@@ -136,7 +136,7 @@ module Native::CLI
       # Compile user's Crystal code to object file
       puts "[native.cr] Compiling user code..."
       user_o = "#{@output}/user_code.o"
-      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android -c -o #{user_o}"
+      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android -o #{user_o}"
       output = `#{cmd} 2>&1`
 
       unless $?.success?
