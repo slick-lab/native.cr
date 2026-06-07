@@ -1,4 +1,6 @@
 # src/native/cli/doctor.cr
+require "semantic_version"
+require "http/client"
 
 module Native::CLI
   class DoctorCommand
@@ -70,35 +72,33 @@ module Native::CLI
     private def check_latest_version
       puts ""
       puts "Checking for updates..."
-
-      begin
-        response = `curl -s --connect-timeout 5 https://api.github.com/repos/slick-lab/native.cr/releases/latest 2>/dev/null`
-
-        if response.empty?
-          puts "[WARN] Cannot check latest version (offline or GitHub unreachable)"
-          return
-        end
-
-        match = response.match(/"tag_name"\s*:\s*"([^"]+)"/)
-        if match
-          latest = match[1]
-          current = Native::VERSION
-
-          if latest == current
-            puts "[OK] You are on the latest version: #{current}"
-          else
-            puts "[INFO] Latest version: #{latest} (you have #{current})"
-            puts "[INFO] Run: native.cr update"
-          end
-        else
-          puts "[WARN] Could not parse latest version"
-        end
-      rescue
-        puts "[WARN] Cannot check latest version (network error)"
-      end
+      begin 
+       url = "https://api.github.com/repos/slick-lab/native.cr/tags"
+       response = HTTP::Client.get(url)
+       if response.status_code == 200 
+         tags = JSON.parse(response.body)
+         latest_version = tags[0]["name"].as_s
+         current_version = Native::Version.as_s
+         v1 = SemanticVersion.parse(latest_version)
+         v2 = SemanticVersion.parse(current_version)
+         if v2 > v1
+          puts "[Warn] You are running on an older version pls update with shards update to #{current_version}"
+         elsif v2 == v1
+           puts "[Ok] native.cr js up to date"
+         elsif v2 < v1
+          puts "[info] invalid version can't be behind pls run shards install"
+         else 
+          puts "[Warn] invalid version"
+         end
+       else
+        puts "error can't github returned error"
+       end 
+    rescue 
+     puts "an error occurred"
     end
-  end
-end
+   end
+ end 
+end 
 
 if ARGV.size > 0 && ARGV[0] == "doctor"
   args = ARGV[1..-1] || [] of String
