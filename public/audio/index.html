@@ -1,0 +1,99 @@
+<h1 id="audio">Audio</h1>
+<p>Sound is essential for immersive mobile experiences. Apps use audio for music, sound effects, voice messages, and alerts. Native.cr provides a complete audio engine that handles playback, recording, volume control, and audio routing.</p>
+<h2 id="audio-concepts">Audio Concepts</h2>
+<p>Mobile devices have different audio contexts. When a user receives a call, plays music, or enables vibration mode, the audio system behaves differently. Native.cr abstracts these details so your audio works correctly in all situations.</p>
+<p>Audio files can be stored as app resources or downloaded from the network. Common formats are MP3, WAV, and OGG. All modern phones support these formats natively.</p>
+<h2 id="playing-sound-effects">Playing Sound Effects</h2>
+<p>Sound effects are short, repeatable sounds triggered by user actions. Playing a sound effect is simple:</p>
+<pre><code class="language-crystal hljs">Native::Audio.play_effect(&quot;button_click.mp3&quot;)
+</code></pre>
+<p>Sound effects play immediately at full volume (unless you've changed the volume). Multiple effects can play simultaneously—they mix automatically.</p>
+<h2 id="playing-music">Playing Music</h2>
+<p>Music is longer audio that plays in the background. Unlike effects, only one music track plays at a time. Starting a new music track stops the previous one.</p>
+<pre><code class="language-crystal hljs">Native::Audio.play_music(&quot;background_track.mp3&quot;)
+Native::Audio.stop_music
+Native::Audio.pause_music
+Native::Audio.resume_music
+</code></pre>
+<h2 id="volume-control">Volume Control</h2>
+<p>Apps have separate volume controls for music and effects. This lets users mute effects but keep music, for example.</p>
+<pre><code class="language-crystal hljs"># Get current volume (0.0 to 1.0)
+music_vol = Native::Audio.music_volume
+effect_vol = Native::Audio.sfx_volume
+
+# Set volume
+Native::Audio.music_volume = 0.8
+Native::Audio.sfx_volume = 0.5
+</code></pre>
+<p>You can also control the master volume which affects both:</p>
+<pre><code class="language-crystal hljs">Native::Audio.master_volume = 0.7
+</code></pre>
+<h2 id="recording-audio">Recording Audio</h2>
+<p>Record audio for voice messages, notes, or audio memos:</p>
+<pre><code class="language-crystal hljs">Native::Audio.start_recording(&quot;memo.mp3&quot;)
+
+# Record for a while...
+sleep 10.seconds
+
+Native::Audio.stop_recording
+</code></pre>
+<p>The recorded file is saved at the path you specify in your app's storage directory.</p>
+<h2 id="audio-properties">Audio Properties</h2>
+<p>Get information about currently playing audio:</p>
+<pre><code class="language-crystal hljs">duration = Native::Audio.duration(&quot;track.mp3&quot;)      # In seconds
+playing = Native::Audio.is_playing?(&quot;track.mp3&quot;)
+current = Native::Audio.current_position              # Current playback position
+</code></pre>
+<h2 id="audio-callbacks">Audio Callbacks</h2>
+<p>Execute code when audio finishes playing:</p>
+<pre><code class="language-crystal hljs">Native::Audio.on_music_finished do
+  puts &quot;Music finished&quot;
+  # Play next track
+  Native::Audio.play_music(&quot;next_track.mp3&quot;)
+end
+
+Native::Audio.on_effect_finished(&quot;effect.mp3&quot;) do
+  puts &quot;Effect finished playing&quot;
+end
+</code></pre>
+<h2 id="audio-routing">Audio Routing</h2>
+<p>Control which speaker audio comes from. On mobile devices, audio can come from the device speaker, earpiece, or headphones.</p>
+<pre><code class="language-crystal hljs"># Force speaker output (ignore earpiece)
+Native::Audio.route = Native::Audio::Route::Speaker
+
+# Use the default route
+Native::Audio.route = Native::Audio::Route::Default
+
+# Play through ear speaker
+Native::Audio.route = Native::Audio::Route::Earpiece
+</code></pre>
+<p>The system automatically switches routing if the user plugs in headphones.</p>
+<h2 id="audio-categories">Audio Categories</h2>
+<p>Tell the system what kind of audio your app plays. This affects how the phone handles volume buttons and silent mode.</p>
+<pre><code class="language-crystal hljs"># For music or entertainment
+Native::Audio.category = Native::Audio::Category::Music
+
+# For games
+Native::Audio.category = Native::Audio::Category::Game
+
+# For voice chat or calls
+Native::Audio.category = Native::Audio::Category::Voice
+</code></pre>
+<h2 id="audio-ducking">Audio Ducking</h2>
+<p>When another app (like a call or navigation) needs to play audio, your app's audio can automatically reduce volume. This is called ducking.</p>
+<pre><code class="language-crystal hljs"># Enable ducking (other apps reduce your volume)
+Native::Audio.ducking_enabled = true
+
+# Disable ducking
+Native::Audio.ducking_enabled = false
+</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ul>
+<li>Use WAV or OGG for sound effects (smaller, faster to load)</li>
+<li>Use MP3 for music (good compression)</li>
+<li>Keep effect files under 1MB for instant playback</li>
+<li>Always provide a mute button to respect user preferences</li>
+<li>Handle audio routes when headphones are plugged in</li>
+<li>Release audio resources when your app pauses to save battery</li>
+<li>Test audio with volume buttons, silent mode, and headphones</li>
+</ul>

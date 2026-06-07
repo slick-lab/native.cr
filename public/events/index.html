@@ -1,0 +1,657 @@
+<hr />
+<h2 id="title-events-amp-gestures">title: Events &amp; Gestures</h2>
+<h1 id="events-amp-gestures">Events &amp; Gestures</h1>
+<p>User interaction is the heart of any mobile app. Native.cr provides a comprehensive event system that handles touch input, gestures, and keyboard events. Understanding how events work is essential for creating responsive, interactive applications.</p>
+<h2 id="the-event-system-overview">The Event System Overview</h2>
+<p>Events flow through your app in a specific order. When a user touches the screen, the following happens:</p>
+<ol>
+<li>The operating system detects the touch at a specific screen position</li>
+<li>Native.cr receives the touch event from the platform (Android or iOS)</li>
+<li>The event is converted into a native.cr touch object</li>
+<li>Your app's touch methods are called (<code>on_touch_began</code>, <code>on_touch_moved</code>, <code>on_touch_ended</code>)</li>
+<li>If you have gesture recognizers attached to views, they also receive the event</li>
+<li>You decide how to respond</li>
+</ol>
+<p>You do not need to worry about the low-level details. Native.cr handles platform differences. You just override methods or attach gesture recognizers.</p>
+<h2 id="touch-events">Touch Events</h2>
+<p>Touch events are the most basic form of user input. Every time a finger touches, moves, or leaves the screen, a touch event occurs.</p>
+<h3 id="touch-object">Touch Object</h3>
+<p>When a touch occurs, native.cr creates a <code>Touch</code> object containing information about that touch:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>Int32</td>
+<td>Unique identifier for this finger (useful for multi-touch)</td>
+</tr>
+<tr>
+<td><code>x</code></td>
+<td>Float32</td>
+<td>X coordinate relative to the screen</td>
+</tr>
+<tr>
+<td><code>y</code></td>
+<td>Float32</td>
+<td>Y coordinate relative to the screen</td>
+</tr>
+<tr>
+<td><code>pressure</code></td>
+<td>Float32</td>
+<td>How hard the finger is pressing (0.0 to 1.0)</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>id</code> is important for multi-touch scenarios. Each finger gets a unique ID when it touches down. That ID stays the same as the finger moves and ends. You can track individual fingers across the entire touch sequence.</p>
+<h3 id="touch-actions">Touch Actions</h3>
+<p>Touches have four possible actions:</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Description</th>
+<th>When It Happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TouchAction::Began</code></td>
+<td>Finger touches screen</td>
+<td>First contact</td>
+</tr>
+<tr>
+<td><code>TouchAction::Moved</code></td>
+<td>Finger moves while touching</td>
+<td>During movement</td>
+</tr>
+<tr>
+<td><code>TouchAction::Ended</code></td>
+<td>Finger lifts off screen</td>
+<td>Release</td>
+</tr>
+<tr>
+<td><code>TouchAction::Cancelled</code></td>
+<td>System interrupts touch</td>
+<td>Alert appears, app backgrounds, etc.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>Cancelled</code> action is rare but important. It happens when the system takes over, such as when an incoming call appears or a system alert shows. You should treat it like <code>Ended</code> but possibly ignore the final position.</p>
+<h3 id="app-level-touch-methods">App-Level Touch Methods</h3>
+<p>Your app class can override these methods to receive all touch events:</p>
+<pre><code class="language-crystal hljs">class MyApp &lt; Native::App
+  def on_touch_began(x : Float32, y : Float32)
+    puts &quot;Touch started at (#{x}, #{y})&quot;
+  end
+
+  def on_touch_moved(x : Float32, y : Float32)
+    puts &quot;Touch moved to (#{x}, #{y})&quot;
+  end
+
+  def on_touch_ended(x : Float32, y : Float32)
+    puts &quot;Touch ended at (#{x}, #{y})&quot;
+  end
+
+  def on_touch_cancelled(x : Float32, y : Float32)
+    puts &quot;Touch was cancelled&quot;
+  end
+end
+</code></pre>
+<p>These methods receive the raw touch coordinates. They are called for every touch, regardless of which view was touched. This is useful for global gestures or custom drawing apps.</p>
+<h3 id="view-level-touch-methods">View-Level Touch Methods</h3>
+<p>Views also have touch methods. When a view is touched, its hit_test method determines if the touch falls within its bounds. If yes, the view's touch methods are called.</p>
+<pre><code class="language-crystal hljs">class TapView &lt; UI::View
+  def on_touch_began(x : Int32, y : Int32) : Bool
+    puts &quot;View tapped at (#{x}, #{y})&quot;
+    return true  # Indicates the touch was handled
+  end
+end
+</code></pre>
+<p>The touch methods return a boolean. Return true if you handled the touch and do not want it to propagate to parent views. Return false to let the touch continue to the next view.</p>
+<p>Why Coordinates Are Different Types</p>
+<p>Notice that app-level touch methods use Float32 while view-level touch methods use Int32. This is intentional:</p>
+<ul>
+<li>App-level coordinates are floating point for precise raw input from the system</li>
+<li>View-level coordinates are integers because views use integer pixel positions</li>
+</ul>
+<p>You can convert between them using .to_i or .to_f32 as needed.</p>
+<p>Gesture Recognizers</p>
+<p>Raw touch events give you exact finger positions, but most user interactions are not raw touches. Users tap, swipe, pinch, and rotate. Implementing these from scratch requires complex math and state management.</p>
+<p>Gesture recognizers handle this complexity for you. They analyze sequences of touch events and determine when a specific gesture has occurred.</p>
+<p>Available Gesture Recognizers</p>
+<table>
+<thead>
+<tr>
+<th>Gesture</th>
+<th>Description</th>
+<th>Common Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TapGestureRecognizer</td>
+<td>Single or multiple taps</td>
+<td>Button presses,  selecting items</td>
+</tr>
+<tr>
+<td>LongPressGestureRecognizer</td>
+<td>Touch held in place</td>
+<td>Context menus,drag initiation</td>
+</tr>
+<tr>
+<td>PanGestureRecognizer</td>
+<td>Drag movement</td>
+<td>Scrolling, dragging objects</td>
+</tr>
+<tr>
+<td>PinchGestureRecognizer</td>
+<td>Two fingers moving apart/together</td>
+<td>Zooming images, maps</td>
+</tr>
+<tr>
+<td>RotationGestureRecognizer</td>
+<td>Two fingers rotating</td>
+<td>Rotating images, dials</td>
+</tr>
+<tr>
+<td>SwipeGestureRecognizer</td>
+<td>Quick flick in a direction</td>
+<td>Navigation, dismissing items</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-gesture-recognizers-work">How Gesture Recognizers Work</h2>
+<p>A gesture recognizer goes through several states:</p>
+<ol>
+<li>Possible - The recognizer has not decided yet</li>
+<li>Began - The gesture has started</li>
+<li>Changed - The gesture is ongoing (movement, scale change, etc.)</li>
+<li>Ended - The gesture completed successfully</li>
+<li>Cancelled - The gesture was interrupted</li>
+<li>Failed - The recognizer determined this was not its gesture</li>
+</ol>
+<p>You usually only care about Began, Changed, and Ended. The recognizer handles the state machine internally.</p>
+<h2 id="gesture-view-container">Gesture View Container</h2>
+<p>To use gesture recognizers, you attach them to a GestureView (or any view, but GestureView provides convenient methods):</p>
+<pre><code class="language-crystal hljs">gesture_view = Gesture::GestureView.new
+</code></pre>
+<p>The GestureView inherits from UI::View, so it has all the same properties (position, size, background, etc.).</p>
+<h2 id="tap-gesture">Tap Gesture</h2>
+<p>A tap is a quick touch and release. Users expect buttons to respond to taps. The tap gesture recognizer detects single or multiple taps.</p>
+<p>Single Tap</p>
+<pre><code class="language-crystal hljs">view = Gesture::GestureView.new
+view.width = 200
+view.height = 200
+view.background_color = Color.blue
+
+view.add_tap_gesture do |point|
+  puts &quot;Tapped at x=#{point.x}, y=#{point.y}&quot;
+end
+</code></pre>
+<p>The callback receives a Point object containing the tap location relative to the view.</p>
+<h2 id="double-tap">Double Tap</h2>
+<pre><code class="language-crystal hljs">view.add_tap_gesture(taps: 2) do |point|
+  puts &quot;Double tapped!&quot;
+end
+</code></pre>
+<p>Multiple Taps</p>
+<p>You can require any number of taps:</p>
+<pre><code class="language-crystal hljs">view.add_tap_gesture(taps: 3) do |point|
+  puts &quot;Triple tapped!&quot;
+end
+</code></pre>
+<h2 id="multiple-touches-required">Multiple Touches Required</h2>
+<p>You can also require multiple fingers to tap simultaneously:</p>
+<pre><code class="language-crystal hljs">view.add_tap_gesture(taps: 1, touches: 2) do |point|
+  puts &quot;Two-finger tap!&quot;
+end
+</code></pre>
+<p>This requires two fingers to tap at the same time.</p>
+<p>Complete Example</p>
+<pre><code class="language-crystal hljs">class TapDemo &lt; Native::App
+  def setup
+    set_background_color(245, 245, 250)
+    
+    @label = UI::Text.new
+    @label.text = &quot;Tap anywhere&quot;
+    @label.text_size = 24
+    
+    # Create a gesture view that covers the whole screen
+    @gesture_view = Gesture::GestureView.new
+    @gesture_view.width = screen_width
+    @gesture_view.height = screen_height
+    
+    # Add single tap
+    @gesture_view.add_tap_gesture do |point|
+      @label.text = &quot;Single tap at #{point.x.to_i}, #{point.y.to_i}&quot;
+    end
+    
+    # Add double tap
+    @gesture_view.add_tap_gesture(taps: 2) do |point|
+      @label.text = &quot;Double tap!&quot;
+      set_background_color(200, 100, 100)
+    end
+    
+    @root = @gesture_view
+    @root.add_child(@label)
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+</code></pre>
+<h3 id="long-press-gesture">Long Press Gesture</h3>
+<p>A long press happens when the user touches and holds in place for a period of time. This is commonly used for context menus or to initiate drag operations.</p>
+<p>Basic Long Press</p>
+<pre><code class="language-crystal hljs">view.add_long_press_gesture do |point|
+  puts &quot;Long press at #{point.x}, #{point.y}&quot;
+end
+</code></pre>
+<p>Customizing Duration</p>
+<p>The default duration is 0.5 seconds (500 milliseconds). You can change this:</p>
+<pre><code class="language-crystal hljs">view.add_long_press_gesture(duration: 1.0) do |point|
+  puts &quot;Pressed for 1 second&quot;
+end
+</code></pre>
+<p>The duration is in seconds. A value of 0.3 means 300 milliseconds.</p>
+<p>Long Press with Movement</p>
+<p>Long press gestures normally fail if the finger moves beyond a small threshold (10 pixels). If you want to allow movement, you need to adjust the configuration directly:</p>
+<pre><code class="language-crystal hljs">recognizer = LongPressGestureRecognizer.new
+recognizer.minimum_press_duration = 0.5
+recognizer.allowable_movement = 50.0  # Allow 50 pixels of movement
+
+recognizer.on_long_press do |point|
+  puts &quot;Long press with movement allowed&quot;
+end
+</code></pre>
+<h2 id="pan-gesture">Pan Gesture</h2>
+<p>A pan gesture (also called drag) happens when the user touches and moves their finger across the screen. This is how users scroll lists, drag objects, or draw with their finger.</p>
+<p>Basic Pan</p>
+<pre><code class="language-crystal hljs">view.add_pan_gesture do |translation, velocity, point|
+  # translation: total movement from start
+  # velocity: speed of movement
+  # point: current touch position
+end
+</code></pre>
+<p>The callback receives three parameters:</p>
+<p>Parameter Description
+translation Total distance moved from the starting point (Point object)
+velocity Current speed in pixels per second (Point object)
+point Current touch position (Point object)</p>
+<p>Moving a View with Pan</p>
+<p>The most common use of pan is to drag a view around the screen:</p>
+<pre><code class="language-crystal hljs">@draggable_view = UI::View.new
+@draggable_view.width = 100
+@draggable_view.height = 100
+@draggable_view.background_color = Color.blue
+
+@gesture_view.add_pan_gesture do |translation, velocity, point|
+  # Move the view by the translation amount
+  @draggable_view.x = @start_x + translation.x.to_i
+  @draggable_view.y = @start_y + translation.y.to_i
+end
+</code></pre>
+<p>But this has a problem: the translation resets to zero each time a new gesture starts. You need to track the view's position.</p>
+<h3 id="proper-dragging-implementation">Proper Dragging Implementation</h3>
+<pre><code class="language-crystal hljs">class DraggableDemo &lt; Native::App
+  def setup
+    set_background_color(245, 245, 250)
+    
+    @draggable = UI::View.new
+    @draggable.width = 100
+    @draggable.height = 100
+    @draggable.background_color = Color.blue
+    @draggable.corner_radius = CornerRadius.all(12)
+    
+    # Store initial position as properties
+    @draggable_x = 100
+    @draggable_y = 200
+    @draggable.x = @draggable_x
+    @draggable.y = @draggable_y
+    
+    @gesture_view = Gesture::GestureView.new
+    @gesture_view.width = screen_width
+    @gesture_view.height = screen_height
+    
+    @gesture_view.add_pan_gesture do |translation, velocity, point|
+      # Update position based on start plus movement
+      @draggable.x = @draggable_x + translation.x.to_i
+      @draggable.y = @draggable_y + translation.y.to_i
+    end
+    
+    # When pan ends, update stored position
+    # Note: This requires a more complex recognizer setup
+    # See the advanced example below
+    
+    @gesture_view.add_child(@draggable)
+    @root = @gesture_view
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+</code></pre>
+<h3 id="getting-pan-state">Getting Pan State</h3>
+<p>For complete control, you can access the pan recognizer's state:</p>
+<pre><code class="language-crystal hljs">pan = PanGestureRecognizer.new
+pan.on_state_change do |state|
+  case state
+  when GestureState::Began
+    @start_x = @draggable.x
+    @start_y = @draggable.y
+  when GestureState::Changed
+    # Update position during movement
+  when GestureState::Ended
+    # Save final position
+    @draggable_x = @draggable.x
+    @draggable_y = @draggable.y
+  end
+end
+</code></pre>
+<h2 id="pinch-gesture">Pinch Gesture</h2>
+<p>Pinch gestures use two fingers moving toward each other (pinch close) or away from each other (pinch open). This is the standard way to zoom content.</p>
+<p>Basic Pinch</p>
+<pre><code class="language-crystal hljs">view.add_pinch_gesture do |scale, center|
+  # scale: zoom factor (1.0 = original size)
+  # center: center point of the pinch
+end
+</code></pre>
+<p>The scale value starts at 1.0 when the gesture begins. As the user pinches open, scale increases (2.0 means twice as big). As the user pinches closed, scale decreases (0.5 means half as big).</p>
+<h3 id="zooming-a-view">Zooming a View</h3>
+<pre><code class="language-crystal hljs">@image_view = UI::Image.new
+@image_view.load(&quot;/assets/photo.jpg&quot;)
+@image_view.width = 300
+@image_view.height = 300
+
+@gesture_view.add_pinch_gesture do |scale, center|
+  # Multiply current scale by the new scale factor
+  @current_scale *= scale
+  @image_view.scale = @current_scale.to_f32
+end
+</code></pre>
+<h3 id="resetting-scale-after-pinch">Resetting Scale After Pinch</h3>
+<p>The scale value is relative to the start of the gesture, not cumulative. To track total scale, maintain a variable:</p>
+<pre><code class="language-crystal hljs">@total_scale = 1.0
+@current_gesture_scale = 1.0
+
+@gesture_view.add_pinch_gesture do |scale, center|
+  @current_gesture_scale = scale
+  @image_view.scale = (@total_scale * scale).to_f32
+end
+
+# When gesture ends, update total scale
+# This requires a custom recognizer with state
+</code></pre>
+<h2 id="rotation-gesture">Rotation Gesture</h2>
+<p>Rotation gestures use two fingers rotating around a center point. This is used for rotating images, dials, or other content.</p>
+<p>Basic Rotation</p>
+<pre><code class="language-crystal hljs">view.add_rotation_gesture do |rotation, center|
+  # rotation: angle in radians
+  # center: center point of the rotation
+end
+</code></pre>
+<p>The rotation value starts at 0 when the gesture begins. As the user rotates clockwise, rotation increases. Counter-clockwise rotation produces negative values.</p>
+<h3 id="rotating-a-view">Rotating a View</h3>
+<pre><code class="language-crystal hljs">@image_view = UI::Image.new
+@image_view.load(&quot;/assets/photo.jpg&quot;)
+
+@total_rotation = 0.0
+
+@gesture_view.add_rotation_gesture do |rotation, center|
+  @image_view.rotation = (@total_rotation + rotation).to_f32
+end
+</code></pre>
+<h3 id="converting-radians-to-degrees">Converting Radians to Degrees</h3>
+<p>If you prefer degrees, convert using the rad_to_deg helper:</p>
+<pre><code class="language-crystal hljs">@gesture_view.add_rotation_gesture do |rotation, center|
+  degrees = rotation * 180.0 / Math::PI
+  puts &quot;Rotated #{degrees.round(1)} degrees&quot;
+end
+</code></pre>
+<h2 id="swipe-gesture">Swipe Gesture</h2>
+<p>A swipe is a quick, fast movement in a specific direction. Swipes are typically used for navigation (swipe back, swipe to delete) or dismissing content.</p>
+<p>Basic Swipe</p>
+<pre><code class="language-crystal hljs">view.add_swipe_gesture do |direction|
+  # direction: 1=right, 2=left, 3=down, 4=up
+end
+</code></pre>
+<h3 id="direction-constants">Direction Constants</h3>
+<p>The direction parameter uses these values:</p>
+<p>Value Direction
+1 Right
+2 Left
+3 Down
+4 Up</p>
+<h3 id="swipe-handlers">Swipe Handlers</h3>
+<pre><code class="language-crystal hljs">@gesture_view.add_swipe_gesture do |direction|
+  case direction
+  when 1
+    puts &quot;Swiped right&quot;
+    navigate_to_next_page()
+  when 2
+    puts &quot;Swiped left&quot;
+    go_back()
+  when 3
+    puts &quot;Swiped down&quot;
+    dismiss_modal()
+  when 4
+    puts &quot;Swiped up&quot;
+    show_menu()
+  end
+end
+</code></pre>
+<h2 id="swipe-sensitivity">Swipe Sensitivity</h2>
+<p>The default swipe detection requires 50 pixels of movement within 0.5 seconds. These values cannot be changed through the simple add_swipe_gesture method, but you can create a custom recognizer:</p>
+<pre><code class="language-crystal hljs">swipe = SwipeGestureRecognizer.new
+# Note: minimum_distance and maximum_duration are not directly exposed
+# in the simple version. Use the gesture view's add method instead.
+</code></pre>
+<h3 id="multiple-gestures-on-one-view">Multiple Gestures on One View</h3>
+<p>You can attach multiple gesture recognizers to the same view. They will all receive the touch events and attempt to recognize their gestures simultaneously.</p>
+<pre><code class="language-crystal hljs">view = Gesture::GestureView.new
+
+view.add_tap_gesture do |point|
+  puts &quot;Tap&quot;
+end
+
+view.add_long_press_gesture do |point|
+  puts &quot;Long press&quot;
+end
+
+view.add_pan_gesture do |translation, velocity, point|
+  puts &quot;Pan&quot;
+end
+</code></pre>
+<p>When the user interacts, the correct gesture will trigger. Taps will not trigger long press. Long presses will not trigger taps. The recognizers handle disambiguation automatically.</p>
+<h2 id="gesture-priority-and-conflicts">Gesture Priority and Conflicts</h2>
+<p>Sometimes gestures conflict. For example, a pan gesture and a swipe gesture both detect horizontal movement. The system resolves conflicts using a simple rule: the first gesture to recognize wins.</p>
+<p>If you need more control, you can implement custom logic using the recognizer's state:</p>
+<pre><code class="language-crystal hljs">pan = PanGestureRecognizer.new
+pan.on_state_change do |state|
+  case state
+  when GestureState::Began
+    # Pan started - maybe cancel other gestures
+  when GestureState::Changed
+    # Pan is active
+  when GestureState::Ended
+    # Pan finished
+  end
+end
+</code></pre>
+<h2 id="hit-testing-explained">Hit Testing Explained</h2>
+<p>When you touch the screen, native.cr needs to determine which view received the touch. This process is called hit testing.</p>
+<p>How Hit Testing Works</p>
+<ol>
+<li>Start at the root view</li>
+<li>Check if the touch point is inside the view's bounds</li>
+<li>If yes, check each child from last to first (back to front)</li>
+<li>The first child that returns true becomes the hit view</li>
+<li>If no child accepts, the parent view is the hit view</li>
+</ol>
+<h2 id="the-hit-test-method">The Hit Test Method</h2>
+<p>You can override hit_test to customize hit detection:</p>
+<pre><code class="language-crystal hljs">class CustomView &lt; UI::View
+  def hit_test(x : Int32, y : Int32) : Bool
+    # Only respond to touches in the right half of the view
+    return false if x &lt; width // 2
+    super(x, y)
+  end
+end
+</code></pre>
+<p>This view only responds to touches on its right half. Touches on the left half pass through to views behind it.</p>
+<h2 id="transparent-views">Transparent Views</h2>
+<p>By default, transparent views (alpha = 0) still receive touches. If you want a transparent view to ignore touches, override hit_test:</p>
+<pre><code class="language-crystal hljs">class TransparentView &lt; UI::View
+  def hit_test(x : Int32, y : Int32) : Bool
+    return false if @alpha &lt;= 0.01
+    super(x, y)
+  end
+end
+</code></pre>
+<h2 id="keyboard-events">Keyboard Events</h2>
+<p>While mobile apps primarily use touch, some devices have keyboards (external keyboards on iPads, or Android devices with keyboard cases).</p>
+<p>Key Codes</p>
+<p>Native.cr provides KeyCode constants for common keys:</p>
+<p>Key Constant
+Back KeyCode::Back
+Home KeyCode::Home
+Menu KeyCode::Menu
+Enter KeyCode::Enter
+Delete KeyCode::Delete
+Space KeyCode::Space
+Letters A-Z KeyCode::A through KeyCode::Z
+Numbers 0-9 KeyCode::Num0 through KeyCode::Num9</p>
+<h2 id="handling-key-events">Handling Key Events</h2>
+<p>Override key methods in your app:</p>
+<pre><code class="language-crystal hljs">class MyApp &lt; Native::App
+  def on_key_pressed(key : Int32)
+    case key
+    when KeyCode::Back
+      go_back()
+    when KeyCode::VolumeUp
+      increase_volume()
+    end
+  end
+
+  def on_key_released(key : Int32)
+    puts &quot;Key #{key} released&quot;
+  end
+end
+</code></pre>
+<h2 id="text-input-and-keyboard">Text Input and Keyboard</h2>
+<p>For text input, use the TextInput component. It automatically shows the keyboard when focused and handles key events for typing.</p>
+<pre><code class="language-crystal hljs">input = UI::TextInput.new
+input.on_change do |text|
+  puts &quot;Current text: #{text}&quot;
+end
+input.on_submit do |text|
+  puts &quot;User submitted: #{text}&quot;
+end
+</code></pre>
+<p>Complete Example: Drawing App</p>
+<p>This example combines multiple gesture recognizers to create a simple drawing app:</p>
+<pre><code class="language-crystal hljs">class DrawingApp &lt; Native::App
+  def setup
+    set_background_color(255, 255, 255)
+    
+    @canvas = Gesture::GestureView.new
+    @canvas.width = screen_width
+    @canvas.height = screen_height
+    @lines = [] of Array({Int32, Int32})
+    @current_line = [] of {Int32, Int32}
+    
+    @canvas.add_pan_gesture do |translation, velocity, point|
+      x = point.x.to_i
+      y = point.y.to_i
+      
+      if @current_line.empty?
+        @current_line &lt;&lt; {x, y}
+      end
+      
+      @current_line &lt;&lt; {x, y}
+      needs_redraw()
+    end
+    
+    @canvas.add_tap_gesture(taps: 2) do |point|
+      if @current_line.any?
+        @lines &lt;&lt; @current_line
+        @current_line = [] of {Int32, Int32}
+        needs_redraw()
+      end
+    end
+    
+    @gesture_view = @canvas
+    @root = @gesture_view
+  end
+
+  def draw
+    @root.draw(renderer)
+    
+    # Draw all completed lines
+    @lines.each do |line|
+      draw_line(renderer, line)
+    end
+    
+    # Draw current line
+    draw_line(renderer, @current_line)
+  end
+
+  private def draw_line(renderer, line)
+    return if line.size &lt; 2
+    
+    line.each_cons(2) do |p1, p2|
+      draw_line(renderer, p1[0], p1[1], p2[0], p2[1], 0, 0, 0, 255)
+    end
+  end
+
+  def on_touch_began(x : Float32, y : Float32)
+    @gesture_view.on_touch_began(x.to_i, y.to_i)
+  end
+
+  def on_touch_moved(x : Float32, y : Float32)
+    @gesture_view.on_touch_moved(x.to_i, y.to_i)
+  end
+
+  def on_touch_ended(x : Float32, y : Float32)
+    @gesture_view.on_touch_ended(x.to_i, y.to_i)
+  end
+end
+</code></pre>
+<h2 id="performance-considerations">Performance Considerations</h2>
+<p>Too Many Gesture Recognizers</p>
+<p>Each gesture recognizer adds computational overhead. Attaching dozens of recognizers to the same view can impact performance. Use only what you need.</p>
+<p>Hit Testing Complexity</p>
+<p>Deep view hierarchies with many children make hit testing slower. Keep your view tree reasonably flat.</p>
+<p>Event Propagation</p>
+<p>Return true from touch handlers when you handle the event. This stops propagation and saves processing time.</p>
+<p>Drawing During Gestures</p>
+<p>If you redraw the screen during every pan or pinch event, keep drawing operations fast. Avoid complex calculations in gesture callbacks.</p>
+<h3 id="best-practices">Best Practices</h3>
+<p>Use the Right Gesture</p>
+<p>Do not reimplement pan when scroll view exists. Do not reimplement pinch when image view with zoom exists. Use built-in components when possible.</p>
+<p>Provide Visual Feedback</p>
+<p>When a gesture starts, provide immediate visual feedback. Users need to know their touch was recognized.</p>
+<pre><code class="language-crystal hljs">view.add_tap_gesture do |point|
+  @button.background_color = Color.blue.brighter
+  # Then perform action
+end
+</code></pre>
+<p>Set Appropriate Touch Targets</p>
+<p>Apple recommends a minimum touch target size of 44x44 points. Android recommends 48x48 dp. Make your interactive views large enough to tap comfortably.</p>
+<p>Handle Cancellation</p>
+<p>Always handle the cancelled state for long-running gestures. If a system alert appears in the middle of a pan, your app should not think the pan completed successfully.</p>
+<h2 id="next-steps">Next Steps</h2>
+<p>Now that you understand events and gestures, learn about:</p>
+<ul>
+<li>Animations - Add motion to your UI</li>
+<li>UI Components - Build complex interfaces</li>
+<li>Camera - Capture photos and video</li>
+</ul>

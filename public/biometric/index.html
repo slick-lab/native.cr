@@ -1,0 +1,136 @@
+<h1 id="biometric-authentication">Biometric Authentication</h1>
+<p>Users want their apps to be secure but convenient. Biometric authentication—fingerprint scanning and face recognition—provides the best of both worlds. Native.cr makes it easy to add fingerprint or face authentication to your app.</p>
+<h2 id="what-is-biometric-authentication">What is Biometric Authentication</h2>
+<p>Biometric authentication verifies the user's identity using physical characteristics:</p>
+<ul>
+<li><strong>Fingerprint</strong> - Scans the user's finger</li>
+<li><strong>Face ID</strong> - Scans the user's face</li>
+<li><strong>Iris Recognition</strong> - Available on some Android devices</li>
+</ul>
+<p>On Android, fingerprint is most common. On iOS, Face ID is standard on newer iPhones. Fallback to fingerprint for older iPhones.</p>
+<h2 id="checking-biometric-availability">Checking Biometric Availability</h2>
+<p>Not all devices have biometric sensors. Check before using biometric features:</p>
+<pre><code class="language-crystal hljs">if Native::Biometric.available?
+  # Show biometric login button
+else
+  # Use password login instead
+end
+</code></pre>
+<p>You can also check for specific types:</p>
+<pre><code class="language-crystal hljs">if Native::Biometric.has_fingerprint?
+  # Use fingerprint
+elsif Native::Biometric.has_face_id?
+  # Use face ID
+end
+</code></pre>
+<h2 id="requesting-biometric-authentication">Requesting Biometric Authentication</h2>
+<p>Present the biometric prompt to the user. The system handles all UI—you just provide a title and callback:</p>
+<pre><code class="language-crystal hljs">Native::Biometric.authenticate(title: &quot;Unlock Your App&quot;) do |success|
+  if success
+    # Authentication succeeded
+    unlock_app
+  else
+    # Authentication failed
+    show_error(&quot;Authentication failed. Try again.&quot;)
+  end
+end
+</code></pre>
+<p>The user has multiple attempts before the system locks them out temporarily. You don't need to implement retry logic—the system handles it.</p>
+<h2 id="biometric-configuration">Biometric Configuration</h2>
+<p>Customize the authentication experience:</p>
+<pre><code class="language-crystal hljs">options = Native::Biometric::Options.new
+options.title = &quot;Verify Your Identity&quot;
+options.subtitle = &quot;Use your fingerprint to unlock&quot;
+options.description = &quot;Touch the sensor to continue&quot;
+options.negative_button_text = &quot;Use Passcode&quot;
+
+Native::Biometric.authenticate(options) do |success|
+  # Handle result
+end
+</code></pre>
+<h2 id="handling-errors">Handling Errors</h2>
+<p>Biometric authentication can fail for several reasons:</p>
+<pre><code class="language-crystal hljs">Native::Biometric.authenticate do |success, error|
+  if success
+    proceed
+  else
+    case error
+    when &quot;locked_out&quot;
+      show_error(&quot;Too many attempts. Try again later.&quot;)
+    when &quot;not_available&quot;
+      show_error(&quot;Biometric sensor not available.&quot;)
+    when &quot;cancelled&quot;
+      # User cancelled—no error
+    else
+      show_error(&quot;Authentication failed: #{error}&quot;)
+    end
+  end
+end
+</code></pre>
+<h2 id="common-use-cases">Common Use Cases</h2>
+<h3 id="login-screen">Login Screen</h3>
+<pre><code class="language-crystal hljs">class LoginScreen &lt; Native::App
+  def setup
+    if Native::Biometric.available?
+      button = UI::Button.new
+      button.text = &quot;Login with Biometric&quot;
+      button.on_click = -&gt; { attempt_biometric_login }
+      @root = button
+    end
+  end
+
+  private def attempt_biometric_login
+    Native::Biometric.authenticate(title: &quot;Login&quot;) do |success|
+      if success
+        load_session
+        show_main_app
+      end
+    end
+  end
+end
+</code></pre>
+<h3 id="sensitive-operation-confirmation">Sensitive Operation Confirmation</h3>
+<pre><code class="language-crystal hljs">def delete_account
+  Native::Biometric.authenticate(title: &quot;Confirm Deletion&quot;) do |success|
+    if success
+      perform_delete
+    else
+      show_error(&quot;Deletion cancelled&quot;)
+    end
+  end
+end
+</code></pre>
+<h3 id="payment-authorization">Payment Authorization</h3>
+<pre><code class="language-crystal hljs">def authorize_payment(amount : Int32)
+  Native::Biometric.authenticate(
+    title: &quot;Authorize Payment&quot;,
+    subtitle: &quot;Confirm payment of $#{amount}&quot;,
+    description: &quot;Use your biometric to authorize&quot;
+  ) do |success|
+    if success
+      process_payment
+    else
+      show_error(&quot;Payment cancelled&quot;)
+    end
+  end
+end
+</code></pre>
+<h2 id="security-considerations">Security Considerations</h2>
+<ul>
+<li>Biometric sensors are hardware-backed on most devices—highly secure</li>
+<li>The OS never reveals the actual biometric data to apps</li>
+<li>Biometric authentication is tied to the device, not the user's account</li>
+<li>Always use biometric as a convenience, not sole security</li>
+<li>For critical operations (payments, account deletion), consider two-factor authentication</li>
+<li>Store biometric settings securely—never store raw biometric data</li>
+</ul>
+<h2 id="best-practices">Best Practices</h2>
+<ul>
+<li>Check availability before showing biometric UI</li>
+<li>Provide a fallback (password, PIN code) always</li>
+<li>Clearly explain why you're requesting biometric authentication</li>
+<li>Handle errors gracefully—don't crash on authentication failure</li>
+<li>Respect user privacy—never log or transmit biometric data</li>
+<li>Use meaningful titles and descriptions</li>
+<li>Test on multiple devices (behavior differs between Android and iOS)</li>
+</ul>

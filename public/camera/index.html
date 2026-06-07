@@ -1,0 +1,79 @@
+<h1 id="camera">Camera</h1>
+<p>Mobile devices have powerful cameras built-in. Native.cr provides a complete camera API that lets you capture photos, record videos, and access the camera preview directly. You can build photo-sharing apps, video chat applications, or document scanning tools.</p>
+<h2 id="camera-permissions">Camera Permissions</h2>
+<p>Before using the camera, you must request permission from the user. This is a platform requirement on both Android and iOS. Users need to explicitly grant camera access before your app can use it.</p>
+<p>Native.cr handles permission requests automatically when you first try to use the camera. A system dialog appears asking the user to allow or deny camera access. You can check the permission status anytime with <code>Camera.has_permission?</code>.</p>
+<pre><code class="language-crystal hljs">if Native::Camera.has_permission?
+  # Camera is available, start capturing
+else
+  # Request permission from user
+  Native::Camera.request_permission
+end
+</code></pre>
+<h2 id="capturing-photos">Capturing Photos</h2>
+<p>The simplest camera operation is taking a single photo. Native.cr provides the <code>capture_photo</code> method that opens the camera interface, lets the user take a photo, and returns the result.</p>
+<p>When you call <code>capture_photo</code>, the system camera app opens. The user points the device, taps the shutter button, and optionally reviews and confirms the photo. Your app receives the photo as an image file path.</p>
+<pre><code class="language-crystal hljs">Native::Camera.capture_photo do |path|
+  if path
+    # Photo captured successfully
+    image = UI::Image.new
+    image.path = path
+    @root = image
+  else
+    # User cancelled
+  end
+end
+</code></pre>
+<h2 id="recording-video">Recording Video</h2>
+<p>Video recording works similarly to photo capture. Call <code>record_video</code> to open the camera in video recording mode. The user records video and can review it before confirmation.</p>
+<pre><code class="language-crystal hljs">Native::Camera.record_video do |path|
+  if path
+    # Video recorded successfully
+    puts &quot;Video saved to: #{path}&quot;
+  else
+    # User cancelled
+  end
+end
+</code></pre>
+<h2 id="camera-configuration">Camera Configuration</h2>
+<p>You can configure camera behavior using the <code>CameraConfig</code> struct:</p>
+<pre><code class="language-crystal hljs">config = Native::Camera::CameraConfig.new
+config.quality = Native::Camera::Quality::High
+config.save_to_gallery = true
+
+Native::Camera.capture_photo(config) do |path|
+  # Handle photo
+end
+</code></pre>
+<p>Quality options are:</p>
+<ul>
+<li><code>Quality::Low</code> - Smallest file size, fastest processing</li>
+<li><code>Quality::Medium</code> - Balanced quality and file size</li>
+<li><code>Quality::High</code> - Best quality, larger file size</li>
+</ul>
+<h2 id="accessing-camera-preview">Accessing Camera Preview</h2>
+<p>For advanced use cases, you can access the camera preview stream directly. This is useful for AR applications, real-time image processing, or custom camera interfaces.</p>
+<pre><code class="language-crystal hljs">Native::Camera.start_preview do |frame|
+  # Process camera frame
+  # frame is a raw image buffer
+end
+</code></pre>
+<p>Processing happens on a background thread. Be careful with expensive operations—they can cause frame drops. Keep processing lightweight.</p>
+<h2 id="handling-errors">Handling Errors</h2>
+<p>Camera operations can fail for several reasons: no permission, camera in use, low memory, or unsupported hardware. Always handle errors gracefully:</p>
+<pre><code class="language-crystal hljs">Native::Camera.capture_photo do |path|
+  if path
+    process_photo(path)
+  else
+    show_error(&quot;Failed to capture photo&quot;)
+  end
+end
+</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<ul>
+<li>Request permission early in your app's lifecycle, not deep in a feature</li>
+<li>Show the user why you need camera access before requesting it</li>
+<li>Handle permission denial gracefully—don't crash or show ugly errors</li>
+<li>For performance-critical apps like AR, use low quality initially and upgrade based on device capabilities</li>
+<li>Clean up resources when done with the camera to save battery</li>
+</ul>

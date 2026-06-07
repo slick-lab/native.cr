@@ -1,5 +1,5 @@
-name: native.cr
-version: 0.1.0
+name: native
+version: 0.0.97
 
 authors:
   - Slick Lab <dev@native.cr>

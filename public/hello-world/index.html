@@ -1,0 +1,364 @@
+<hr />
+<h2 id="title-hello-world">title: Hello World</h2>
+<h1 id="hello-world">Hello World</h1>
+<p>This guide walks you through creating your first native.cr application. We will start with nothing and build a complete working app line by line. Every concept is explained before you see any code.</p>
+<h2 id="what-you-are-building">What You Are Building</h2>
+<p>You are building a mobile app that displays text on the screen. When the user taps the screen, a counter increases and the display updates. This teaches you the fundamental patterns of every native.cr app: the App class, UI components, state preservation, and event handling.</p>
+<h2 id="the-app-class">The App Class</h2>
+<p>Every native.cr application starts with a class that inherits from <code>Native::App</code>. This base class provides everything your app needs to run on Android and iOS. Your job is to override two methods: <code>setup</code> and <code>draw</code>.</p>
+<p>The <code>setup</code> method runs once when your app starts. You use it to create your user interface, set background colors, load data, and prepare anything else your app needs.</p>
+<p>The <code>draw</code> method runs every frame, typically 60 times per second. You use it to draw your user interface on the screen. For simple apps, you just tell your root view to draw itself.</p>
+<p>Here is the smallest possible native.cr application:</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    # This runs once at startup
+  end
+
+  def draw
+    # This runs every frame
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>This app does nothing because setup and draw are empty. Let us add something visible.</p>
+<h2 id="adding-a-text-label">Adding a Text Label</h2>
+<p>To show something on screen, you need a UI component. The most basic component is UI::Text. It displays a string of text with a specific size and color.</p>
+<p>A UI::Text object has several properties you can set:</p>
+<ul>
+<li>text - The string to display</li>
+<li>text_size - Font size in points</li>
+<li>color - The text color</li>
+<li>x and y - Position on screen</li>
+</ul>
+<p>In setup, you create the text label and store it in an instance variable so you can access it later. Then you assign it to @root. The draw method will call draw on whatever view is stored in @root.</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    @label = UI::Text.new
+    @label.text = &quot;Hello, World!&quot;
+    @label.text_size = 32
+    @label.color = Color.white
+    
+    @root = @label
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>If you run this app, you will see white text that says &quot;Hello, World!&quot; on a black background. The background is black because we did not set a background color yet.</p>
+<h2 id="setting-background-color">Setting Background Color</h2>
+<p>A plain black background works but looks boring. You can change the background color using the set_background_color method. It takes three numbers between 0 and 255 representing red, green, and blue.</p>
+<p>Call this method in setup before creating your UI components.</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    set_background_color(100, 150, 200)
+    
+    @label = UI::Text.new
+    @label.text = &quot;Hello, World!&quot;
+    @label.text_size = 32
+    @label.color = Color.white
+    
+    @root = @label
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>Now your app has a pleasant blue background. The numbers (100, 150, 200) produce a medium blue color. Lower numbers make darker colors. Higher numbers make brighter colors.</p>
+<h2 id="making-the-app-interactive">Making the App Interactive</h2>
+<p>A static text label is not very interesting. Let us make the app respond when the user taps the screen. When the user taps, we will change the text.</p>
+<p>Native.cr provides several lifecycle methods you can override. One of them is on_touch_began. This method runs whenever the user touches the screen. It receives the x and y coordinates of the touch as Float32 values.</p>
+<p>You do not need to do anything with the coordinates for this example. You just need to change the text when a tap happens.</p>
+<p>To change the text, you access the text property of your label and assign a new string.</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    set_background_color(100, 150, 200)
+    
+    @label = UI::Text.new
+    @label.text = &quot;Hello, World!&quot;
+    @label.text_size = 32
+    @label.color = Color.white
+    
+    @root = @label
+  end
+
+  def on_touch_began(x : Float32, y : Float32)
+    @label.text = &quot;You tapped the screen!&quot;
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>Now when you tap anywhere on the screen, the text changes from &quot;Hello, World!&quot; to &quot;You tapped the screen!&quot;. The text stays changed until you tap again.</p>
+<h2 id="adding-a-counter">Adding a Counter</h2>
+<p>Changing to a fixed message works, but what if you want to count how many times the user tapped? You need to store a number that increases each time.</p>
+<p>Create an instance variable called @count and set it to 0 in setup. Then in on_touch_began, increase it by 1 and update the label to show the current count.</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    set_background_color(100, 150, 200)
+    
+    @count = 0
+    
+    @label = UI::Text.new
+    @label.text = &quot;Taps: 0&quot;
+    @label.text_size = 32
+    @label.color = Color.white
+    
+    @root = @label
+  end
+
+  def on_touch_began(x : Float32, y : Float32)
+    @count += 1
+    @label.text = &quot;Taps: #{@count}&quot;
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>Each tap increases the count. The label updates to show the new number.</p>
+<h2 id="preserving-state-across-restarts">Preserving State Across Restarts</h2>
+<p>You might have noticed that native.cr reload recompiles and restarts your app when you save a file. During development, this happens frequently. By default, your @count variable would reset to 0 every time because the app starts fresh.</p>
+<p>However, native.cr has a feature called state preservation. When you mark an instance variable with @[Preserve], the framework saves its value before restart and restores it after restart.</p>
+<p>Add @[Preserve] above your @count declaration:</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    set_background_color(100, 150, 200)
+    
+    @label = UI::Text.new
+    @label.text = &quot;Taps: #{@count}&quot;
+    @label.text_size = 32
+    @label.color = Color.white
+    
+    @root = @label
+  end
+
+  @[Preserve]
+  property count : Int32 = 0
+
+  def on_touch_began(x : Float32, y : Float32)
+    @count += 1
+    @label.text = &quot;Taps: #{@count}&quot;
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>Notice we changed @count to a property with a default value of 0. The @[Preserve] annotation works on properties. Now when you edit your code and save, the app restarts but your tap count remains.</p>
+<h2 id="improving-the-display-with-proper-english">Improving the Display with Proper English</h2>
+<p>The text &quot;Taps: 1&quot; is fine, but &quot;Taps: 1 times&quot; is grammatically incorrect. You should show &quot;Taps: 1 time&quot; for a single tap and &quot;Taps: 2 times&quot; for multiple taps.</p>
+<p>Use a conditional expression to choose the correct word:</p>
+<pre><code class="language-crystal hljs">def on_touch_began(x : Float32, y : Float32)
+  @count += 1
+  if @count == 1
+    @label.text = &quot;Taps: 1 time&quot;
+  else
+    @label.text = &quot;Taps: #{@count} times&quot;
+  end
+end
+</code></pre>
+<p>You can make this cleaner by using a ternary operator:</p>
+<pre><code class="language-crystal hljs">def on_touch_began(x : Float32, y : Float32)
+  @count += 1
+  @label.text = @count == 1 ? &quot;Taps: 1 time&quot; : &quot;Taps: #{@count} times&quot;
+end
+</code></pre>
+<h2 id="adding-color-feedback">Adding Color Feedback</h2>
+<p>Make the app more visually interesting by changing the background color every few taps. For example, change color every 5 taps.</p>
+<p>First, create a helper method that sets the background color based on the current count. Then call it whenever the count changes.</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    set_background_color(100, 150, 200)
+    update_background
+    
+    @label = UI::Text.new
+    @label.text = &quot;Taps: 0&quot;
+    @label.text_size = 32
+    @label.color = Color.white
+    
+    @root = @label
+  end
+
+  @[Preserve]
+  property count : Int32 = 0
+
+  def update_background
+    if @count % 5 == 0
+      set_background_color(100, 150, 200)  # Blue
+    elsif @count % 5 == 1
+      set_background_color(100, 200, 100)  # Green
+    elsif @count % 5 == 2
+      set_background_color(200, 200, 100)  # Yellow
+    elsif @count % 5 == 3
+      set_background_color(200, 100, 100)  # Red
+    else
+      set_background_color(150, 100, 200)  # Purple
+    end
+  end
+
+  def on_touch_began(x : Float32, y : Float32)
+    @count += 1
+    @label.text = @count == 1 ? &quot;Taps: 1 time&quot; : &quot;Taps: #{@count} times&quot;
+    update_background
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>The modulo operator (%) gives the remainder after division. So @count % 5 cycles through 0, 1, 2, 3, 4 repeatedly as the count increases. Each remainder value maps to a different color.</p>
+<h2 id="adding-a-button-instead-of-screen-taps">Adding a Button Instead of Screen Taps</h2>
+<p>Some users might expect a button rather than tapping anywhere. Native.cr provides a UI::Button component. A button has a text property and an on_click callback.</p>
+<p>Instead of overriding on_touch_began, you create a button and set its on_click property to a block of code or a method reference.</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    set_background_color(240, 240, 245)
+    
+    @label = UI::Text.new
+    @label.text = &quot;Taps: 0&quot;
+    @label.text_size = 24
+    @label.color = Color.dark_gray
+    
+    @button = UI::Button.new
+    @button.text = &quot;Tap Me&quot;
+    @button.width = 120
+    @button.height = 44
+    @button.on_click = -&gt;{ increment }
+    
+    column = UI::Column.new
+    column.spacing = 20
+    column.add_child(@label)
+    column.add_child(@button)
+    
+    @root = column
+  end
+
+  @[Preserve]
+  property count : Int32 = 0
+
+  def update_display
+    @label.text = @count == 1 ? &quot;Taps: 1 time&quot; : &quot;Taps: #{@count} times&quot;
+  end
+
+  def increment
+    @count += 1
+    update_display
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<p>This example introduces UI::Column, which arranges its children vertically. The column has a spacing property that determines how many pixels appear between children. The label appears above the button.</p>
+<h2 id="complete-hello-world-example">Complete Hello World Example</h2>
+<p>Here is the final version with everything we learned:</p>
+<pre><code class="language-crystal hljs">class HelloApp &lt; Native::App
+  def setup
+    set_background_color(245, 245, 250)
+    
+    # Create the title label
+    @title = UI::Text.new
+    @title.text = &quot;Hello, World!&quot;
+    @title.text_size = 28
+    @title.color = Color.dark_gray
+    
+    # Create the counter label
+    @counter = UI::Text.new
+    @counter.text_size = 24
+    @counter.color = Color.blue
+    update_counter_display
+    
+    # Create the button
+    @button = UI::Button.new
+    @button.text = &quot;Tap Me&quot;
+    @button.width = 120
+    @button.height = 44
+    @button.on_click = -&gt;{ increment_counter }
+    
+    # Arrange everything in a column
+    column = UI::Column.new
+    column.spacing = 24
+    column.add_child(@title)
+    column.add_child(@counter)
+    column.add_child(@button)
+    
+    # Center the column on screen
+    @root = column
+  end
+
+  @[Preserve]
+  property count : Int32 = 0
+
+  def update_counter_display
+    if @count == 0
+      @counter.text = &quot;Not tapped yet&quot;
+    elsif @count == 1
+      @counter.text = &quot;Tapped 1 time&quot;
+    else
+      @counter.text = &quot;Tapped #{@count} times&quot;
+    end
+  end
+
+  def increment_counter
+    @count += 1
+    update_counter_display
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(HelloApp)
+</code></pre>
+<h2 id="what-you-learned">What You Learned</h2>
+<ul>
+<li>Every app inherits from Native::App and overrides setup and draw</li>
+<li>setup runs once at startup for creating UI</li>
+<li>draw runs every frame for rendering</li>
+<li>UI::Text displays strings with configurable size and color</li>
+<li>UI::Button creates tappable buttons with on_click callbacks</li>
+<li>UI::Column arranges children vertically with spacing</li>
+<li>set_background_color changes the screen color using RGB values</li>
+<li>@[Preserve] keeps variables alive across fast restarts</li>
+<li>on_touch_began responds to screen taps anywhere</li>
+<li>The modulo operator % creates repeating patterns</li>
+</ul>
+<p>Running Your App</p>
+<p>To run this app, save it as src/main.cr and run:</p>
+<pre><code class="language-bash hljs">native.cr reload src/main.cr
+</code></pre>
+<p>Your app will start. Tap the button. Watch the counter increase. Edit the code and save to see fast restart in action with state preservation.</p>
+<p>Next Steps</p>
+<p>Now that you understand the basics, explore these guides:</p>
+<ul>
+<li>UI Components - Learn all available components</li>
+<li>Styling - Colors, fonts, themes, and layouts</li>
+<li>Events - Touch, gestures, and keyboard input</li>
+<li>Animations - Make your UI come alive</li>
+</ul>

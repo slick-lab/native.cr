@@ -5,14 +5,15 @@ description = "React Native for Crystal developers. Build native mobile apps wit
 theme = "default"
 
 source = "docs"
-destination = "public"
+output = "public"
+static = "static"
 
 [taxonomies]
   tag = "tags"
   category = "categories"
 
 [search]
-enabled = true\
+enabled = true
 
 [sitemap]
 enabled = true

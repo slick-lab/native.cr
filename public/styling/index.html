@@ -1,0 +1,409 @@
+<hr />
+<h2 id="title-styling-amp-themes">title: Styling &amp; Themes</h2>
+<h1 id="styling-amp-themes">Styling &amp; Themes</h1>
+<p>Every app needs to look good. Native.cr provides a comprehensive styling system that lets you control colors, fonts, spacing, and more. You can style individual components or define global themes that apply to your entire app.</p>
+<h2 id="colors">Colors</h2>
+<p>Colors are the most basic building block of visual design. Native.cr represents colors using the <code>Color</code> struct, which stores red, green, blue, and alpha (transparency) values.</p>
+<h3 id="how-color-works">How Color Works</h3>
+<p>A color is made of four components: red, green, blue, and alpha. Each component is a number between 0 and 255. Zero means none of that component. Two hundred fifty-five means the maximum amount.</p>
+<p>Red, green, and blue combine to create any color. For example:</p>
+<ul>
+<li>Red only: (255, 0, 0) produces pure red</li>
+<li>Green only: (0, 255, 0) produces pure green</li>
+<li>Blue only: (0, 0, 255) produces pure blue</li>
+<li>All equal: (128, 128, 128) produces gray</li>
+<li>All maximum: (255, 255, 255) produces white</li>
+<li>All zero: (0, 0, 0) produces black</li>
+</ul>
+<p>Alpha controls transparency. 255 means fully opaque (solid). 0 means fully transparent (invisible). Values in between create partial transparency.</p>
+<h3 id="creating-colors">Creating Colors</h3>
+<p>There are several ways to create a color in native.cr.</p>
+<p><strong>Using RGB values:</strong></p>
+<pre><code class="language-crystal hljs">color = Color.new(255, 100, 50)
+</code></pre>
+<p>This creates a color with full red, medium green, and low blue. The alpha defaults to 255 (fully opaque).</p>
+<p>Using RGBA values:</p>
+<pre><code class="language-crystal hljs">color = Color.new(255, 100, 50, 128)
+</code></pre>
+<p>This creates a semi-transparent color. The alpha of 128 means it is about 50% transparent.</p>
+<p>Using the rgb helper:</p>
+<pre><code class="language-crystal hljs">color = Color.rgb(255, 100, 50)
+</code></pre>
+<p>This is exactly the same as Color.new but more explicit about what the numbers mean.</p>
+<p>Using the rgba helper:</p>
+<pre><code class="language-crystal hljs">color = Color.rgba(255, 100, 50, 128)
+</code></pre>
+<p>Using hex values:</p>
+<p>Web developers are familiar with hex colors like #FF6432. Native.cr supports hex format using the hex method.</p>
+<pre><code class="language-crystal hljs">color = Color.hex(0xFF6432)
+</code></pre>
+<p>The hex value uses 24 bits: 8 bits for red, 8 for green, 8 for blue. The most significant two digits are red, the next two are green, the last two are blue.</p>
+<p>You can also include alpha:</p>
+<pre><code class="language-crystal hljs">color = Color.hex(0xFF643280)
+</code></pre>
+<p>Now the most significant two digits are alpha, followed by red, green, blue.</p>
+<p>Preset Colors</p>
+<p>Native.cr provides common colors as convenience methods:</p>
+<pre><code class="language-crystal hljs">Color.black      # (0, 0, 0, 255)
+Color.white      # (255, 255, 255, 255)
+Color.red        # (255, 0, 0, 255)
+Color.green      # (0, 255, 0, 255)
+Color.blue       # (0, 0, 255, 255)
+Color.transparent # (0, 0, 0, 0)
+</code></pre>
+<p>The gray method creates a gray color with a specific brightness level:</p>
+<pre><code class="language-crystal hljs">Color.gray(50)   # Very dark gray
+Color.gray(128)  # Middle gray
+Color.gray(200)  # Light gray
+</code></pre>
+<p>The argument is the brightness level from 0 (black) to 255 (white). All three color channels are set to the same value.</p>
+<p>Modifying Colors</p>
+<p>Once you have a color, you can create new colors by modifying the existing one.</p>
+<p>Changing alpha:</p>
+<pre><code class="language-crystal hljs">solid = Color.red
+transparent = solid.with_alpha(128)
+</code></pre>
+<p>The with_alpha method returns a new color with the same red, green, blue but a different alpha value. The original color remains unchanged.</p>
+<p>Lightening a color:</p>
+<pre><code class="language-crystal hljs">dark_blue = Color.blue
+light_blue = dark_blue.lighten(50)
+</code></pre>
+<p>Lightening adds the specified amount to each color channel. If the result would exceed 255, it stops at 255.</p>
+<p>Darkening a color:</p>
+<pre><code class="language-crystal hljs">light_gray = Color.gray(200)
+dark_gray = light_gray.darken(50)
+</code></pre>
+<p>Darkening subtracts the specified amount from each color channel. If the result would go below 0, it stops at 0.</p>
+<p>Converting to hex:</p>
+<pre><code class="language-crystal hljs">color = Color.rgb(255, 100, 50)
+hex = color.to_hex  # Returns 0xFF6432FF (includes alpha)
+</code></pre>
+<p>Where Colors Are Used</p>
+<p>Colors appear throughout the framework:</p>
+<ul>
+<li>Background color of views: view.background_color = color</li>
+<li>Text color: label.color = color</li>
+<li>Button text color: button.text_color = color</li>
+<li>Border color: view.border_color = color</li>
+<li>Shadow color: shadow.color = color</li>
+<li>Theme colors: Theme.primary_color = color</li>
+</ul>
+<h2 id="edge-insets">Edge Insets</h2>
+<p>Edge insets represent space around a view's content. They are used for padding (space inside a view) and margins (space outside a view).</p>
+<p>Understanding Edge Insets</p>
+<p>Think of a picture frame. The frame has thickness on all four sides. That thickness is padding. It pushes the picture inward from the edge of the frame.</p>
+<p>Edge insets have four components:</p>
+<ul>
+<li>Top: space above the content</li>
+<li>Left: space to the left of the content</li>
+<li>Bottom: space below the content</li>
+<li>Right: space to the right of the content</li>
+</ul>
+<p>Each component is measured in pixels.</p>
+<p>Creating Edge Insets</p>
+<p>Individual sides:</p>
+<pre><code class="language-crystal hljs">insets = EdgeInsets.new(top: 10, left: 20, bottom: 10, right: 20)
+</code></pre>
+<p>This creates 10 pixels of padding at the top and bottom, and 20 pixels at the left and right.</p>
+<p>All sides the same:</p>
+<pre><code class="language-crystal hljs">insets = EdgeInsets.all(16)
+</code></pre>
+<p>This creates 16 pixels of padding on all four sides.</p>
+<p>Horizontal only:</p>
+<pre><code class="language-crystal hljs">insets = EdgeInsets.horizontal(20)
+</code></pre>
+<p>This creates 20 pixels of padding on the left and right. Top and bottom are zero.</p>
+<p>Vertical only:</p>
+<pre><code class="language-crystal hljs">insets = EdgeInsets.vertical(20)
+</code></pre>
+<p>This creates 20 pixels of padding at the top and bottom. Left and right are zero.</p>
+<p>Accessing Components</p>
+<p>Once you have an edge insets object, you can read each component:</p>
+<pre><code class="language-crystal hljs">top = insets.top
+left = insets.left
+bottom = insets.bottom
+right = insets.right
+</code></pre>
+<p>Where Edge Insets Are Used</p>
+<p>The primary use of edge insets is in the Container component:</p>
+<pre><code class="language-crystal hljs">container = UI::Container.new
+container.padding = EdgeInsets.all(20)
+</code></pre>
+<p>The container reserves space for padding, then places its child inside the remaining area.</p>
+<h2 id="corner-radius">Corner Radius</h2>
+<p>Corner radius rounds the corners of rectangular views. Without corner radius, all views have sharp 90-degree corners. With corner radius, the corners become rounded.</p>
+<p>Understanding Corner Radius</p>
+<p>The corner radius value determines how rounded the corners appear. A radius of 0 produces sharp corners. A radius of 10 produces slightly rounded corners. A radius of 50 produces very rounded corners. If the radius equals half the view's width or height, the ends become fully circular.</p>
+<p>Corner radius can be applied independently to each corner:</p>
+<ul>
+<li>Top-left</li>
+<li>Top-right</li>
+<li>Bottom-left</li>
+<li>Bottom-right</li>
+</ul>
+<h3 id="creating-corner-radius">Creating Corner Radius</h3>
+<p>All corners the same:</p>
+<pre><code class="language-crystal hljs">radius = CornerRadius.all(8)
+</code></pre>
+<p>This creates 8-pixel rounding on all four corners.</p>
+<p>Individual corners:</p>
+<pre><code class="language-crystal hljs">radius = CornerRadius.new(
+  top_left: 8,
+  top_right: 8,
+  bottom_left: 0,
+  bottom_right: 0
+)
+</code></pre>
+<p>This creates rounded top corners but sharp bottom corners. This is common for cards that sit flush against the bottom of the screen.</p>
+<p>Where Corner Radius Is Used</p>
+<p>Corner radius applies to the view's background and border:</p>
+<pre><code class="language-crystal hljs">view.background_color = Color.blue
+view.corner_radius = CornerRadius.all(8)
+</code></pre>
+<p>The background will have rounded corners. Any child views are clipped to the rounded shape.</p>
+<h2 id="fonts">Fonts</h2>
+<p>Fonts control how text looks: the typeface, size, and weight (boldness).</p>
+<p>Font Properties</p>
+<p>A font has three properties:</p>
+<ul>
+<li>Name: the typeface name like &quot;System&quot;, &quot;Arial&quot;, &quot;Roboto&quot;, or &quot;San Francisco&quot;</li>
+<li>Size: the point size (typical text is 16 points)</li>
+<li>Weight: how bold the text appears</li>
+</ul>
+<p>Font Weights</p>
+<p>Native.cr provides five font weights:</p>
+<p>Weight Description
+FontWeight::Normal Regular text (400)
+FontWeight::Light Light text (300)
+FontWeight::Medium Medium text (500)
+FontWeight::Semibold Semi-bold text (600)
+FontWeight::Bold Bold text (700)</p>
+<h2 id="creating-fonts">Creating Fonts</h2>
+<p>System font (default):</p>
+<pre><code class="language-crystal hljs">font = Font.system(16)
+</code></pre>
+<p>This creates the platform's default system font at 16 points with normal weight.</p>
+<p>System font with weight:</p>
+<pre><code class="language-crystal hljs">font = Font.system(16, FontWeight::Bold)
+</code></pre>
+<p>System bold font (shortcut):</p>
+<pre><code class="language-crystal hljs">font = Font.bold(16)
+</code></pre>
+<p>This is equivalent to Font.system(16, FontWeight::Bold).</p>
+<p>Custom font by name:</p>
+<pre><code class="language-crystal hljs">font = Font.new(&quot;Roboto&quot;, 16, FontWeight::Normal)
+</code></pre>
+<p>This loads a custom font. You must include the font file in your app's assets.</p>
+<p>Where Fonts Are Used</p>
+<p>Fonts are used primarily in text components:</p>
+<pre><code class="language-crystal hljs">label = UI::Text.new
+label.text = &quot;Hello&quot;
+label.font = Font.bold(24)
+</code></pre>
+<p>If you do not set a font, the component uses Theme.font (system font at 16 points).</p>
+<h2 id="shadows">Shadows</h2>
+<p>Shadows add depth to views by creating the illusion that the view floats above the background.</p>
+<p>Shadow Properties</p>
+<p>A shadow has four components:</p>
+<ul>
+<li>Color: the color of the shadow (typically black with some transparency)</li>
+<li>Offset X: how far to the right the shadow appears (negative moves left)</li>
+<li>Offset Y: how far down the shadow appears (negative moves up)</li>
+<li>Blur: how soft or sharp the shadow edges appear</li>
+</ul>
+<p>Creating a Shadow</p>
+<pre><code class="language-crystal hljs">shadow = Shadow.new
+shadow.color = Color.black.with_alpha(128)
+shadow.offset_x = 0
+shadow.offset_y = 4
+shadow.blur = 8
+</code></pre>
+<p>This creates a shadow that appears 4 pixels directly below the view with 8 pixels of blur.</p>
+<h2 id="shadow-effects">Shadow Effects</h2>
+<p>Bottom shadow (most common):</p>
+<pre><code class="language-crystal hljs">shadow = Shadow.new
+shadow.offset_y = 4
+shadow.blur = 8
+</code></pre>
+<p>This creates a shadow dropping downward, making the view appear to float above the background.</p>
+<p>Top shadow:</p>
+<pre><code class="language-crystal hljs">shadow = Shadow.new
+shadow.offset_y = -4
+shadow.blur = 8
+</code></pre>
+<p>This creates a shadow rising upward.</p>
+<p>No offset (glow effect):</p>
+<pre><code class="language-crystal hljs">shadow = Shadow.new
+shadow.offset_x = 0
+shadow.offset_y = 0
+shadow.blur = 16
+</code></pre>
+<p>This creates a glow effect around the view.</p>
+<p>Where Shadows Are Used</p>
+<p>Shadows apply to any view:</p>
+<pre><code class="language-crystal hljs">card = UI::View.new
+card.background_color = Color.white
+card.corner_radius = CornerRadius.all(12)
+card.shadow = shadow
+</code></pre>
+<h2 id="theme-system">Theme System</h2>
+<p>The theme system provides global styling defaults. Instead of setting the same properties on every component, you set them once in the theme and all components inherit them.</p>
+<p>Theme Properties</p>
+<p>The theme contains these properties:</p>
+<p>Property Type Default Description
+primary_color Color Blue Main brand color
+secondary_color Color Gray(100) Secondary brand color
+background_color Color White Default app background
+text_color Color Black Default text color
+error_color Color Red Color for error messages
+success_color Color Green Color for success messages
+font Font System(16) Default body font
+heading_font Font Bold(24) Default heading font
+corner_radius CornerRadius All(8) Default corner rounding
+spacing Int32 16 Default spacing between elements</p>
+<p>Setting Theme Values</p>
+<p>You can change any theme property at app startup:</p>
+<pre><code class="language-crystal hljs">def setup
+  Theme.primary_color = Color.hex(0x6200EE)
+  Theme.background_color = Color.gray(245)
+  Theme.font = Font.system(14)
+  Theme.spacing = 24
+  
+  # Rest of setup...
+end
+</code></pre>
+<h2 id="using-theme-values">Using Theme Values</h2>
+<p>When you create components, you can reference theme values:</p>
+<pre><code class="language-crystal hljs">button = UI::Button.new
+button.background_color = Theme.primary_color
+
+label = UI::Text.new
+label.font = Theme.font
+</code></pre>
+<p>Theme Inheritance</p>
+<p>Components do not automatically inherit theme values. You must explicitly apply theme values when creating components. The style helpers (described below) handle this for you.</p>
+<h2 id="style-helpers">Style Helpers</h2>
+<p>Style helpers are pre-configured components that follow the current theme. They save you from writing repetitive styling code.</p>
+<p>Creating a Primary Button</p>
+<pre><code class="language-crystal hljs">button = Style.button_primary
+button.text = &quot;Submit&quot;
+</code></pre>
+<p>The primary button uses Theme.primary_color for its background and Color.white for its text.</p>
+<p>Creating a Secondary Button</p>
+<pre><code class="language-crystal hljs">button = Style.button_secondary
+button.text = &quot;Cancel&quot;
+</code></pre>
+<p>The secondary button uses Theme.secondary_color for its background and Theme.text_color for its text.</p>
+<p>Creating a Card Container</p>
+<pre><code class="language-crystal hljs">card = Style.card
+card.add_child(content)
+</code></pre>
+<p>The card has a white background, rounded corners, a shadow, and padding based on Theme.spacing.</p>
+<p>Creating Headings</p>
+<pre><code class="language-crystal hljs">heading = Style.heading(&quot;Welcome&quot;)
+</code></pre>
+<p>The heading uses Theme.heading_font and Theme.text_color.</p>
+<p>Creating Body Text</p>
+<pre><code class="language-crystal hljs">body = Style.body(&quot;This is regular text.&quot;)
+</code></pre>
+<p>The body text uses Theme.font and Theme.text_color.</p>
+<h2 id="complete-styling-example">Complete Styling Example</h2>
+<p>Here is an example that demonstrates all styling concepts together:</p>
+<pre><code class="language-crystal hljs">class StyledApp &lt; Native::App
+  def setup
+    # Set global theme
+    Theme.primary_color = Color.hex(0x6200EE)
+    Theme.background_color = Color.gray(245)
+    Theme.font = Font.system(16)
+    Theme.heading_font = Font.bold(24)
+    Theme.spacing = 20
+    
+    # Apply theme background
+    set_background_color(Theme.background_color)
+    
+    # Create card
+    card = Style.card
+    
+    # Card heading
+    heading = Style.heading(&quot;Welcome to Styled App&quot;)
+    
+    # Card body text
+    body = Style.body(&quot;This card demonstrates the styling system. All colors, fonts, and spacing come from the theme.&quot;)
+    
+    # Custom colored text
+    accent = UI::Text.new
+    accent.text = &quot;This text uses the primary color.&quot;
+    accent.text_size = 14
+    accent.color = Theme.primary_color
+    
+    # Primary button
+    button = Style.button_primary
+    button.text = &quot;Get Started&quot;
+    button.on_click = -&gt;{ on_start }
+    
+    # Arrange in column
+    column = UI::Column.new
+    column.spacing = Theme.spacing
+    column.add_child(heading)
+    column.add_child(body)
+    column.add_child(accent)
+    column.add_child(button)
+    
+    card.add_child(column)
+    @root = card
+  end
+
+  def on_start
+    puts &quot;Started!&quot;
+  end
+
+  def draw
+    @root.draw(renderer)
+  end
+end
+
+Native::App.start(StyledApp)
+</code></pre>
+<h2 id="best-practices">Best Practices</h2>
+<p>Use Theme for Consistency</p>
+<p>Set theme values once at app startup. Use them throughout your app. This makes global design changes easy.</p>
+<p>Create Custom Style Helpers</p>
+<p>If you have repeated styling patterns, create your own helpers:</p>
+<pre><code class="language-crystal hljs">module MyStyles
+  def self.danger_button
+    button = UI::Button.new
+    button.background_color = Color.red
+    button.text_color = Color.white
+    button.corner_radius = CornerRadius.all(4)
+    button
+  end
+end
+
+# Usage
+delete_button = MyStyles.danger_button
+delete_button.text = &quot;Delete&quot;
+</code></pre>
+<h2 id="avoid-hardcoding-values">Avoid Hardcoding Values</h2>
+<p>Do not scatter magic numbers throughout your code:</p>
+<pre><code class="language-crystal hljs"># Bad
+label.text_size = 16
+
+# Good
+label.text_size = Theme.font.size
+</code></pre>
+<p>Use Semantic Colors</p>
+<p>Name your colors by purpose, not value:</p>
+<pre><code class="language-crystal hljs"># Bad
+button.background_color = Color.hex(0x6200EE)
+
+# Good
+Theme.primary_color = Color.hex(0x6200EE)
+button.background_color = Theme.primary_color
+</code></pre>
+<h2 id="next-steps">Next Steps</h2>
+<p>Now that you understand styling, learn about:</p>
+<ul>
+<li>Events &amp; Gestures - Handle user interaction</li>
+<li>Animations - Add motion to your UI</li>
+<li>Networking - Load data from the internet</li>
+</ul>
