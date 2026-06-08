@@ -19,6 +19,36 @@ Write mobile apps in Crystal. Compile directly to native ARM64 code. No JavaScri
 
 ---
 
+<details>
+<summary>iOS Support Status (Click to expand)</summary>
+
+<br>
+
+iOS is not currently supported.
+
+native.cr compiles and runs on:
+- Android (ARM64)
+- Linux (x86_64, ARM64)
+- macOS (Apple Silicon, Intel)
+- Windows (via WSL2)
+
+iOS support is planned for a future release. The Crystal compiler does not yet have official iOS target support. We are waiting for upstream changes or will contribute them in the future.
+
+Why the delay?
+- Crystal's standard library lacks iOS-specific bindings
+- Apple requires a Mac for iOS development
+- Cross-compilation to iOS is not yet supported by the Crystal team
+
+Workarounds for now:
+- Use the desktop preview (native.cr reload) for development
+- Build for Android (fully supported)
+- Run on macOS as a desktop app
+
+When will iOS be ready?
+No ETA. Follow GitHub issues for updates.
+
+</details>
+
 ## Installation
 
 Add to your `shard.yml`:
