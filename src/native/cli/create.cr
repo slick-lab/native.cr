@@ -1,5 +1,8 @@
 # src/native/cli/create.cr
 
+require "./android"
+require "./ios"
+
 module Native::CLI
   class CreateCommand
     @project_name : String = ""
@@ -66,7 +69,6 @@ module Native::CLI
         native.cr create my_app
         native.cr create my_app --android
         native.cr create my_app --ios
-        native.cr create projects/my_app -p ./projects
       HELP
     end
 
@@ -84,33 +86,31 @@ module Native::CLI
       create_shard_yml
 
       if @platform == "android" || @platform == "both"
-        create_android_project
+        AndroidGenerator.new(@project_name, @path).generate
       end
 
       if @platform == "ios" || @platform == "both"
-        create_ios_project
+        IOSGenerator.new(@project_name, @path).generate
       end
-
-      create_gitignore
 
       puts ""
       puts "[native.cr] Project created successfully!"
       puts ""
       puts "Next steps:"
       puts "  cd #{@path}"
-      puts "  native.cr build #{@platform}"
+      puts "  native.cr build #{@platform == "both" ? "android" : @platform}"
       puts ""
 
       if @platform == "android" || @platform == "both"
         puts "Android:"
-        puts "  cd #{@path}/android && ./gradlew assembleRelease"
-        puts "  APK: #{@path}/android/app/build/outputs/apk/release/"
+        puts "  cd #{@path}/android && ./gradlew assembleDebug"
+        puts "  APK: #{@path}/android/app/build/outputs/apk/debug/"
         puts ""
       end
 
       if @platform == "ios" || @platform == "both"
         puts "iOS:"
-        puts "  open #{@path}/ios/NativeCr.xcodeproj"
+        puts "  open #{@path}/ios/#{@project_name}.xcodeproj"
         puts "  Build with Xcode"
         puts ""
       end
@@ -127,22 +127,25 @@ module Native::CLI
     private def create_app_template
       File.write("#{@path}/src/main.cr", <<-CR
         require "native"
+
+        include Native
+
         class MyApp < Native::App
           @[Preserve]
           property count : Int32 = 0
 
           def setup : Nil
-            @label = UI::Text.new
+            @label = Text.new
             @label.text = "Tap: 0"
             @label.text_size = 24
 
-            button = UI::Button.new
+            button = Button.new
             button.text = "Tap Me"
             button.width = 120
             button.height = 44
             button.on_click = ->{ increment }
 
-            column = UI::Column.new
+            column = Column.new
             column.spacing = 20
             column.add_child(@label)
             column.add_child(button)
@@ -150,7 +153,7 @@ module Native::CLI
             @root = column
           end
 
-          def increment
+          def increment : Nil
             @count += 1
             @label.text = "Tap: \#{@count}"
           end
@@ -167,6 +170,10 @@ module Native::CLI
 
     private def create_game_template
       File.write("#{@path}/src/main.cr", <<-CR
+        require "native"
+
+        include Native
+
         class MyGame < Native::App
           include Native::GameLoop::GameLoopDSL
 
@@ -175,34 +182,34 @@ module Native::CLI
           @player_size : Int32 = 50
           @score : Int32 = 0
 
-          def setup
+          def setup : Nil
             set_background_color(50, 50, 80)
             game_loop(target_fps: 60, mode: Native::GameLoop::LoopMode::Adaptive)
           end
 
-          def game_start
+          def game_start : Nil
             Native::Dialog.toast("Game Started!")
           end
 
-          def game_update(delta_time : Float64)
+          def game_update(delta_time : Float64) : Nil
           end
 
-          def game_fixed_update(delta_time : Float64)
+          def game_fixed_update(delta_time : Float64) : Nil
           end
 
-          def game_render(alpha : Float64)
+          def game_render(alpha : Float64) : Nil
             draw_rect(renderer, @player_x.to_i, @player_y.to_i, @player_size, @player_size, 255, 100, 100, 255)
             draw_text(renderer, "Score: \#{@score}", 20, 60, 24, 255, 255, 255)
           end
 
-          def on_touch_began(x : Float32, y : Float32)
+          def on_touch_began(x : Float32, y : Float32) : Nil
             @player_x = x.to_f64 - @player_size // 2
             @player_y = y.to_f64 - @player_size // 2
             @score += 1
             Native::Platform::HapticFeedback.light
           end
 
-          def draw
+          def draw : Nil
           end
         end
 
@@ -220,227 +227,14 @@ module Native::CLI
           - Your Name <you@example.com>
 
         dependencies:
-          native.cr:
+          native:
             github: slick-lab/native.cr
-            version: ~> 0.0.97
+            version: ~> 0.0.98
 
         crystal: ">= 1.20.0"
 
         license: MIT
       YAML
-      )
-    end
-
-    private def create_android_project
-      puts "[native.cr] Generating Android project..."
-
-      android_dir = "#{@path}/android"
-      Dir.mkdir_p(android_dir)
-      Dir.mkdir_p("#{android_dir}/app/src/main/java/com/nativecr/#{@project_name}")
-      Dir.mkdir_p("#{android_dir}/app/src/main/jniLibs/arm64-v8a")
-      Dir.mkdir_p("#{android_dir}/gradle/wrapper")
-
-      create_android_manifest(android_dir)
-      create_android_main_activity(android_dir)
-      create_android_build_gradle(android_dir)
-      create_android_settings_gradle(android_dir)
-      create_android_gradle_wrapper(android_dir)
-      create_android_gradle_properties(android_dir)
-
-      puts "[native.cr] Android project generated at #{android_dir}"
-    end
-
-    private def create_android_manifest(android_dir : String)
-      File.write("#{android_dir}/app/src/main/AndroidManifest.xml", <<-XML
-        <?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.nativecr.#{@project_name}">
-
-            <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
-
-            <application
-                android:label="#{@project_name}"
-                android:hasCode="true"
-                android:allowBackup="false">
-
-                <activity
-                    android:name=".MainActivity"
-                    android:configChanges="orientation|keyboardHidden|screenSize"
-                    android:exported="true">
-
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
-            </application>
-        </manifest>
-      XML
-      )
-    end
-
-    private def create_android_main_activity(android_dir : String)
-      File.write("#{android_dir}/app/src/main/java/com/nativecr/#{@project_name}/MainActivity.java", <<-JAVA
-        package com.nativecr.#{@project_name};
-
-        import android.app.NativeActivity;
-        import android.os.Bundle;
-
-        public class MainActivity extends NativeActivity {
-            static {
-                System.loadLibrary("native_cr");
-            }
-
-            @Override
-            protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-            }
-        }
-      JAVA
-      )
-    end
-
-    private def create_android_build_gradle(android_dir : String)
-      File.write("#{android_dir}/build.gradle", <<-GRADLE
-        buildscript {
-            repositories {
-                google()
-                mavenCentral()
-            }
-            dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.0'
-            }
-        }
-
-        allprojects {
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-
-        task clean(type: Delete) {
-            delete rootProject.buildDir
-        }
-      GRADLE
-      )
-
-      File.write("#{android_dir}/app/build.gradle", <<-GRADLE
-        plugins {
-            id 'com.android.application'
-        }
-
-        android {
-            namespace 'com.nativecr.#{@project_name}'
-            compileSdk 34
-
-            defaultConfig {
-                applicationId "com.nativecr.#{@project_name}"
-                minSdk 24
-                targetSdk 34
-                versionCode 1
-                versionName "1.0"
-            }
-
-            sourceSets {
-                main {
-                    jniLibs.srcDirs = ['src/main/jniLibs']
-                }
-            }
-        }
-      GRADLE
-      )
-    end
-
-    private def create_android_settings_gradle(android_dir : String)
-      File.write("#{android_dir}/settings.gradle", <<-GRADLE
-        rootProject.name = "#{@project_name}"
-        include ':app'
-      GRADLE
-      )
-    end
-
-    private def create_android_gradle_wrapper(android_dir : String)
-      File.write("#{android_dir}/gradle/wrapper/gradle-wrapper.properties", <<-PROPERTIES
-        distributionBase=GRADLE_USER_HOME
-        distributionPath=wrapper/dists
-        distributionUrl=https\\://services.gradle.org/distributions/gradle-8.0-bin.zip
-        zipStoreBase=GRADLE_USER_HOME
-        zipStorePath=wrapper/dists
-      PROPERTIES
-      )
-    end
-
-    private def create_android_gradle_properties(android_dir : String)
-      File.write("#{android_dir}/gradle.properties", <<-PROPERTIES
-        org.gradle.jvmargs=-Xmx2048m
-        android.useAndroidX=true
-      PROPERTIES
-      )
-    end
-
-    private def create_ios_project
-      puts "[native.cr] Generating iOS project..."
-
-      ios_dir = "#{@path}/ios"
-      Dir.mkdir_p(ios_dir)
-      Dir.mkdir_p("#{ios_dir}/NativeCr.xcodeproj")
-      Dir.mkdir_p("#{ios_dir}/Base.lproj")
-
-      create_ios_pbxproj(ios_dir)
-      create_ios_main_storyboard(ios_dir)
-
-      puts "[native.cr] iOS project generated at #{ios_dir}"
-    end
-
-    private def create_ios_pbxproj(ios_dir : String)
-      File.write("#{ios_dir}/NativeCr.xcodeproj/project.pbxproj", <<-PBXPROJ
-        // !$*UTF8*$!
-        {
-            archiveVersion = 1;
-            classes = {
-            };
-            objectVersion = 56;
-            objects = {
-            };
-            rootObject = 1;
-        }
-      PBXPROJ
-      )
-      puts "[native.cr] Note: iOS Xcode project requires manual setup in v0.1"
-      puts "[native.cr] Run: xcodebuild -create-xcodeproj or use Flutter's template approach"
-    end
-
-    private def create_ios_main_storyboard(ios_dir : String)
-      File.write("#{ios_dir}/Base.lproj/Main.storyboard", <<-XML
-        <?xml version="1.0" encoding="UTF-8"?>
-        <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21701" targetRuntime="iOS.CocoaTouch">
-            <scenes>
-                <scene sceneID="home">
-                    <objects>
-                        <viewController id="main" storyboardIdentifier="Main" sceneMemberID="viewController"/>
-                        <placeholder placeholderIdentifier="IBFirstResponder" id="firstResponder" sceneMemberID="firstResponder"/>
-                    </objects>
-                </scene>
-            </scenes>
-        </document>
-      XML
-      )
-    end
-
-    private def create_gitignore
-      File.write("#{@path}/.gitignore", <<-GITIGNORE
-        /.native_cache/
-        /lib/
-        /bin/
-        /shard.lock
-        /android/.gradle/
-        /android/build/
-        /android/local.properties
-        /ios/Pods/
-        /ios/build/
-        .DS_Store
-      GITIGNORE
       )
     end
   end
