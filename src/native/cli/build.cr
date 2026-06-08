@@ -57,18 +57,25 @@ module Native::CLI
         -h, --help           Show this help
 
       Platforms:
-        android              Build for Android (ARM64)
-        ios                  Build for iOS (ARM64)
+        android              Build APK for Android
+        ios                  iOS support coming soon
 
       Examples:
         native.cr build android
-        native.cr build ios src/main.cr
         native.cr build android --release
+        native.cr build android --clean
       HELP
     end
 
     def run
-      puts "[native.cr] Building for #{@platform}"
+      if @platform == "ios"
+        puts "[native.cr] iOS support is coming soon"
+        puts "[native.cr] For now, focus on Android development"
+        puts "[native.cr] Follow GitHub for iOS updates"
+        return
+      end
+
+      puts "[native.cr] Building for Android"
       puts "[native.cr] Entry point: #{@entry_point}"
       puts "[native.cr] Output: #{@output}"
       puts ""
@@ -80,15 +87,7 @@ module Native::CLI
 
       Dir.mkdir_p(@output)
 
-      case @platform
-      when "android"
-        build_android
-      when "ios"
-        build_ios
-      else
-        puts "[native.cr] Error: Unknown platform '#{@platform}'"
-        exit(1)
-      end
+      build_android
     end
 
     private def build_android
@@ -97,7 +96,15 @@ module Native::CLI
       unless ndk && Dir.exists?(ndk)
         puts "[native.cr] Error: ANDROID_NDK environment variable not set"
         puts "[native.cr] Install Android NDK and set ANDROID_NDK to its path"
-        puts "[native.cr] Example: export ANDROID_NDK=/path/to/ndk"
+        puts "[native.cr] Example: export ANDROID_NDK=/home/user/android-ndk-r27c"
+        exit(1)
+      end
+
+      # Check for Android SDK
+      sdk = ENV["ANDROID_HOME"]? || ENV["ANDROID_SDK_ROOT"]?
+      unless sdk && Dir.exists?(sdk)
+        puts "[native.cr] Error: ANDROID_HOME environment variable not set"
+        puts "[native.cr] Install Android SDK and set ANDROID_HOME"
         exit(1)
       end
 
@@ -114,6 +121,7 @@ module Native::CLI
 
       puts "[native.cr] Found prebuilt libraries in #{lib_dir}/"
       puts "[native.cr] Using NDK at: #{ndk}"
+      puts "[native.cr] Using SDK at: #{sdk}"
 
       # Setup NDK toolchain
       toolchain = "#{ndk}/toolchains/llvm/prebuilt/linux-x86_64"
@@ -136,7 +144,7 @@ module Native::CLI
       # Compile user's Crystal code to object file
       puts "[native.cr] Compiling user code..."
       user_o = "#{@output}/user_code.o"
-      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android -o #{user_o}"
+      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android -c -o #{user_o}"
       output = `#{cmd} 2>&1`
 
       unless $?.success?
@@ -157,64 +165,53 @@ module Native::CLI
         exit(1)
       end
 
-      # Copy to Android project if exists
+      # Find or create Android project
       android_project = find_android_project
-      if android_project
-        jni_dir = "#{android_project}/app/src/main/jniLibs/arm64-v8a"
-        Dir.mkdir_p(jni_dir)
-        FileUtils.cp(final_so, "#{jni_dir}/libnative_cr.so")
-        FileUtils.cp(engine_so, jni_dir)
-        FileUtils.cp(crystal_so, jni_dir)
-        puts "[native.cr] Copied libraries to Android project: #{jni_dir}"
+      unless android_project
+        puts "[native.cr] No Android project found. Creating one..."
+        android_project = create_android_project
+      end
 
-        # Build APK with Gradle
-        puts "[native.cr] Building APK with Gradle..."
-        Dir.cd(android_project) do
-          gradle_cmd = @release ? "./gradlew assembleRelease" : "./gradlew assembleDebug"
-          system(gradle_cmd)
+      # Copy libraries to Android project
+      jni_dir = "#{android_project}/app/src/main/jniLibs/arm64-v8a"
+      Dir.mkdir_p(jni_dir)
+      FileUtils.cp(final_so, "#{jni_dir}/libnative_cr.so")
+      FileUtils.cp(engine_so, jni_dir)
+      FileUtils.cp(crystal_so, jni_dir)
+      puts "[native.cr] Copied libraries to Android project"
+
+      # Build APK with Gradle
+      puts "[native.cr] Building APK with Gradle..."
+      gradle_cmd = @release ? "./gradlew assembleRelease" : "./gradlew assembleDebug"
+
+      Dir.cd(android_project) do
+        output = `#{gradle_cmd} 2>&1`
+        if $?.success?
+          puts "[native.cr] APK build successful"
+        else
+          puts "[native.cr] Gradle build failed:"
+          puts output
+          exit(1)
         end
-        puts "[native.cr] APK created at #{android_project}/app/build/outputs/apk/"
-      else
-        puts ""
-        puts "[native.cr] Android build complete"
-        puts "[native.cr] Library: #{final_so}"
-        puts ""
-        puts "Next steps:"
-        puts "  1. Copy #{@output}/lib/arm64-v8a/*.so to your Android project's jniLibs/arm64-v8a/"
-        puts "  2. Build your APK with Android Studio or Gradle"
-      end
-    end
-
-    private def build_ios
-      framework_dir = "#{@output}/NativeCr.framework"
-      Dir.mkdir_p(framework_dir)
-      Dir.mkdir_p("#{framework_dir}/Headers")
-
-      cmd = "crystal build #{@entry_point} -D ios --target aarch64-apple-ios"
-      cmd += " --release" if @release
-      cmd += " --link-flags=\"-static\""
-      cmd += " -o #{framework_dir}/NativeCr"
-
-      puts "[native.cr] Compiling Crystal for iOS..."
-      output = `#{cmd} 2>&1`
-
-      if $?.success?
-        puts "[native.cr] Compilation successful"
-      else
-        puts "[native.cr] Compilation failed:"
-        puts output
-        exit(1)
       end
 
-      create_ios_module_map(framework_dir)
+      # Find and copy APK
+      apk_type = @release ? "release" : "debug"
+      apk_dir = "#{android_project}/app/build/outputs/apk/#{apk_type}"
+      apk_files = Dir.glob("#{apk_dir}/*.apk")
 
-      puts ""
-      puts "[native.cr] iOS build complete"
-      puts "[native.cr] Framework: #{framework_dir}"
-      puts ""
-      puts "Next steps:"
-      puts "  1. Drag #{framework_dir} into your Xcode project"
-      puts "  2. Build your IPA with Xcode"
+      if apk_files.any?
+        apk_dest = "#{@output}/app-#{apk_type}.apk"
+        FileUtils.cp(apk_files.first, apk_dest)
+        puts ""
+        puts "[native.cr] Build complete!"
+        puts "[native.cr] APK: #{apk_dest}"
+        puts ""
+        puts "Install on device:"
+        puts "  adb install #{apk_dest}"
+      else
+        puts "[native.cr] Warning: APK not found at #{apk_dir}"
+      end
     end
 
     private def find_android_project : String?
@@ -226,23 +223,142 @@ module Native::CLI
       nil
     end
 
-    private def create_ios_module_map(framework_dir : String)
-      module_map = <<-MODULE
-      framework module NativeCr {
-        umbrella header "NativeCr.h"
-        export *
-        module * { export * }
-      }
-      MODULE
+    private def create_android_project : String
+      project_name = File.basename(Dir.current)
+      android_dir = "android"
 
-      File.write("#{framework_dir}/module.modulemap", module_map)
-      
-      header = <<-HEADER
-      #import <Foundation/Foundation.h>
-      extern void native_cr_main(void);
-      HEADER
-      
-      File.write("#{framework_dir}/Headers/NativeCr.h", header)
+      puts "[native.cr] Creating Android project in #{android_dir}/"
+
+      Dir.mkdir_p(android_dir)
+      Dir.mkdir_p("#{android_dir}/app/src/main/java/com/nativecr/#{project_name}")
+      Dir.mkdir_p("#{android_dir}/app/src/main/jniLibs/arm64-v8a")
+      Dir.mkdir_p("#{android_dir}/gradle/wrapper")
+
+      # Create AndroidManifest.xml
+      File.write("#{android_dir}/app/src/main/AndroidManifest.xml", <<-XML
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+            package="com.nativecr.#{project_name}">
+
+            <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
+
+            <application
+                android:label="#{project_name}"
+                android:hasCode="true"
+                android:allowBackup="false">
+
+                <activity
+                    android:name=".MainActivity"
+                    android:configChanges="orientation|keyboardHidden|screenSize"
+                    android:exported="true">
+
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+      XML
+      )
+
+      # Create MainActivity.java
+      File.write("#{android_dir}/app/src/main/java/com/nativecr/#{project_name}/MainActivity.java", <<-JAVA
+        package com.nativecr.#{project_name};
+
+        import android.app.NativeActivity;
+        import android.os.Bundle;
+
+        public class MainActivity extends NativeActivity {
+            static {
+                System.loadLibrary("native_cr");
+            }
+
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+            }
+        }
+      JAVA
+      )
+
+      # Create build.gradle (project level)
+      File.write("#{android_dir}/build.gradle", <<-GRADLE
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.0'
+            }
+        }
+
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+
+        task clean(type: Delete) {
+            delete rootProject.buildDir
+        }
+      GRADLE
+      )
+
+      # Create build.gradle (app level)
+      File.write("#{android_dir}/app/build.gradle", <<-GRADLE
+        plugins {
+            id 'com.android.application'
+        }
+
+        android {
+            namespace 'com.nativecr.#{project_name}'
+            compileSdk 34
+
+            defaultConfig {
+                applicationId "com.nativecr.#{project_name}"
+                minSdk 24
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+
+            sourceSets {
+                main {
+                    jniLibs.srcDirs = ['src/main/jniLibs']
+                }
+            }
+        }
+      GRADLE
+      )
+
+      # Create settings.gradle
+      File.write("#{android_dir}/settings.gradle", <<-GRADLE
+        rootProject.name = "#{project_name}"
+        include ':app'
+      GRADLE
+      )
+
+      # Create gradle wrapper properties
+      File.write("#{android_dir}/gradle/wrapper/gradle-wrapper.properties", <<-PROPERTIES
+        distributionBase=GRADLE_USER_HOME
+        distributionPath=wrapper/dists
+        distributionUrl=https\\\\://services.gradle.org/distributions/gradle-8.0-bin.zip
+        zipStoreBase=GRADLE_USER_HOME
+        zipStorePath=wrapper/dists
+      PROPERTIES
+      )
+
+      # Create gradle.properties
+      File.write("#{android_dir}/gradle.properties", <<-PROPERTIES
+        org.gradle.jvmargs=-Xmx2048m
+        android.useAndroidX=true
+      PROPERTIES
+      )
+
+      android_dir
     end
   end
 end
