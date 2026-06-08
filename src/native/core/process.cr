@@ -3,6 +3,7 @@
 require "file_utils"
 require "json"
 require "process"
+require "system"
 
 module Native::Core
   module Process
@@ -18,7 +19,7 @@ module Native::Core
       property build_output : String = "./.native_cache/app"
       property state_file : String = "./.native_cache/state.json"
       property compile_timeout : Time::Span = 30.seconds
-      property desktop_mode : Bool = true
+      property release : Bool = false
 
       def initialize
       end
@@ -65,59 +66,26 @@ module Native::Core
       getter config : Config
       @current_process : ::Process?
       @state : JSON::Serializable?
-      @is_mobile : Bool
 
       def initialize(@config : Config = Config.new)
         Dir.mkdir_p(File.dirname(@config.build_output))
         Dir.mkdir_p(File.dirname(@config.state_file))
-
-        @is_mobile = {% if flag?(:android) || flag?(:ios) %}true{% else %}false{% end %}
+        
+        cache_dir = File.join(Dir.current, ".native_cache/compiler")
+        Dir.mkdir_p(cache_dir)
+        ENV["CRYSTAL_CACHE_DIR"] = cache_dir
+        
+        cpu_count = System.cpu_count
+        if cpu_count && cpu_count > 1
+          ENV["CRYSTAL_WORKERS"] = cpu_count.to_s
+        end
       end
 
       def start
-        if @is_mobile
-          start_mobile
-        else
-          start_desktop
-        end
-      end
-
-      def fast_restart
-        if @is_mobile
-          fast_restart_mobile
-        else
-          fast_restart_desktop
-        end
-      end
-
-      def stop
-        if proc = @current_process
-          return if proc.terminated?
-          
-          if !@is_mobile
-            begin
-              proc.terminate
-              proc.wait
-            rescue e
-              puts "[native.cr] Error stopping process: #{e.message}"
-            end
-          end
-        end
-
-        @current_process = nil
-      end
-
-      private def start_mobile
-        puts "[native.cr] Starting in mobile mode"
-        begin
-          compile_and_run
-        rescue e
-          puts "[native.cr] Error in mobile mode: #{e.message}"
-        end
-      end
-
-      private def start_desktop
         puts "[native.cr] Starting desktop preview"
+        puts "[native.cr] Using #{ENV["CRYSTAL_WORKERS"] || "1"} CPU cores"
+        puts "[native.cr] Cache directory: .native_cache/compiler"
+        puts ""
         
         begin
           load_saved_state
@@ -146,15 +114,23 @@ module Native::Core
         end
       end
 
-      private def fast_restart_mobile
-        puts "[native.cr] Fast restart not available in mobile mode"
-        puts "[native.cr] Rebuilding and restarting..."
-        begin
-          stop
-          compile_and_run
-        rescue e
-          puts "[native.cr] Error during restart: #{e.message}"
+      def fast_restart
+        fast_restart_desktop
+      end
+
+      def stop
+        if proc = @current_process
+          return if proc.terminated?
+          
+          begin
+            proc.terminate
+            proc.wait
+          rescue e
+            puts "[native.cr] Error stopping process: #{e.message}"
+          end
         end
+
+        @current_process = nil
       end
 
       private def fast_restart_desktop
@@ -170,16 +146,14 @@ module Native::Core
 
       private def capture_state_desktop
         if proc = @current_process
-         if !proc.terminated?
-           proc.terminate
-           sleep 0.2.seconds
+          if !proc.terminated?
+            proc.terminate
+            sleep 0.2.seconds
+          end
         end
-       end
-     end
+      end
 
       private def load_saved_state
-        return if @is_mobile
-
         if File.exists?(@config.state_file)
           begin
             json = File.read(@config.state_file)
@@ -201,40 +175,6 @@ module Native::Core
         end
       end
 
-      private def compile_and_run
-        begin
-          compile
-          run_mobile
-        rescue e
-          puts "[native.cr] Error in compile_and_run: #{e.message}"
-        end
-      end
-
-      private def compile
-        puts "[native.cr] Building #{@config.entry_point}..."
-
-        unless File.exists?(@config.entry_point)
-          raise CompileError.new("Entry point not found: #{@config.entry_point}")
-        end
-
-        cmd = "crystal build #{@config.entry_point} -o #{@config.build_output} --error-trace"
-
-        begin
-          output = `#{cmd} 2>&1`
-
-          if $?.success?
-            puts "[native.cr] Build successful"
-          else
-            puts "[native.cr] Compilation failed:"
-            puts output
-            raise CompileError.new("Build failed")
-          end
-        rescue e
-          puts "[native.cr] Error during compilation: #{e.message}"
-          raise CompileError.new("Compilation error: #{e.message}")
-        end
-      end
-
       private def compile_desktop
         puts "[native.cr] Building desktop preview..."
         puts "[native.cr] Entry point: #{@config.entry_point}"
@@ -252,12 +192,15 @@ module Native::Core
         )
 
         cmd = "crystal build #{bootstrap} -o #{@config.build_output}_desktop --error-trace"
+        cmd += " --release" if @config.release
 
         begin
+          start_time = Time.utc
           output = `#{cmd} 2>&1`
+          elapsed = (Time.utc - start_time).total_seconds
 
           if $?.success?
-            puts "[native.cr] Desktop build successful"
+            puts "[native.cr] Desktop build successful (%.2fs)" % elapsed
           else
             puts "[native.cr] Desktop build failed:"
             puts output
@@ -268,39 +211,6 @@ module Native::Core
           raise CompileError.new("Desktop compilation error: #{e.message}")
         ensure
           File.delete(bootstrap) if File.exists?(bootstrap)
-        end
-      end
-
-      private def run
-        env = ENV.to_h
-        env["NATIVE_CR_STATE_FILE"] = @config.state_file
-
-        begin
-          @current_process = ::Process.new(
-            @config.build_output,
-            shell: true,
-            env: env
-          )
-
-          if proc = @current_process
-            puts "[native.cr] App running (PID: #{proc.pid})"
-
-            spawn do
-              begin
-                proc.wait
-                puts "[native.cr] App exited"
-              rescue e
-                puts "[native.cr] Error waiting for process: #{e.message}"
-              ensure
-                @current_process = nil
-              end
-            end
-          else
-            raise ProcessError.new("Failed to create process")
-          end
-        rescue e
-          puts "[native.cr] Error starting app: #{e.message}"
-          raise ProcessError.new("Failed to start process: #{e.message}")
         end
       end
 
@@ -330,15 +240,6 @@ module Native::Core
         rescue e
           puts "[native.cr] Error starting desktop preview: #{e.message}"
           raise ProcessError.new("Failed to start desktop process: #{e.message}")
-        end
-      end
-
-      private def run_mobile
-        begin
-          puts "[native.cr] Running on mobile device"
-          puts "[native.cr] App started"
-        rescue e
-          puts "[native.cr] Error running on mobile: #{e.message}"
         end
       end
     end
