@@ -1,3 +1,4 @@
+// src/native/engine/ios/ViewController.m
 
 #import <UIKit/UIKit.h>
 #import <Metal/Metal.h>
@@ -45,36 +46,25 @@ extern void ios_handle_touch(float x, float y, int action);
 }
 
 - (void)renderFrame {
-    if (ios_render_frame) {
-        ios_render_frame();
-    }
+    ios_render_frame();
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     UITouch *touch = [touches anyObject];
     CGPoint point = [touch locationInView:self.view];
-    
-    if (ios_handle_touch) {
-        ios_handle_touch(point.x, point.y, 0);
-    }
+    ios_handle_touch(point.x, point.y, 0);
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     UITouch *touch = [touches anyObject];
     CGPoint point = [touch locationInView:self.view];
-    
-    if (ios_handle_touch) {
-        ios_handle_touch(point.x, point.y, 1);
-    }
+    ios_handle_touch(point.x, point.y, 1);
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
     UITouch *touch = [touches anyObject];
     CGPoint point = [touch locationInView:self.view];
-    
-    if (ios_handle_touch) {
-        ios_handle_touch(point.x, point.y, 2);
-    }
+    ios_handle_touch(point.x, point.y, 2);
 }
 
 - (void)viewDidLayoutSubviews {
