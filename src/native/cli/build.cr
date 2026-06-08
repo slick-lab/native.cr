@@ -1,6 +1,7 @@
 # src/native/cli/build.cr
 
 require "./apk"
+require "./ipa"
 
 module Native::CLI
   class BuildCommand
@@ -47,25 +48,37 @@ module Native::CLI
 
     def show_help
       puts <<-HELP
-      Usage: native.cr build [OPTIONS] [PLATFORM] [ENTRY_FILE]
+      Usage: native.cr build [OPTIONS] [PLATFORM]
 
-      Build native.cr app for Android.
+      Build native.cr app for Android or iOS.
 
       Options:
         -e, --entry FILE     Entry point file [default: src/main.cr]
         -o, --output DIR     Output directory [default: ./build]
-        --release            Build in release mode (optimized, smaller binary)
+        --release            Build in release mode (optimized)
         --clean              Clean build directory before building
         -h, --help           Show this help
+
+      Platforms:
+        android              Build APK for Android
+        ios                  Build IPA for iOS (requires Mac and Xcode)
 
       Examples:
         native.cr build android
         native.cr build android --release
-        native.cr build android --clean
+        native.cr build ios
       HELP
     end
 
     def run
+      if @platform == "ios"
+        build_ios
+      else
+        build_android
+      end
+    end
+
+    private def build_android
       puts "[native.cr] Building for Android"
       puts "[native.cr] Entry point: #{@entry_point}"
       puts "[native.cr] Output: #{@output}"
@@ -79,61 +92,41 @@ module Native::CLI
 
       Dir.mkdir_p(@output)
 
-      build_android
-    end
-
-    private def build_android
       ndk = ENV["ANDROID_NDK"]?
       unless ndk && Dir.exists?(ndk)
-        puts "[native.cr] Error: ANDROID_NDK environment variable not set"
-        puts "[native.cr] Install Android NDK and set ANDROID_NDK to its path"
+        puts "[native.cr] Error: ANDROID_NDK not set"
         exit(1)
       end
 
       android_project = find_android_project
       unless android_project
-        puts "[native.cr] Error: Android project not found"
-        puts ""
-        puts "To fix this:"
-        puts "  1. Run 'native.cr create my_app --android' to create a project"
-        puts "  2. Then run 'native.cr build android' again"
+        puts "[native.cr] Error: Android project not found. Run 'native.cr create my_app --android' first."
         exit(1)
       end
 
       lib_dir = "lib/native"
-      engine_so = "#{lib_dir}/libnative_cr_engine.so"
-      crystal_so = "#{lib_dir}/libnative_cr.so"
-
-      unless File.exists?(engine_so) && File.exists?(crystal_so)
-        puts "[native.cr] Error: Prebuilt Android libraries not found"
-        puts ""
-        puts "To fix this:"
-        puts "  1. Run 'shards install' to download prebuilt libraries"
-        puts "  2. Then run 'native.cr build android' again"
+      unless File.exists?("#{lib_dir}/libnative_cr_engine.so") && File.exists?("#{lib_dir}/libnative_cr.so")
+        puts "[native.cr] Error: Prebuilt libraries not found. Run 'shards install' first."
         exit(1)
       end
-
-      puts "[native.cr] Found prebuilt libraries in #{lib_dir}/"
-      puts "[native.cr] Using NDK at: #{ndk}"
-      puts "[native.cr] Android project: #{android_project}"
 
       toolchain = "#{ndk}/toolchains/llvm/prebuilt/linux-x86_64"
       clang = "#{toolchain}/bin/aarch64-linux-android24-clang"
 
       unless File.exists?(clang)
-        puts "[native.cr] Error: NDK toolchain not found at #{toolchain}"
+        puts "[native.cr] Error: NDK toolchain not found"
         exit(1)
       end
 
       lib_dir_out = "#{@output}/lib/arm64-v8a"
       Dir.mkdir_p(lib_dir_out)
 
-      FileUtils.cp(engine_so, lib_dir_out)
-      FileUtils.cp(crystal_so, lib_dir_out)
+      FileUtils.cp("#{lib_dir}/libnative_cr_engine.so", lib_dir_out)
+      FileUtils.cp("#{lib_dir}/libnative_cr.so", lib_dir_out)
 
       puts "[native.cr] Compiling user code..."
       user_o = "#{@output}/user_code.o"
-      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android -c -o #{user_o}"
+      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android --cross-compile -o #{user_o}"
       cmd += " --release" if @release
       output = `#{cmd} 2>&1`
 
@@ -146,9 +139,8 @@ module Native::CLI
       puts "[native.cr] Linking final library..."
       final_so = "#{@output}/lib/arm64-v8a/libuser_app.so"
       link_cmd = "#{clang} -shared -fPIC -o #{final_so} #{user_o} #{lib_dir_out}/libnative_cr_engine.so #{lib_dir_out}/libnative_cr.so"
-      link_cmd += " -Oz" if @release
-
       link_output = `#{link_cmd} 2>&1`
+
       unless $?.success?
         puts "[native.cr] Linking failed:"
         puts link_output
@@ -159,32 +151,88 @@ module Native::CLI
       Dir.mkdir_p(jni_dir)
 
       FileUtils.cp(final_so, "#{jni_dir}/libuser_app.so")
-      FileUtils.cp(engine_so, jni_dir)
-      FileUtils.cp(crystal_so, jni_dir)
-
-      puts "[native.cr] Copied libraries to #{jni_dir}"
+      FileUtils.cp("#{lib_dir_out}/libnative_cr_engine.so", jni_dir)
+      FileUtils.cp("#{lib_dir_out}/libnative_cr.so", jni_dir)
 
       apk_path = Native::CLI::Apk.build(android_project, @release)
 
       if apk_path
-        size = File.size(apk_path).to_f / (1024 * 1024)
-        puts ""
-        puts "[native.cr] Build complete!"
-        puts "[native.cr] APK: #{apk_path} (%.2f MB)" % size
-        puts ""
-        puts "Install on device:"
-        puts "  adb install #{apk_path}"
+        puts "\n[native.cr] Build complete! APK: #{apk_path}"
       else
         puts "[native.cr] APK build failed"
         exit(1)
       end
     end
 
+    private def build_ios
+      puts "[native.cr] Building for iOS"
+      puts "[native.cr] Entry point: #{@entry_point}"
+      puts "[native.cr] Output: #{@output}"
+      puts "[native.cr] Release mode: #{@release ? "yes" : "no"}"
+      puts ""
+
+      if @clean && Dir.exists?(@output)
+        FileUtils.rm_rf(@output)
+        puts "[native.cr] Cleaned output directory"
+      end
+
+      Dir.mkdir_p(@output)
+
+      ios_project = find_ios_project
+      unless ios_project
+        puts "[native.cr] Error: iOS project not found. Run 'native.cr create my_app --ios' first."
+        exit(1)
+      end
+
+      lib_dir = "lib/native"
+      unless File.exists?("#{lib_dir}/libnative_cr_ios.a")
+        puts "[native.cr] Error: Prebuilt iOS library not found. Run 'shards install' first."
+        exit(1)
+      end
+
+      frameworks_dir = "#{ios_project}/Frameworks"
+      Dir.mkdir_p(frameworks_dir)
+      FileUtils.cp("#{lib_dir}/libnative_cr_ios.a", frameworks_dir)
+
+      puts "[native.cr] Compiling user code..."
+      user_o = "#{@output}/user_code.o"
+      cmd = "crystal build #{@entry_point} -D ios --target aarch64-apple-darwin --cross-compile -o #{user_o}"
+      cmd += " --release" if @release
+      output = `#{cmd} 2>&1`
+
+      unless $?.success?
+        puts "[native.cr] Compilation failed:"
+        puts output
+        exit(1)
+      end
+
+      puts "[native.cr] Creating static library..."
+      final_a = "#{@output}/libuser_app.a"
+      `ar rcs #{final_a} #{user_o}`
+
+      FileUtils.cp(final_a, frameworks_dir)
+
+      ipa_path = Native::CLI::Ipa.build(ios_project, @release)
+
+      if ipa_path
+        FileUtils.cp(ipa_path, "#{@output}/app.ipa")
+        puts "\n[native.cr] Build complete! IPA: #{@output}/app.ipa"
+      else
+        puts "[native.cr] IPA build failed"
+        exit(1)
+      end
+    end
+
     private def find_android_project : String?
       ["android", "../android", "./android"].each do |path|
-        if Dir.exists?(path) && File.exists?("#{path}/app/build.gradle")
-          return path
-        end
+        return path if Dir.exists?(path) && File.exists?("#{path}/app/build.gradle")
+      end
+      nil
+    end
+
+    private def find_ios_project : String?
+      ["ios", "../ios", "./ios"].each do |path|
+        return path if Dir.exists?(path) && Dir.glob("#{path}/*.xcodeproj").any?
       end
       nil
     end
