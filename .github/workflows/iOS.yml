@@ -44,7 +44,7 @@ jobs:
         run: |
           mkdir -p build
           crystal build src/native.cr -D ios -D without_dlopen --target aarch64-apple-ios \
-            --link-flags="-static -L$(pwd)/src/native/engine/ios -lnative_cr_engine" \
+            --link-flags="-L$(pwd)/src/native/engine/ios -lnative_cr_engine" \
             -o build/NativeCr
 
       - name: Create framework structure
