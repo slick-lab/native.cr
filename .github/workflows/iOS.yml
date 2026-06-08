@@ -32,13 +32,13 @@ jobs:
       - name: Install shards
         run: shards install
 
-      - name: Build iOS engine (Objective-C + Metal)
+      - name: Build iOS engine
         run: |
           cd src/native/engine/ios
           make
+          ls -la *.a
+          ls -la *.metallib
           cd ../../..
-          ls -la src/native/engine/ios/libnative_cr_engine.a
-          ls -la src/native/engine/ios/default.metallib
 
       - name: Build Crystal framework for iOS
         run: |
