@@ -1,471 +1,367 @@
-# src/native/framework/platform.cr
+module Native::Platform
+  def self.android? : Bool
+    {% if flag?(:android) %}
+      true
+    {% else %}
+      false
+    {% end %}
+  end
 
-module Native
-  module Platform
-    enum DeviceType
-      Phone
-      Tablet
-      TV
-      Watch
+  def self.ios? : Bool
+    {% if flag?(:ios) %}
+      true
+    {% else %}
+      false
+    {% end %}
+  end
+
+  def self.desktop? : Bool
+    !android? && !ios?
+  end
+
+  def self.os_name : String
+    if android?
+      "Android"
+    elsif ios?
+      "iOS"
+    else
+      "Desktop"
     end
+  end
 
-    enum Orientation
-      Portrait
-      PortraitUpsideDown
-      LandscapeLeft
-      LandscapeRight
+  def self.is_mobile? : Bool
+    android? || ios?
+  end
+
+  def self.device_model : String
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return "Unknown" unless env && activity
+
+      get_content_resolver = env.GetMethodID(env.GetObjectClass(activity), "getContentResolver", "()Landroid/content/ContentResolver;")
+      resolver = env.CallObjectMethod(activity, get_content_resolver)
+
+      settings_class = env.FindClass("android/provider/Settings$Secure")
+      get_string = env.GetStaticMethodID(settings_class, "getString", "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;")
+
+      android_id = env.NewStringUTF("android_id")
+      model = env.CallStaticObjectMethod(settings_class, get_string, resolver, android_id)
+
+      result = if model
+                 env.GetStringUTFChars(model, nil).to_s
+               else
+                 "Unknown"
+               end
+
+      env.DeleteLocalRef(resolver)
+      env.DeleteLocalRef(model)
+      env.DeleteLocalRef(android_id)
+
+      result
+    elsif ios?
+      ptr = LibIOS.get_device_model
+      if ptr
+        result = String.new(ptr)
+        LibIOS.free_string(ptr)
+        result
+      else
+        "Unknown"
+      end
+    else
+      "Desktop"
     end
+  end
 
-    struct DeviceInfo
-      property model : String
-      property manufacturer : String
-      property os_version : String
-      property app_version : String
-      property screen_width : Int32
-      property screen_height : Int32
-      property screen_dpi : Int32
-      property device_type : DeviceType
-      property language : String
-      property timezone : String
+  def self.os_version : String
+    if android?
+      env = Native::Android::JNI.env
+      return "Unknown" unless env
 
-      def initialize
-        @model = ""
-        @manufacturer = ""
-        @os_version = ""
-        @app_version = ""
-        @screen_width = 0
-        @screen_height = 0
-        @screen_dpi = 0
-        @device_type = DeviceType::Phone
-        @language = ""
-        @timezone = ""
+      version_class = env.FindClass("android/os/Build$VERSION")
+      release_field = env.GetStaticFieldID(version_class, "RELEASE", "Ljava/lang/String;")
+      release = env.GetStaticObjectField(version_class, release_field)
+
+      if release
+        result = env.GetStringUTFChars(release, nil).to_s
+        env.DeleteLocalRef(release)
+        result
+      else
+        "Unknown"
       end
+    elsif ios?
+      ptr = LibIOS.get_os_version
+      if ptr
+        result = String.new(ptr)
+        LibIOS.free_string(ptr)
+        result
+      else
+        "Unknown"
+      end
+    else
+      "Unknown"
     end
+  end
 
-    struct BatteryInfo
-      property level : Int32
-      property is_charging : Bool
-      property is_full : Bool
+  def self.screen_width : Int32
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return 0 unless env && activity
 
-      def initialize(@level = 0, @is_charging = false, @is_full = false)
-      end
+      resources = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getResources", "()Landroid/content/res/Resources;"))
+      metrics = env.CallObjectMethod(resources, env.GetMethodID(env.GetObjectClass(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+
+      width = env.GetIntField(metrics, env.GetFieldID(env.GetObjectClass(metrics), "widthPixels", "I"))
+
+      env.DeleteLocalRef(resources)
+      env.DeleteLocalRef(metrics)
+
+      width
+    elsif ios?
+      LibIOS.get_screen_width
+    else
+      0
     end
+  end
 
-    struct Location
-      property latitude : Float64
-      property longitude : Float64
-      property altitude : Float64
-      property accuracy : Float32
-      property timestamp : Int64
+  def self.screen_height : Int32
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return 0 unless env && activity
 
-      def initialize(@latitude = 0.0, @longitude = 0.0, @altitude = 0.0,
-                     @accuracy = 0.0, @timestamp = 0_i64)
-      end
+      resources = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getResources", "()Landroid/content/res/Resources;"))
+      metrics = env.CallObjectMethod(resources, env.GetMethodID(env.GetObjectClass(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+
+      height = env.GetIntField(metrics, env.GetFieldID(env.GetObjectClass(metrics), "heightPixels", "I"))
+
+      env.DeleteLocalRef(resources)
+      env.DeleteLocalRef(metrics)
+
+      height
+    elsif ios?
+      LibIOS.get_screen_height
+    else
+      0
     end
+  end
 
-    module Device
-      def self.info : DeviceInfo
-        info = DeviceInfo.new
-        
-        {% if flag?(:android) %}
-          info.model = String.new(LibPlatform.android_get_model)
-          info.manufacturer = String.new(LibPlatform.android_get_manufacturer)
-          info.os_version = String.new(LibPlatform.android_get_os_version)
-          info.app_version = String.new(LibPlatform.android_get_app_version)
-          info.screen_width = LibPlatform.android_get_screen_width
-          info.screen_height = LibPlatform.android_get_screen_height
-          info.screen_dpi = LibPlatform.android_get_screen_dpi
-          info.device_type = DeviceType.from_value(LibPlatform.android_get_device_type)
-          info.language = String.new(LibPlatform.android_get_language)
-          info.timezone = String.new(LibPlatform.android_get_timezone)
-        {% elsif flag?(:ios) %}
-          info.model = String.new(LibPlatform.ios_get_model)
-          info.manufacturer = "Apple"
-          info.os_version = String.new(LibPlatform.ios_get_os_version)
-          info.app_version = String.new(LibPlatform.ios_get_app_version)
-          info.screen_width = LibPlatform.ios_get_screen_width
-          info.screen_height = LibPlatform.ios_get_screen_height
-          info.screen_dpi = LibPlatform.ios_get_screen_dpi
-          info.device_type = DeviceType.from_value(LibPlatform.ios_get_device_type)
-          info.language = String.new(LibPlatform.ios_get_language)
-          info.timezone = String.new(LibPlatform.ios_get_timezone)
-          {% end %}
-        info
+  def self.screen_density : Float32
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return 0.0f32 unless env && activity
+
+      resources = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getResources", "()Landroid/content/res/Resources;"))
+      metrics = env.CallObjectMethod(resources, env.GetMethodID(env.GetObjectClass(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+
+      density = env.GetFloatField(metrics, env.GetFieldID(env.GetObjectClass(metrics), "density", "F"))
+
+      env.DeleteLocalRef(resources)
+      env.DeleteLocalRef(metrics)
+
+      density
+    elsif ios?
+      LibIOS.get_screen_density
+    else
+      0.0f32
+    end
+  end
+
+  def self.vibrate(duration_ms : Int32) : Nil
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return unless env && activity
+
+      vibrator = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("vibrator"))
+
+      if vibrator
+        vibrate_method = env.GetMethodID(env.GetObjectClass(vibrator), "vibrate", "(J)V")
+        env.CallVoidMethod(vibrator, vibrate_method, duration_ms.to_i64)
+        env.DeleteLocalRef(vibrator)
       end
+    elsif ios?
+      LibIOS.vibrate
+    end
+  end
 
-      def self.orientation : Orientation
-        {% if flag?(:android) %}
-          Orientation.from_value(LibPlatform.android_get_orientation)
-        {% elsif flag?(:ios) %}
-          Orientation.from_value(LibPlatform.ios_get_orientation)
-        {% else %}
-          Orientation::Portrait
-        {% end %}
+  def self.open_url(url : String) : Bool
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return false unless env && activity
+
+      uri_class = env.FindClass("android/net/Uri")
+      parse_method = env.GetStaticMethodID(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
+      uri = env.CallStaticObjectMethod(uri_class, parse_method, env.NewStringUTF(url))
+
+      intent_class = env.FindClass("android/content/Intent")
+      intent_constructor = env.GetMethodID(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V")
+      intent = env.NewObject(intent_class, intent_constructor, env.NewStringUTF("android.intent.action.VIEW"), uri)
+
+      start_activity = env.GetMethodID(env.GetObjectClass(activity), "startActivity", "(Landroid/content/Intent;)V")
+      env.CallVoidMethod(activity, start_activity, intent)
+
+      env.DeleteLocalRef(uri)
+      env.DeleteLocalRef(intent)
+
+      true
+    elsif ios?
+      LibIOS.open_url(url.to_utf8)
+    else
+      false
+    end
+  end
+
+  def self.share(text : String, title : String = "") : Nil
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return unless env && activity
+
+      intent_class = env.FindClass("android/content/Intent")
+      intent_constructor = env.GetMethodID(intent_class, "<init>", "()V")
+      intent = env.NewObject(intent_class, intent_constructor)
+
+      set_action = env.GetMethodID(intent_class, "setAction", "(Ljava/lang/String;)Landroid/content/Intent;")
+      env.CallObjectMethod(intent, set_action, env.NewStringUTF("android.intent.action.SEND"))
+
+      put_extra = env.GetMethodID(intent_class, "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;")
+      env.CallObjectMethod(intent, put_extra, env.NewStringUTF("android.intent.extra.TEXT"), env.NewStringUTF(text))
+
+      set_type = env.GetMethodID(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
+      env.CallObjectMethod(intent, set_type, env.NewStringUTF("text/plain"))
+
+      create_chooser = env.GetStaticMethodID(intent_class, "createChooser", "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;")
+      chooser = env.CallStaticObjectMethod(intent_class, create_chooser, intent, env.NewStringUTF(title))
+
+      start_activity = env.GetMethodID(env.GetObjectClass(activity), "startActivity", "(Landroid/content/Intent;)V")
+      env.CallVoidMethod(activity, start_activity, chooser)
+
+      env.DeleteLocalRef(intent)
+      env.DeleteLocalRef(chooser)
+    elsif ios?
+      LibIOS.share(text.to_utf8, title.to_utf8)
+    end
+  end
+
+  def self.copy_to_clipboard(text : String) : Nil
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return unless env && activity
+
+      clipboard = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("clipboard"))
+
+      if clipboard
+        clip_class = env.FindClass("android/content/ClipData")
+        new_plain_text = env.GetStaticMethodID(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
+        clip = env.CallStaticObjectMethod(clip_class, new_plain_text, env.NewStringUTF("text"), env.NewStringUTF(text))
+
+        set_clip = env.GetMethodID(env.GetObjectClass(clipboard), "setPrimaryClip", "(Landroid/content/ClipData;)V")
+        env.CallVoidMethod(clipboard, set_clip, clip)
+
+        env.DeleteLocalRef(clipboard)
+        env.DeleteLocalRef(clip)
       end
+    elsif ios?
+      LibIOS.copy_to_clipboard(text.to_utf8)
+    end
+  end
 
-      def self.vibrate(duration_ms : Int32) : Nil
-        {% if flag?(:android) %}
-          LibPlatform.android_vibrate(duration_ms)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_vibrate
-        {% end %}
-      end
+  def self.paste_from_clipboard : String
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return "" unless env && activity
 
-      def self.open_url(url : String) : Bool
-        {% if flag?(:android) %}
-          LibPlatform.android_open_url(url.to_utf8)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_open_url(url.to_utf8)
-        {% else %}
-          false
-        {% end %}
-      end
+      clipboard = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("clipboard"))
 
-      def self.share(text : String, title : String = "") : Nil
-        {% if flag?(:android) %}
-          LibPlatform.android_share(text.to_utf8, title.to_utf8)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_share(text.to_utf8, title.to_utf8)
-        {% end %}
-      end
+      if clipboard
+        has_text = env.GetMethodID(env.GetObjectClass(clipboard), "hasPrimaryClip", "()Z")
+        if env.CallBooleanMethod(clipboard, has_text)
+          get_clip = env.GetMethodID(env.GetObjectClass(clipboard), "getPrimaryClip", "()Landroid/content/ClipData;")
+          clip = env.CallObjectMethod(clipboard, get_clip)
 
-      def self.copy_to_clipboard(text : String) : Nil
-        {% if flag?(:android) %}
-          LibPlatform.android_copy_to_clipboard(text.to_utf8)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_copy_to_clipboard(text.to_utf8)
-        {% end %}
-      end
+          get_item = env.GetMethodID(env.GetObjectClass(clip), "getItemAt", "(I)Landroid/content/ClipData$Item;")
+          item = env.CallObjectMethod(clip, get_item, 0)
 
-      def self.paste_from_clipboard : String
-        {% if flag?(:android) %}
-          ptr = LibPlatform.android_paste_from_clipboard
-        {% elsif flag?(:ios) %}
-          ptr = LibPlatform.ios_paste_from_clipboard
-        {% else %}
-          return ""
-        {% end %}
-        
-        if ptr
-          text = String.new(ptr)
-          LibPlatform.free_string(ptr)
-          text
-        else
-          ""
+          get_text = env.GetMethodID(env.GetObjectClass(item), "getText", "()Ljava/lang/CharSequence;")
+          text = env.CallObjectMethod(item, get_text)
+
+          result = env.GetStringUTFChars(text, nil).to_s
+
+          env.DeleteLocalRef(clipboard)
+          env.DeleteLocalRef(clip)
+          env.DeleteLocalRef(item)
+
+          return result
         end
+        env.DeleteLocalRef(clipboard)
       end
+      ""
+    elsif ios?
+      ptr = LibIOS.paste_from_clipboard
+      if ptr
+        result = String.new(ptr)
+        LibIOS.free_string(ptr)
+        result
+      else
+        ""
+      end
+    else
+      ""
     end
+  end
 
-    module Battery
-      def self.info : BatteryInfo
-        info = BatteryInfo.new
-        
-        {% if flag?(:android) %}
-          info.level = LibPlatform.android_get_battery_level
-          info.is_charging = LibPlatform.android_is_battery_charging
-          info.is_full = LibPlatform.android_is_battery_full
-        {% elsif flag?(:ios) %}
-          info.level = LibPlatform.ios_get_battery_level
-          info.is_charging = LibPlatform.ios_is_battery_charging
-          info.is_full = false
-        {% end %}
-        
-        info
-      end
+  def self.battery_level : Int32
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return 0 unless env && activity
 
-      def self.level : Int32
-        info.level
-      end
+      intent_filter = env.NewObject(env.FindClass("android/content/IntentFilter"), env.GetMethodID(env.FindClass("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.NewStringUTF("android.intent.action.BATTERY_CHANGED"))
+      battery_status = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
 
-      def self.charging? : Bool
-        info.is_charging
+      if battery_status
+        level = env.GetIntField(battery_status, env.GetFieldID(env.GetObjectClass(battery_status), "level", "I"))
+        scale = env.GetIntField(battery_status, env.GetFieldID(env.GetObjectClass(battery_status), "scale", "I"))
+        result = (level * 100 / scale)
+        env.DeleteLocalRef(battery_status)
+        result
+      else
+        0
       end
+    elsif ios?
+      LibIOS.get_battery_level
+    else
+      0
     end
+  end
 
-    module Sensors
-      class Accelerometer
-        @callback : (Float64, Float64, Float64) -> Nil = ->(x : Float64, y : Float64, z : Float64) {}
-        @is_listening = false
+  def self.is_charging? : Bool
+    if android?
+      env = Native::Android::JNI.env
+      activity = Native::Android::JNI.activity
+      return false unless env && activity
 
-        def on_change(&block : Float64, Float64, Float64 -> Nil) : Nil
-          @callback = block
-        end
+      intent_filter = env.NewObject(env.FindClass("android/content/IntentFilter"), env.GetMethodID(env.FindClass("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.NewStringUTF("android.intent.action.BATTERY_CHANGED"))
+      battery_status = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
 
-        def start : Nil
-          return if @is_listening
-          
-          {% if flag?(:android) %}
-            LibPlatform.android_accelerometer_start
-          {% elsif flag?(:ios) %}
-            LibPlatform.ios_accelerometer_start
-          {% end %}
-          
-          @is_listening = true
-          start_listening
-        end
-
-        def stop : Nil
-          return unless @is_listening
-          
-          {% if flag?(:android) %}
-            LibPlatform.android_accelerometer_stop
-          {% elsif flag?(:ios) %}
-            LibPlatform.ios_accelerometer_stop
-          {% end %}
-          
-          @is_listening = false
-        end
-
-        private def start_listening : Nil
-          spawn do
-            while @is_listening
-              {% if flag?(:android) %}
-                x = LibPlatform.android_accelerometer_get_x
-                y = LibPlatform.android_accelerometer_get_y
-                z = LibPlatform.android_accelerometer_get_z
-              {% elsif flag?(:ios) %}
-                x = LibPlatform.ios_accelerometer_get_x
-                y = LibPlatform.ios_accelerometer_get_y
-                z = LibPlatform.ios_accelerometer_get_z
-              {% else %}
-                x, y, z = 0.0, 0.0, 0.0
-              {% end %}
-              
-              @callback.call(x, y, z)
-              sleep 0.016 # ~60 FPS
-            end
-          end
-        end
+      if battery_status
+        plugged = env.GetIntField(battery_status, env.GetFieldID(env.GetObjectClass(battery_status), "plugged", "I"))
+        result = plugged != 0
+        env.DeleteLocalRef(battery_status)
+        result
+      else
+        false
       end
-
-      class Gyroscope
-        @callback : (Float64, Float64, Float64) -> Nil = ->(x : Float64, y : Float64, z : Float64) {}
-        @is_listening = false
-
-        def on_change(&block : Float64, Float64, Float64 -> Nil) : Nil
-          @callback = block
-        end
-
-        def start : Nil
-          return if @is_listening
-          
-          {% if flag?(:android) %}
-            LibPlatform.android_gyroscope_start
-          {% elsif flag?(:ios) %}
-            LibPlatform.ios_gyroscope_start
-          {% end %}
-          
-          @is_listening = true
-          start_listening
-        end
-
-        def stop : Nil
-          return unless @is_listening
-          
-          {% if flag?(:android) %}
-            LibPlatform.android_gyroscope_stop
-          {% elsif flag?(:ios) %}
-            LibPlatform.ios_gyroscope_stop
-          {% end %}
-          
-          @is_listening = false
-        end
-
-        private def start_listening : Nil
-          spawn do
-            while @is_listening
-              {% if flag?(:android) %}
-                x = LibPlatform.android_gyroscope_get_x
-                y = LibPlatform.android_gyroscope_get_y
-                z = LibPlatform.android_gyroscope_get_z
-              {% elsif flag?(:ios) %}
-                x = LibPlatform.ios_gyroscope_get_x
-                y = LibPlatform.ios_gyroscope_get_y
-                z = LibPlatform.ios_gyroscope_get_z
-              {% else %}
-                x, y, z = 0.0, 0.0, 0.0
-              {% end %}
-              
-              @callback.call(x, y, z)
-              sleep 0.016
-            end
-          end
-        end
-      end
-    end
-
-    module Geolocation
-      @@on_location : Location -> Nil = ->(loc : Location) {}
-      @@on_error : String -> Nil = ->(err : String) {}
-      @@is_listening = false
-
-      def self.get_current_location : Location?
-        {% if flag?(:android) %}
-          lat = LibPlatform.android_get_last_latitude
-          lon = LibPlatform.android_get_last_longitude
-        {% elsif flag?(:ios) %}
-          lat = LibPlatform.ios_get_last_latitude
-          lon = LibPlatform.ios_get_last_longitude
-        {% else %}
-          return nil
-        {% end %}
-        
-        if lat != 0.0 || lon != 0.0
-          Location.new(latitude: lat, longitude: lon)
-        else
-          nil
-        end
-      end
-
-      def self.start_listening(accuracy : Float32 = 10.0) : Nil
-        return if @@is_listening
-        
-        {% if flag?(:android) %}
-          LibPlatform.android_geolocation_start(accuracy)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_geolocation_start(accuracy)
-        {% end %}
-        
-        @@is_listening = true
-        start_polling
-      end
-
-      def self.stop_listening : Nil
-        return unless @@is_listening
-        
-        {% if flag?(:android) %}
-          LibPlatform.android_geolocation_stop
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_geolocation_stop
-        {% end %}
-        
-        @@is_listening = false
-      end
-
-      def self.on_location(&block : Location -> Nil) : Nil
-        @@on_location = block
-      end
-
-      def self.on_error(&block : String -> Nil) : Nil
-        @@on_error = block
-      end
-
-      private def self.start_polling : Nil
-        spawn do
-          while @@is_listening
-            if loc = get_current_location
-              @@on_location.call(loc)
-            end
-            sleep 1.0
-          end
-        end
-      end
-    end
-
-    module HapticFeedback
-      enum HapticType
-        Light
-        Medium
-        Heavy
-        Success
-        Warning
-        Error
-        Selection
-      end
-
-      def self.generate(type : HapticType) : Nil
-        {% if flag?(:android) %}
-          LibPlatform.android_haptic_feedback(type.to_i32)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_haptic_feedback(type.to_i32)
-        {% end %}
-      end
-
-      def self.light : Nil
-        generate(HapticType::Light)
-      end
-
-      def self.medium : Nil
-        generate(HapticType::Medium)
-      end
-
-      def self.heavy : Nil
-        generate(HapticType::Heavy)
-      end
-
-      def self.selection : Nil
-        generate(HapticType::Selection)
-      end
-
-      def self.success : Nil
-        generate(HapticType::Success)
-      end
-
-      def self.warning : Nil
-        generate(HapticType::Warning)
-      end
-    end
-
-    module Brightness
-      def self.get : Float32
-        {% if flag?(:android) %}
-          LibPlatform.android_get_brightness
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_get_brightness
-        {% else %}
-          0.5
-        {% end %}
-      end
-
-      def self.set(value : Float32) : Nil
-        val = value.clamp(0.0, 1.0)
-        
-        {% if flag?(:android) %}
-          LibPlatform.android_set_brightness(val)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_set_brightness(val)
-        {% end %}
-      end
-    end
-
-    module StatusBar
-      def self.hide : Nil
-        {% if flag?(:android) %}
-          LibPlatform.android_hide_status_bar
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_hide_status_bar
-        {% end %}
-      end
-
-      def self.show : Nil
-        {% if flag?(:android) %}
-          LibPlatform.android_show_status_bar
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_show_status_bar
-        {% end %}
-      end
-
-      def self.set_color(r : UInt8, g : UInt8, b : UInt8) : Nil
-        {% if flag?(:android) %}
-          LibPlatform.android_set_status_bar_color(r, g, b)
-        {% elsif flag?(:ios) %}
-          LibPlatform.ios_set_status_bar_color(r, g, b)
-        {% end %}
-      end
-    end
-
-    module Screen
-      def self.keep_on(keep : Bool) : Nil
-        {% if flag?(:android) %}
-          if keep
-            LibPlatform.android_keep_screen_on
-          else
-            LibPlatform.android_allow_screen_sleep
-          end
-        {% elsif flag?(:ios) %}
-          UIApplication.shared.isIdleTimerDisabled = keep
-        {% end %}
-      end
+    elsif ios?
+      LibIOS.is_charging
+    else
+      false
     end
   end
 end
