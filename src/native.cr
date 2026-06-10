@@ -1,19 +1,14 @@
-
 require "json"
 require "file_utils"
 require "signal"
 
-# Load all core modules
-require "./native/math"
-require "./native/core/*"
-
-# Load all framework modules
 require "./native/framework/*"
+require "./native/framework/ui/*"
+require "./native/framework/animation/*"
+require "./native/framework/dialog/*"
+require "./native/framework/media/*"
+require "./native/framework/navigation/*"
 
-# Load all CLI modules
-require "./native/cli/*"
-
-# Load platform engines
 {% if flag?(:android) %}
   require "./native/engine/android/*"
 {% elsif flag?(:ios) %}
@@ -25,36 +20,31 @@ module Native
 
   def self.run
     args = ARGV
-
-    if args.empty?
-      puts "Native.cr v#{VERSION}"
-      puts ""
-      puts "Usage: native.cr <command> [options]"
-      puts ""
-      puts "Commands:"
-      puts "  create <name>     Create a new project"
-      puts "  build <platform>  Build for android or ios"
-      puts "  reload <file>     Start development with hot reload"
-      puts "  doctor            Check toolchain installation"
-      puts ""
-      puts "Run 'native.cr <command> --help' for more information"
+    if args.include?("--version")
+      puts "Native #{VERSION}"
+      exit(0)
+    elsif args.empty?
+      puts "[native.cr] commands"
+      puts "native.cr create <name>  Create a new project"
+      puts "native.cr build         Build the project"
+      puts "native.cr reload <file> start development with fast reload"
+      puts "native.cr doctor check toolchain installation"
       return
     end
 
     case args[0]
     when "create"
-      system("bash #{__DIR__}/../cli/create.sh #{args[1..-1].join(" ")}")
+      require "./native/cli/create"
     when "build"
-      Native::CLI::BuildCommand.new(args[1..-1]).run
+      require "./native/cli/build"
     when "reload"
-      Native::CLI::ReloadCommand.new(args[1..-1]).run
+      require "./native/cli/reload"
     when "doctor"
-      Native::CLI::DoctorCommand.new(args[1..-1]).run
+      require "./native/cli/doctor"
     else
       puts "Unknown command: #{args[0]}"
-      puts "Run 'native.cr' without arguments for help"
     end
   end
 end
 
-Native.run
+  Native.run
