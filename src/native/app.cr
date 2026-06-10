@@ -2,7 +2,7 @@
 
 module Native
   abstract class App
-    @@current : App?
+     @@current : App?
 
     def self.current : App
       @@current.not_nil!
@@ -36,7 +36,7 @@ module Native
     rescue
     end
 
-    protected def load_saved_state
+     def load_saved_state
       state_file = ENV["NATIVE_CR_STATE_FILE"]?
       return unless state_file && File.exists?(state_file)
       json = File.read(state_file)
@@ -53,6 +53,12 @@ module Native
     end
 
     abstract def setup : Nil
+
+    def run : Nil
+      loop do
+        sleep 0.016
+      end
+    end
 
     # Optional callbacks (stub methods)
     def on_touch_began(x : Float32, y : Float32) : Nil; end

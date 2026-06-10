@@ -1,6 +1,7 @@
 require "json"
 require "file_utils"
 require "signal"
+require "./native/app"
 require "./native/cli/*"
 require "./native/framework/*"
 require "./native/framework/ui/view"
@@ -36,7 +37,7 @@ module Native
 
   def self.run
     args = ARGV
-    if args.include?("--version")
+    if args.includes?("--version")
       puts "Native #{VERSION}"
       exit(0)
     elsif args.empty?
