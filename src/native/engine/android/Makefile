@@ -1,6 +1,8 @@
 # src/native/engine/android/Makefile
 
 NDK_PATH ?= $(ANDROID_NDK)
+SDK_PATH ?= $(ANDROID_HOME)
+
 TOOLCHAIN = $(NDK_PATH)/toolchains/llvm/prebuilt/linux-x86_64
 CC = $(TOOLCHAIN)/bin/aarch64-linux-android24-clang
 JAVAC = javac
@@ -8,6 +10,9 @@ JAR = jar
 
 GLUE_DIR = $(NDK_PATH)/sources/android/native_app_glue
 GLUE_SRC = $(GLUE_DIR)/android_native_app_glue.c
+
+ANDROID_JAR = $(SDK_PATH)/platforms/android-34/android.jar
+CLASSPATH = $(ANDROID_JAR):libs/*
 
 CFLAGS = -fPIC -O2 -I$(GLUE_DIR)
 LDFLAGS = -shared -landroid -llog -ljnigraphics
@@ -24,7 +29,7 @@ $(TARGET_SO): $(SOURCES)
 
 $(TARGET_JAR): $(JAVA_SOURCES)
 	mkdir -p build/classes
-	$(JAVAC) -source 1.8 -target 1.8 -d build/classes $(JAVA_SOURCES)
+	$(JAVAC) -source 1.8 -target 1.8 -cp "$(CLASSPATH)" -d build/classes $(JAVA_SOURCES)
 	$(JAR) cf $@ -C build/classes .
 
 clean:
