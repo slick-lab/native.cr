@@ -3,91 +3,129 @@
 
 This directory contains the Android platform engine that allows Crystal apps to run natively on Android devices.
 
+## Overview
+
+The Android engine provides:
+- JNI bridge between Crystal and Android Java/Kotlin
+- Native C engine for event loop and OpenGL (fallback)
+- Precompiled Java helper classes for common operations
+- Build scripts for NDK compilation
+
+## Architecture
+
+```
+
+┌─────────────────────────────────────────────────────────┐
+│  Crystal App Code (src/main.cr)                        │
+├─────────────────────────────────────────────────────────┤
+│  native.cr Framework                                    │
+├─────────────────────────────────────────────────────────┤
+│  bridge.cr (Crystal → JNI bridge)                      │
+├─────────────────────────────────────────────────────────┤
+│  libnative_cr_engine.so (C engine + JNI)               │
+│  libnative_cr_android.jar (Java helper classes)        │
+├─────────────────────────────────────────────────────────┤
+│  Android Runtime (ART) + NDK                           │
+└─────────────────────────────────────────────────────────┘
+
+```
+
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `native.c` | C engine with OpenGL ES rendering, input handling, and bridge functions |
-| `Makefile` | Build script that compiles the engine using Android NDK |
+| `native.c` | C engine entry point (`android_main`), JNI setup, event loop |
+| `bridge.cr` | Crystal entry point called from C |
+| `jni.cr` | JNI helper functions for Crystal |
+| `Makefile` | Builds `libnative_cr_engine.so` and `libnative_cr_android.jar` |
+| `java/` | Java helper classes (HTTP, audio, camera, notifications, etc.) |
 
-## How It Works
+## Java Helper Classes
 
-1. Android launches the app and calls `android_main()` in `native.c`
-2. The C engine initializes OpenGL ES and sets up the display
-3. The engine calls `crystal_android_main()` (exported from your Crystal code)
-4. Your Crystal app runs and calls back into the engine for rendering and events
-
-## Bridge Functions
-
-The C engine provides these functions for Crystal to call:
-
-| Function | Purpose |
-|----------|---------|
-| `poll_events(state)` | Process pending Android events |
-| `destroy_requested(state)` | Check if app should exit |
-| `has_window(state)` | Check if window is ready for drawing |
-| `set_color(state, r, g, b)` | Set background color (0-255 each) |
-| `swap_buffers(state)` | Swap OpenGL buffers to display |
+| Class | Purpose |
+|-------|---------|
+| `HTTPClient` | HTTP/HTTPS requests |
+| `SoundPlayer` | Short sound effects |
+| `MusicPlayer` | Long audio playback |
+| `AudioRecorder` | Microphone recording |
+| `NotificationHelper` | Push/local notifications |
+| `BillingHelper` | In-app purchases |
+| `LocationHelper` | GPS location |
+| `ImagePickerHelper` | Camera and gallery |
+| `BiometricCallback` | Fingerprint/Face ID |
+| `SensorListener` | Accelerometer, gyroscope |
+| `ConnectivityHelper` | Network status |
+| `WebViewClientCallback` | WebView events |
+| `VideoPlayer` | Video playback |
+| `RecyclerViewAdapter` | List view adapter |
+| Callback classes | UI event handling |
 
 ## Building the Engine
 
-```bash
-# Set NDK path
-export ANDROID_NDK=/path/to/ndk
-
-# Build
-make NDK_PATH=$ANDROID_NDK
-
-# Output: libnative_cr_engine.so
-```
-
-Requirements
+### Prerequisites
 
 - Android NDK r25 or later
-- Target API level: 24 (Android 7.0) or higher
-- Architecture: arm64-v8a only
+- JDK 8 or later
+- Android SDK (for Java compilation)
 
-Integration with Crystal
+### Build Commands
 
-Your Crystal code must export crystal_android_main:
+```bash
+# Build both .so and .jar
+make
 
-```crystal
-@[Export("crystal_android_main")]
-fun crystal_android_main(state : Void*) : Void
-  GC.init
-  # Your app code here
-end
+# Build only C engine
+make libnative_cr_engine.so
+
+# Build only Java JAR
+make libnative_cr_android.jar
+
+# Clean build artifacts
+make clean
 ```
 
-The state pointer is the android_app struct from the NDK.
+Environment Variables
 
-Event Loop Pattern
+| Variable | Required | Default Purpose |
+| ----- | ----- | ----- |
+| ANDROID_NDK | Yes | Path to Android NDK |
+| JAVA_HOME | For JAR | Path to JDK |
 
-```crystal
-loop do
-  LibEngine.poll_events(state)
-  break if LibEngine.destroy_requested(state)
-  
-  if LibEngine.has_window(state)
-    # Update and render
-    LibEngine.set_color(state, 100, 150, 200)
-    LibEngine.swap_buffers(state)
-  end
-end
-```
+Output Files
 
-Building Complete APK
+File Description
+- libnative_cr_engine.so Shared library for ARM64 Android
+- libnative_cr_android.jar Compiled Java helper classes
 
-1. Compile Crystal code to libnative_cr.so
-2. Compile C engine to libnative_cr_engine.so
-3. Package both into APK with proper AndroidManifest.xml
-4. Sign and align the APK
+Integration with User Projects
+
+The CLI handles distribution:
+
+1. User runs shards install
+2. postinstall.sh downloads prebuilt .so and .jar from GitHub Releases
+3. native.cr create copies templates to user's Android project
+4. native.cr build android links libraries into final APK
 
 Notes
 
-- OpenGL ES 2.0 is used for rendering
-- Touch events change the background color in the example
-- The engine supports single-touch input (multi-touch can be added)
+- Minimum Android API level: 24 (Android 7.0)
+- Architecture: arm64-v8a only
+- The C engine is minimal; most Android operations use Java via JNI
+- Java classes are compiled to JAR for faster user builds
 
-```
-```
+Troubleshooting
+
+Issue Solution
+ANDROID_NDK not set Export path: export ANDROID_NDK=/path/to/ndk
+javac: command not found Install JDK: sudo apt install openjdk-11-jdk
+cannot find -llog NDK path incorrect; check ANDROID_NDK
+cannot find symbol Java source files missing; check java/ directory
+
+Maintenance
+
+When updating Java helper classes:
+
+1. Modify .java files in java/com/nativecr/
+2. Run make to regenerate libnative_cr_android.jar
+3. Upload both .so and .jar to GitHub Releases
+4. Users get updates via shards install
