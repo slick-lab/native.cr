@@ -4,7 +4,7 @@ module Native::Dialog
   class Toast
     enum Length
       Short = 0
-      Long = 1
+      Long  = 1
     end
 
     @text : String = ""

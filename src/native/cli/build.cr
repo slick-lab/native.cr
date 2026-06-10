@@ -70,9 +70,16 @@ module Native::CLI
       HELP
     end
 
+    def mac?
+      uname = `uname`.chomp
+      uname == "Darwin"
+    rescue
+      false
+    end
+
     def run
       if @platform == "ios"
-        if !System.platform?("darwin")
+        if mac?
           puts "[native.cr] Error: iOS builds can only be performed on macOS."
           puts "[native.cr] To build for iOS, you need a Mac with Xcode installed."
           exit(1)

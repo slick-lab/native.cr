@@ -20,9 +20,9 @@ module Native::Animation
     @repeat_count : Int32 = 0
     @repeat_mode : Int32 = 1
     @on_update : (Float64 -> Nil)?
-    @on_start : ( -> Nil)?
-    @on_end : ( -> Nil)?
-    @on_repeat : ( -> Nil)?
+    @on_start : (-> Nil)?
+    @on_end : (-> Nil)?
+    @on_repeat : (-> Nil)?
     @animator_ptr : Int64 = 0
 
     def initialize(start_value : Float64 = 0.0, end_value : Float64 = 1.0)

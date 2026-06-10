@@ -2,12 +2,12 @@ require "sdl"
 require "opengl"
 
 class NativeDesktop
-  WIDTH = 1024
-  HEIGHT = 768
+  WIDTH  = 1024
+  HEIGHT =  768
 
   def initialize(app_class : Native::App.class)
     SDL.init(SDL::Init::VIDEO)
-    
+
     @window = SDL::Window.new(
       "native.cr",
       x: SDL::Window::POS_CENTERED,
@@ -16,17 +16,17 @@ class NativeDesktop
       height: HEIGHT,
       flags: SDL::Window::OPENGL
     )
-    
+
     @gl_context = @window.gl_create_context
     @app = app_class.new
-    
+
     setup_opengl
     @app.setup
   end
 
   def run
     running = true
-    
+
     while running
       while event = SDL::Event.poll
         case event
@@ -50,7 +50,7 @@ class NativeDesktop
           end
         end
       end
-      
+
       glClear(GL_COLOR_BUFFER_BIT)
       @app.draw
       @window.gl_swap

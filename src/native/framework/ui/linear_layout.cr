@@ -8,16 +8,16 @@ module Native::UI
     end
 
     enum Gravity
-      Top = 48
-      Bottom = 80
-      Left = 3
-      Right = 5
-      Center = 17
-      CenterHorizontal = 1
-      CenterVertical = 16
-      Fill = 119
-      FillHorizontal = 7
-      FillVertical = 112
+      Top              =  48
+      Bottom           =  80
+      Left             =   3
+      Right            =   5
+      Center           =  17
+      CenterHorizontal =   1
+      CenterVertical   =  16
+      Fill             = 119
+      FillHorizontal   =   7
+      FillVertical     = 112
     end
 
     @orientation : Orientation = Orientation::Vertical

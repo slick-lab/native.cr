@@ -1,4 +1,5 @@
 require "http/client"
+
 module Native::Network
   enum Method
     GET
@@ -251,12 +252,12 @@ module Native::Network
     private def execute_desktop_sync(request : Request) : Response
       begin
         http_method = case request.method
-                      when Method::GET then HTTP::Method::GET
-                      when Method::POST then HTTP::Method::POST
-                      when Method::PUT then HTTP::Method::PUT
+                      when Method::GET    then HTTP::Method::GET
+                      when Method::POST   then HTTP::Method::POST
+                      when Method::PUT    then HTTP::Method::PUT
                       when Method::DELETE then HTTP::Method::DELETE
-                      when Method::PATCH then HTTP::Method::PATCH
-                      when Method::HEAD then HTTP::Method::HEAD
+                      when Method::PATCH  then HTTP::Method::PATCH
+                      when Method::HEAD   then HTTP::Method::HEAD
                       end
 
         http_response = HTTP::Client.exec(
@@ -280,12 +281,12 @@ module Native::Network
     private def execute_desktop_stream(request : Request) : Response
       begin
         http_method = case request.method
-                      when Method::GET then HTTP::Method::GET
-                      when Method::POST then HTTP::Method::POST
-                      when Method::PUT then HTTP::Method::PUT
+                      when Method::GET    then HTTP::Method::GET
+                      when Method::POST   then HTTP::Method::POST
+                      when Method::PUT    then HTTP::Method::PUT
                       when Method::DELETE then HTTP::Method::DELETE
-                      when Method::PATCH then HTTP::Method::PATCH
-                      when Method::HEAD then HTTP::Method::HEAD
+                      when Method::PATCH  then HTTP::Method::PATCH
+                      when Method::HEAD   then HTTP::Method::HEAD
                       end
 
         HTTP::Client.get(request.url, headers: HTTP::Headers.new(request.headers)) do |response|

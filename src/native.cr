@@ -50,17 +50,17 @@ module Native
 
     case args[0]
     when "create"
-     Native::CLI::CreateCommand.new(args[1..-1]).run
+      Native::CLI::CreateCommand.new(args[1..-1]).run
     when "build"
       Native::CLI::BuildCommand.new(args[1..-1]).run
     when "reload"
       Native::CLI::ReloadCommand.new(args[1..-1]).run
     when "doctor"
-     Native::CLI::DoctorCommand.new(args[1..-1]).run
+      Native::CLI::DoctorCommand.new(args[1..-1]).run
     else
       puts "Unknown command: #{args[0]}"
     end
   end
 end
 
-  Native.run
+Native.run

@@ -7,12 +7,12 @@ describe Native::Math do
     it "defines PI" do
       Native::Math::PI.should be_close(3.141592653589793, 0.000001)
     end
-    
+
     it "defines TAU" do
       Native::Math::TAU.should be_close(6.283185307179586, 0.000001)
     end
   end
-  
+
   describe ".clamp" do
     it "clamps value between min and max" do
       Native::Math.clamp(5, 0, 10).should eq(5)
@@ -20,7 +20,7 @@ describe Native::Math do
       Native::Math.clamp(15, 0, 10).should eq(10)
     end
   end
-  
+
   describe ".lerp" do
     it "linearly interpolates between values" do
       Native::Math.lerp(0.0, 10.0, 0.5).should eq(5.0)
@@ -28,13 +28,13 @@ describe Native::Math do
       Native::Math.lerp(0.0, 10.0, 1.0).should eq(10.0)
     end
   end
-  
+
   describe ".map" do
     it "maps value from one range to another" do
       Native::Math.map(0.5, 0.0, 1.0, 0.0, 100.0).should eq(50.0)
     end
   end
-  
+
   describe ".random" do
     it "returns random float between min and max" do
       10.times do
@@ -44,7 +44,7 @@ describe Native::Math do
       end
     end
   end
-  
+
   describe ".random_int" do
     it "returns random integer between min and max inclusive" do
       10.times do

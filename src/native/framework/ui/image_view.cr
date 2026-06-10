@@ -76,12 +76,12 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         scale_value = case type
-                      when ScaleType::FitXY then "FIT_XY"
-                      when ScaleType::FitCenter then "FIT_CENTER"
-                      when ScaleType::FitStart then "FIT_START"
-                      when ScaleType::FitEnd then "FIT_END"
-                      when ScaleType::Center then "CENTER"
-                      when ScaleType::CenterCrop then "CENTER_CROP"
+                      when ScaleType::FitXY        then "FIT_XY"
+                      when ScaleType::FitCenter    then "FIT_CENTER"
+                      when ScaleType::FitStart     then "FIT_START"
+                      when ScaleType::FitEnd       then "FIT_END"
+                      when ScaleType::Center       then "CENTER"
+                      when ScaleType::CenterCrop   then "CENTER_CROP"
                       when ScaleType::CenterInside then "CENTER_INSIDE"
                       end
         scale_field = env.GetStaticFieldID(env.FindClass("android/widget/ImageView$ScaleType"), scale_value, "Landroid/widget/ImageView$ScaleType;")
@@ -103,14 +103,14 @@ module Native::UI
         scale_name = env.CallObjectMethod(scale_obj, env.GetMethodID(env.GetObjectClass(scale_obj), "toString", "()Ljava/lang/String;"))
         name = env.GetStringUTFChars(scale_name, nil).to_s
         case name
-        when "FIT_XY" then ScaleType::FitXY
-        when "FIT_CENTER" then ScaleType::FitCenter
-        when "FIT_START" then ScaleType::FitStart
-        when "FIT_END" then ScaleType::FitEnd
-        when "CENTER" then ScaleType::Center
-        when "CENTER_CROP" then ScaleType::CenterCrop
+        when "FIT_XY"        then ScaleType::FitXY
+        when "FIT_CENTER"    then ScaleType::FitCenter
+        when "FIT_START"     then ScaleType::FitStart
+        when "FIT_END"       then ScaleType::FitEnd
+        when "CENTER"        then ScaleType::Center
+        when "CENTER_CROP"   then ScaleType::CenterCrop
         when "CENTER_INSIDE" then ScaleType::CenterInside
-        else ScaleType::FitCenter
+        else                      ScaleType::FitCenter
         end
       else
         ScaleType::FitCenter

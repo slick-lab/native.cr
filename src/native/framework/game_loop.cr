@@ -30,10 +30,10 @@ module Native::GameLoop
     @on_update : (Float64 -> Nil)?
     @on_fixed_update : (Float64 -> Nil)?
     @on_render : (Float64 -> Nil)?
-    @on_start : ( -> Nil)?
-    @on_pause : ( -> Nil)?
-    @on_resume : ( -> Nil)?
-    @on_stop : ( -> Nil)?
+    @on_start : (-> Nil)?
+    @on_pause : (-> Nil)?
+    @on_resume : (-> Nil)?
+    @on_stop : (-> Nil)?
 
     def initialize(@config : LoopConfig = LoopConfig.new)
     end

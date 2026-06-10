@@ -1,7 +1,7 @@
 module Native::Math
-  PI = 3.141592653589793
-  TAU = 6.283185307179586
-  HALF_PI = 1.5707963267948966
+  PI         =  3.141592653589793
+  TAU        =  6.283185307179586
+  HALF_PI    = 1.5707963267948966
   DEG_TO_RAD = PI / 180.0
   RAD_TO_DEG = 180.0 / PI
 
@@ -405,6 +405,11 @@ module Native::Math
 
     def self.grey(level : UInt8) : Color
       new(level / 255.0, level / 255.0, level / 255.0, 1.0)
+    end
+
+    def self.gray(level : UInt8) : Color
+      grey(level)
+    end
 
     def self.transparent : Color
       new(0.0, 0.0, 0.0, 0.0)

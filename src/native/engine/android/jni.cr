@@ -308,5 +308,5 @@ lib LibJNI
   alias JavaVM = Void*
   fun AttachCurrentThread(vm : JavaVM*, env : JNIEnv**, args : Void*) : Int32
   fun DetachCurrentThread(vm : JavaVM*) : Int32
-  fun GetEnv(vm : JavaVM*, env : JNIEnv**, version : Int32) : Int32 
+  fun GetEnv(vm : JavaVM*, env : JNIEnv**, version : Int32) : Int32
 end

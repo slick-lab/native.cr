@@ -13,8 +13,8 @@ module Native::Media
     @is_looping : Bool = false
     @volume : Float32 = 1.0
     @scale_type : ScaleType = ScaleType::FitCenter
-    @on_prepared : ( -> Nil)?
-    @on_completion : ( -> Nil)?
+    @on_prepared : (-> Nil)?
+    @on_completion : (-> Nil)?
     @on_error : (String -> Nil)?
     @on_info : (Int32, Int32 -> Nil)?
 
@@ -134,8 +134,8 @@ module Native::Media
         env = Native::Android::JNI.env
         return unless env && @native != 0
         scale_value = case value
-                      when ScaleType::FitXY then 0
-                      when ScaleType::FitCenter then 1
+                      when ScaleType::FitXY      then 0
+                      when ScaleType::FitCenter  then 1
                       when ScaleType::CenterCrop then 2
                       end
         set_scale = env.GetMethodID(env.GetObjectClass(@native), "setScaleType", "(I)V")

@@ -7,9 +7,9 @@ module Native::Dialog
     property positive_button : String = ""
     property negative_button : String = ""
     property neutral_button : String = ""
-    property on_positive : (-> Nil?) = nil
-    property on_negative : (-> Nil?) = nil
-    property on_neutral : (-> Nil?) = nil
+    property on_positive : (-> Nil)? = nil
+    property on_negative : (-> Nil)? = nil
+    property on_neutral : (-> Nil)? = nil
     property cancelable : Bool = true
     property dialog_ptr : Int64 = 0
 

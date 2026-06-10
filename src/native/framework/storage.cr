@@ -258,7 +258,7 @@ module Native::Storage
 
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
-                      when StorageType::Cache then "getCacheDir"
+                      when StorageType::Cache     then "getCacheDir"
                       when StorageType::Temporary then "getCacheDir"
                       end
 
@@ -312,7 +312,7 @@ module Native::Storage
 
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
-                      when StorageType::Cache then "getCacheDir"
+                      when StorageType::Cache     then "getCacheDir"
                       when StorageType::Temporary then "getCacheDir"
                       end
 
@@ -386,7 +386,7 @@ module Native::Storage
 
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
-                      when StorageType::Cache then "getCacheDir"
+                      when StorageType::Cache     then "getCacheDir"
                       when StorageType::Temporary then "getCacheDir"
                       end
 
@@ -425,7 +425,7 @@ module Native::Storage
 
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
-                      when StorageType::Cache then "getCacheDir"
+                      when StorageType::Cache     then "getCacheDir"
                       when StorageType::Temporary then "getCacheDir"
                       end
 
@@ -465,7 +465,7 @@ module Native::Storage
 
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
-                      when StorageType::Cache then "getCacheDir"
+                      when StorageType::Cache     then "getCacheDir"
                       when StorageType::Temporary then "getCacheDir"
                       end
 

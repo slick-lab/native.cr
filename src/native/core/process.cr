@@ -70,11 +70,11 @@ module Native::Core
       def initialize(@config : Config = Config.new)
         Dir.mkdir_p(File.dirname(@config.build_output))
         Dir.mkdir_p(File.dirname(@config.state_file))
-        
+
         cache_dir = File.join(Dir.current, ".native_cache/compiler")
         Dir.mkdir_p(cache_dir)
         ENV["CRYSTAL_CACHE_DIR"] = cache_dir
-        
+
         cpu_count = System.cpu_count
         if cpu_count && cpu_count > 1
           ENV["CRYSTAL_WORKERS"] = cpu_count.to_s
@@ -86,7 +86,7 @@ module Native::Core
         puts "[native.cr] Using #{ENV["CRYSTAL_WORKERS"] || "1"} CPU cores"
         puts "[native.cr] Cache directory: .native_cache/compiler"
         puts ""
-        
+
         begin
           load_saved_state
           build_and_run_desktop
@@ -121,7 +121,7 @@ module Native::Core
       def stop
         if proc = @current_process
           return if proc.terminated?
-          
+
           begin
             proc.terminate
             proc.wait
@@ -184,7 +184,7 @@ module Native::Core
         end
 
         bootstrap = File.join(File.dirname(@config.build_output), "desktop_bootstrap.cr")
-        
+
         File.write(bootstrap, <<-CR
           require "#{File.expand_path(@config.entry_point)}"
           require "native/engine/desktop/show"

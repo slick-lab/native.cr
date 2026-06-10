@@ -5,8 +5,8 @@ module Native::UI
     @progress : Int32 = 0
     @max : Int32 = 100
     @on_progress_changed : (Int32 -> Nil)?
-    @on_start_touch : ( -> Nil)?
-    @on_stop_touch : ( -> Nil)?
+    @on_start_touch : (-> Nil)?
+    @on_stop_touch : (-> Nil)?
 
     def initialize
       super()

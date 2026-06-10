@@ -176,7 +176,7 @@ module Native::Biometric
         @@available_type = case result
                            when 1 then BiometricType::Fingerprint
                            when 2 then BiometricType::FaceID
-                           else BiometricType::None
+                           else        BiometricType::None
                            end
       else
         @@is_available = false

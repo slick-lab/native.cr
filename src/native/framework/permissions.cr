@@ -41,9 +41,9 @@ module Native::Permissions
         result = env.CallIntMethod(activity, check_permission, env.NewStringUTF(perm_name))
 
         case result
-        when 0 then PermissionStatus::Granted
+        when  0 then PermissionStatus::Granted
         when -1 then PermissionStatus::Denied
-        else PermissionStatus::NotDetermined
+        else         PermissionStatus::NotDetermined
         end
       elsif Native::Platform.ios?
         status = LibIOS.check_permission(type.value)
@@ -129,17 +129,17 @@ module Native::Permissions
 
     private def self.permission_string(type : PermissionType) : String
       case type
-      when PermissionType::Camera then "android.permission.CAMERA"
-      when PermissionType::Microphone then "android.permission.RECORD_AUDIO"
+      when PermissionType::Camera                                 then "android.permission.CAMERA"
+      when PermissionType::Microphone                             then "android.permission.RECORD_AUDIO"
       when PermissionType::Location, PermissionType::LocationFine then "android.permission.ACCESS_FINE_LOCATION"
-      when PermissionType::LocationCoarse then "android.permission.ACCESS_COARSE_LOCATION"
-      when PermissionType::Storage then "android.permission.READ_EXTERNAL_STORAGE"
-      when PermissionType::StorageRead then "android.permission.READ_EXTERNAL_STORAGE"
-      when PermissionType::StorageWrite then "android.permission.WRITE_EXTERNAL_STORAGE"
-      when PermissionType::Contacts then "android.permission.READ_CONTACTS"
-      when PermissionType::Calendar then "android.permission.READ_CALENDAR"
-      when PermissionType::Bluetooth then "android.permission.BLUETOOTH"
-      else ""
+      when PermissionType::LocationCoarse                         then "android.permission.ACCESS_COARSE_LOCATION"
+      when PermissionType::Storage                                then "android.permission.READ_EXTERNAL_STORAGE"
+      when PermissionType::StorageRead                            then "android.permission.READ_EXTERNAL_STORAGE"
+      when PermissionType::StorageWrite                           then "android.permission.WRITE_EXTERNAL_STORAGE"
+      when PermissionType::Contacts                               then "android.permission.READ_CONTACTS"
+      when PermissionType::Calendar                               then "android.permission.READ_CALENDAR"
+      when PermissionType::Bluetooth                              then "android.permission.BLUETOOTH"
+      else                                                             ""
       end
     end
 

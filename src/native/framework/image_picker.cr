@@ -8,9 +8,9 @@ module Native::ImagePicker
   end
 
   enum ImageQuality
-    Low = 0
-    Medium = 1
-    High = 2
+    Low      = 0
+    Medium   = 1
+    High     = 2
     Original = 3
   end
 
