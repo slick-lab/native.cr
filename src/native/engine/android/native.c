@@ -15,6 +15,18 @@ static jobject g_activity = NULL;
 static jclass g_activity_class = NULL;
 static JavaVM* g_vm = NULL;
 
+jobject get_activity() {
+  return g_activity;
+}
+
+JNIEnv* get_jni_env() {
+  return g_env;
+}
+
+jclass get_activity_class() {
+  return g_activity_class;
+}
+
 void android_main(struct android_app* state) {
   g_app = state;
   g_vm = state->activity->vm;
