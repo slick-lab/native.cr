@@ -17,22 +17,33 @@ module Native::CLI
 
       ios_dir = "#{@output_dir}/ios"
       app_dir = "#{ios_dir}/#{@project_name}"
-      xcodeproj_dir = "#{ios_dir}/#{@project_name}.xcodeproj"
 
       Dir.mkdir_p(app_dir)
-      Dir.mkdir_p("#{xcodeproj_dir}/xcuserdata")
-      Dir.mkdir_p("#{xcodeproj_dir}/project.xcworkspace")
 
       create_app_delegate(app_dir)
       create_view_controller(app_dir)
       create_crystal_view(app_dir)
       create_info_plist(app_dir)
       create_bridging_header(app_dir)
-      create_project_pbxproj(xcodeproj_dir)
+      create_readme(ios_dir)
       create_gitignore(ios_dir)
 
-      puts "[native.cr] iOS project generated at #{ios_dir}"
-      puts "[native.cr] Run: open #{ios_dir}/#{@project_name}.xcodeproj"
+      puts ""
+      puts "[native.cr] iOS source files generated at #{ios_dir}"
+      puts ""
+      puts "Next steps (requires Mac with Xcode):"
+      puts "  1. Open Xcode and create a new iOS App project"
+      puts "  2. Name the project: #{@project_name}"
+      puts "  3. Add the generated Swift files to your project:"
+      puts "     - #{app_dir}/AppDelegate.swift"
+      puts "     - #{app_dir}/ViewController.swift"
+      puts "     - #{app_dir}/CrystalView.swift"
+      puts "  4. Add #{app_dir}/Info.plist to your project"
+      puts "  5. Add #{app_dir}/#{@project_name}-Bridging-Header.h to your project"
+      puts "  6. Add libnative_cr_ios.a and libnative_cr_engine.a from lib/native/ to your project"
+      puts "  7. Build and run on your iOS device"
+      puts ""
+      puts "See README.md for detailed instructions"
     end
 
     private def create_app_delegate(app_dir : String)
@@ -171,22 +182,59 @@ module Native::CLI
       )
     end
 
-    private def create_project_pbxproj(xcodeproj_dir : String)
-      File.write("#{xcodeproj_dir}/project.pbxproj", <<-PBXPROJ
-        // !$*UTF8*$!
-        {
-            archiveVersion = 1;
-            classes = {
-            };
-            objectVersion = 56;
-            objects = {
-                PBXFileReference = {
-                    _rootObject = {isa = PBXFileReference; lastKnownFileType = wrapper.pb-project; path = "#{@project_name}.xcodeproj"; sourceTree = "<group>"; };
-                };
-            };
-            rootObject = _rootObject;
-        }
-      PBXPROJ
+    private def create_readme(ios_dir : String)
+      File.write("#{ios_dir}/README.md", <<-README
+        # iOS Setup for #{@project_name}
+
+        ## Prerequisites
+        - Mac with Xcode 14+
+        - iOS device or simulator
+
+        ## Setup Instructions
+
+        ### 1. Create Xcode Project
+        - Open Xcode
+        - File → New → Project
+        - iOS → App
+        - Product Name: #{@project_name}
+        - Interface: Storyboard (delete later)
+        - Save to this directory
+
+        ### 2. Add Source Files
+        Add these files to your Xcode project:
+        - `#{@project_name}/AppDelegate.swift`
+        - `#{@project_name}/ViewController.swift`
+        - `#{@project_name}/CrystalView.swift`
+
+        ### 3. Configure Bridging Header
+        - Add `#{@project_name}/#{@project_name}-Bridging-Header.h` to project
+        - In Build Settings, set Objective-C Bridging Header to the file path
+
+        ### 4. Add Info.plist
+        - Replace the default Info.plist with `#{@project_name}/Info.plist`
+
+        ### 5. Link Native Libraries
+        - The prebuilt libraries are in `lib/native/` (from shards install)
+        - Add `lib/native/libnative_cr_ios.a` to your Xcode project
+        - Add `lib/native/libnative_cr_engine.a` to your Xcode project
+
+        ### 6. Add Frameworks
+        - Metal.framework
+        - UIKit.framework
+        - QuartzCore.framework
+
+        ### 7. Build and Run
+        - Select your device or simulator
+        - Press Run
+
+        ## Troubleshooting
+
+        | Issue | Solution |
+        |-------|----------|
+        | Bridging header not found | Check path in Build Settings |
+        | Library not loaded | Ensure .a files are in project and linked |
+        | Metal errors | Ensure device supports Metal (iPhone 5s+) |
+      README
       )
     end
 
