@@ -48,7 +48,12 @@ public class AudioRecorder {
 
             File file = new File(outputPath);
             if (file.exists()) {
-                return java.nio.file.Files.readAllBytes(file.toPath());
+                try {
+                    return java.nio.file.Files.readAllBytes(file.toPath());
+                } catch (IOException e) {
+                    Log.e("AudioRecorder", "Failed to read recorded audio file bytes: " + e.getMessage());
+                    return null;
+                }
             }
         }
         return null;

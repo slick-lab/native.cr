@@ -64,7 +64,7 @@ public class NotificationHelper {
             builder.setVibrate(new long[]{0, 250, 100, 250});
         }
 
-        if (sound && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+        if (sound != null && !sound.isEmpty() && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             builder.setDefaults(Notification.DEFAULT_SOUND);
         }
 

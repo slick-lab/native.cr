@@ -11,6 +11,7 @@ import com.android.billingclient.api.BillingFlowParams;
 import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesUpdatedListener;
+import com.android.billingclient.api.QueryPurchasesParams;
 import com.android.billingclient.api.QueryProductDetailsParams;
 import com.android.billingclient.api.ProductDetails;
 import com.android.billingclient.api.ProductDetailsResponseListener;
@@ -145,7 +146,7 @@ public class BillingHelper implements PurchasesUpdatedListener {
     }
 
     private void restorePurchases() {
-        billingClient.queryPurchasesAsync(BillingClient.QueryPurchasesParams.newBuilder()
+        billingClient.queryPurchasesAsync(QueryPurchasesParams.newBuilder()
                         .setProductType(BillingClient.ProductType.INAPP)
                         .build(),
                 (billingResult, list) -> {

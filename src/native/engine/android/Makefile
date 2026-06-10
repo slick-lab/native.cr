@@ -1,5 +1,3 @@
-# src/native/engine/android/Makefile
-
 NDK_PATH ?= $(ANDROID_NDK)
 SDK_PATH ?= $(ANDROID_HOME)
 
@@ -12,7 +10,11 @@ GLUE_DIR = $(NDK_PATH)/sources/android/native_app_glue
 GLUE_SRC = $(GLUE_DIR)/android_native_app_glue.c
 
 ANDROID_JAR = $(SDK_PATH)/platforms/android-34/android.jar
-CLASSPATH = $(ANDROID_JAR):libs/*
+
+# Target path relative to /home/zendrx/projects/native.cr/src/native/engine/android
+LIBS_DIR = ../../../../../libs
+DEP_JARS = $(LIBS_DIR)/androidx-core.jar:$(LIBS_DIR)/androidx-recyclerview.jar:$(LIBS_DIR)/androidx-biometric.jar:$(LIBS_DIR)/androidx-appcompat.jar:$(LIBS_DIR)/google-billing.jar:$(LIBS_DIR)/androidx-fragment.jar
+CLASSPATH = $(ANDROID_JAR):$(DEP_JARS)
 
 CFLAGS = -fPIC -O2 -I$(GLUE_DIR)
 LDFLAGS = -shared -landroid -llog -ljnigraphics
@@ -29,7 +31,7 @@ $(TARGET_SO): $(SOURCES)
 
 $(TARGET_JAR): $(JAVA_SOURCES)
 	mkdir -p build/classes
-	$(JAVAC) -source 1.8 -target 1.8 -cp "$(CLASSPATH)" -d build/classes $(JAVA_SOURCES)
+	$(JAVAC) -source 1.8 -target 1.8 -Xbootclasspath/p:"$(ANDROID_JAR)" -cp "$(CLASSPATH)" -d build/classes $(JAVA_SOURCES)
 	$(JAR) cf $@ -C build/classes .
 
 clean:
