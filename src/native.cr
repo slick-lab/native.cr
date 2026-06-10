@@ -1,9 +1,25 @@
 require "json"
 require "file_utils"
 require "signal"
-
+require "./native/cli/*"
 require "./native/framework/*"
-require "./native/framework/ui/*"
+require "./native/framework/ui/view"
+require "./native/framework/ui/text_view"
+require "./native/framework/ui/icon"
+require "./native/framework/ui/button"
+require "./native/framework/ui/card_view"
+require "./native/framework/ui/checkbox"
+require "./native/framework/ui/edit_text"
+require "./native/framework/ui/image_view"
+require "./native/framework/ui/linear_layout"
+require "./native/framework/ui/progress_bar"
+require "./native/framework/ui/recycler_view"
+require "./native/framework/ui/scroll_view"
+require "./native/framework/ui/seek_bar"
+require "./native/framework/ui/radiobutton"
+require "./native/framework/ui/spinner"
+require "./native/framework/ui/switch"
+require "./native/framework/ui/web_view"
 require "./native/framework/animation/*"
 require "./native/framework/dialog/*"
 require "./native/framework/media/*"
@@ -34,13 +50,13 @@ module Native
 
     case args[0]
     when "create"
-      require "./native/cli/create"
+     Native::CLI::CreateCommand.new(args[1..-1]).run
     when "build"
-      require "./native/cli/build"
+      Native::CLI::BuildCommand.new(args[1..-1]).run
     when "reload"
-      require "./native/cli/reload"
+      Native::CLI::ReloadCommand.new(args[1..-1]).run
     when "doctor"
-      require "./native/cli/doctor"
+     Native::CLI::DoctorCommand.new(args[1..-1]).run
     else
       puts "Unknown command: #{args[0]}"
     end

@@ -403,6 +403,9 @@ module Native::Math
       new(0.0, 0.0, 1.0, 1.0)
     end
 
+    def self.grey(level : UInt8) : Color
+      new(level / 255.0, level / 255.0, level / 255.0, 1.0)
+
     def self.transparent : Color
       new(0.0, 0.0, 0.0, 0.0)
     end

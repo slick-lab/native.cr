@@ -6,7 +6,7 @@ module Native::Navigation
     @subtitle : String = ""
     @navigation_icon : Int32 = 0
     @menu_items : Array(MenuItem) = [] of MenuItem
-    @on_navigation_click : -> Nil?
+    @on_navigation_click : (-> Nil)? = nil
     @on_menu_item_click : (Int32 -> Nil)?
 
     class MenuItem

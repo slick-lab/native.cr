@@ -16,13 +16,13 @@ module Native::Share
 	end
 
 	class ShareSheet
-		@options : ShareOptions
-		@on_complete : (Bool -> Nil)
+		property options : ShareOptions = ShareOptions.new
+		property on_complete : (Bool -> Nil)? = nil
 
 		def initialize(options : ShareOptions = ShareOptions.new)
-		end
+	    end
 
-		def show(&block : Bool -> Nil = nil)
+		def show(&block : Bool -> Nil)
 			@on_complete = block
 			if Native::Platform.android?
 				show_android
@@ -83,28 +83,28 @@ module Native::Share
 	end
 
 	module Share
-		def self.share_text(text : String, title : String = "share", &block : Bool -> Nil = nil)
+		def self.share_text(text : String, title : String = "share", &block : Bool -> Nil)
 			options = ShareOptions.new
 			options.text = text
 			options.title = title
 			ShareSheet.new(options).show(&block)
 		end
 
-		def self.share_url(url : String, title : String = "share", &block : Bool -> Nil = nil)
+		def self.share_url(url : String, title : String = "share", &block : Bool -> Nil)
 			options = ShareOptions.new
 			options.url = url
 			options.title = title
 			ShareSheet.new(options).show(&block)
 		end
 
-		def self.share_image(image_path : String, title : String = "share", &block : Bool -> Nil = nil)
+		def self.share_image(image_path : String, title : String = "share", &block : Bool -> Nil)
 			options = ShareOptions.new
 			options.image_path = image_path
 			options.title = title
 			ShareSheet.new(options).show(&block)
 		end
 
-		def self.share_text_and_url(text : String, url : String, title : String = "share", &block : Bool -> Nil = nil)
+		def self.share_text_and_url(text : String, url : String, title : String = "share", &block : Bool -> Nil)
 			options = ShareOptions.new
 			options.text = text
 			options.url = url
@@ -112,7 +112,7 @@ module Native::Share
 			ShareSheet.new(options).show(&block)
 		end
 
-		def self.share(options : ShareOptions, &block : Bool -> Nil = nil)
+		def self.share(options : ShareOptions, &block : Bool -> Nil)
 			ShareSheet.new(options).show(&block)
 		end
 	end

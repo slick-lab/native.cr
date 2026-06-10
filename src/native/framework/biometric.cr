@@ -266,7 +266,7 @@ module Native::Biometric
       BiometricManager.is_enrolled?
     end
 
-    def self.authenticate(title : String = "Authenticate", callback : BiometricResult -> Nil) : Nil
+    def self.authenticate(title : String = "Authenticate", &callback : BiometricResult -> Nil) : Nil
       config = BiometricConfig.new
       config.title = title
       BiometricManager.authenticate_async(config, &callback)

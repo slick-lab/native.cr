@@ -2,16 +2,16 @@
 
 module Native::Dialog
   class AlertDialog
-    @title : String = ""
-    @message : String = ""
-    @positive_button : String = ""
-    @negative_button : String = ""
-    @neutral_button : String = ""
-    @on_positive : -> Nil?
-    @on_negative : -> Nil?
-    @on_neutral : -> Nil?
-    @cancelable : Bool = true
-    @dialog_ptr : Int64 = 0
+    property title : String = ""
+    property message : String = ""
+    property positive_button : String = ""
+    property negative_button : String = ""
+    property neutral_button : String = ""
+    property on_positive : (-> Nil?) = nil
+    property on_negative : (-> Nil?) = nil
+    property on_neutral : (-> Nil?) = nil
+    property cancelable : Bool = true
+    property dialog_ptr : Int64 = 0
 
     def initialize
       if Native::Platform.android?

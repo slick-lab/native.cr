@@ -212,7 +212,7 @@ module Native::Location
     end
   end
 
-  module Location
+  module Locations
     def self.start_updates(accuracy : LocationAccuracy = LocationAccuracy::Balanced,
                            min_distance : Float32 = 0.0f32,
                            min_time : Int64 = 0,

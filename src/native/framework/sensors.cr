@@ -11,7 +11,7 @@ module Native::Sensors
 	end
 
 	struct SensorData
-		property type : SensorType
+		property type : SensorType = SensorType::Accelerometer
 		property timestamp : Int64
 		property values : Array(Float64)
 		property accuracy : Int32
@@ -57,7 +57,7 @@ module Native::Sensors
 			return unless env && activity
 
 			sensor_class = env.FindClass("android/hardware/Sensor")
-			get_service = env.GetMethodID(env.GetObjectClass(activity) "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;")
+			get_service = env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;")
 			@@manager_ptr = env.CallObjectMethod(activity, get_service, env.NewStringUTF("sensor")).to_i64
 		end
 

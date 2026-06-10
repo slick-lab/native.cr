@@ -61,7 +61,7 @@ module Native::Permissions
         return
       end
 
-      @@callbacks[type] = [] of PermissionStatus -> Nil unless @@callbacks.has_key?(type)
+      @@callbacks[type] = [] of Proc(PermissionStatus, Nil) unless @@callbacks.has_key?(type)
       @@callbacks[type] << callback
 
       if Native::Platform.android?

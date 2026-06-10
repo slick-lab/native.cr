@@ -230,7 +230,7 @@ module Native::UI
       text_view.native_ptr
     end
 
-    def bind_view(env : Void*, view : Int64, position : Int32)
+    def bind_view(env : Void*, view : Int64, position : Int32) : Void
       text_view = TextView.new
       text_view.native = view
       text_view.text = @items[position]

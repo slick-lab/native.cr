@@ -7,8 +7,8 @@ module Native::UI
     @text_color : Native::Math::Color = Native::Math::Color.white
     @background_color : Native::Math::Color = Native::Math::Color.blue
     @all_caps : Bool = false
-    @on_click : -> Nil?
-    @on_long_click : -> Nil?
+    @on_click : (-> Nil)? = nil
+    @on_long_click : (-> Nil)? = nil
 
     def initialize(text : String = "")
       super()

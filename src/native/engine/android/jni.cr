@@ -304,9 +304,9 @@ end
 @[Link("jnigraphics")]
 @[Link("log")]
 lib LibJNI
-  type JNIEnv
-  type JavaVM
-
+  alias JNIEnv = Void*
+  alias JavaVM = Void*
   fun AttachCurrentThread(vm : JavaVM*, env : JNIEnv**, args : Void*) : Int32
   fun DetachCurrentThread(vm : JavaVM*) : Int32
+  fun GetEnv(vm : JavaVM*, env : JNIEnv**, version : Int32) : Int32 
 end

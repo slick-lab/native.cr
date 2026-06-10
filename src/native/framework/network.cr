@@ -1,3 +1,4 @@
+require "http/client"
 module Native::Network
   enum Method
     GET
@@ -15,7 +16,7 @@ module Native::Network
     property body : String = ""
     property timeout : Float64 = 30.0
     property stream : Bool = false
-    property chunk_handler : Bytes -> Nil? = nil
+    property chunk_handler : (Bytes -> Nil)? = nil
 
     def initialize
     end
@@ -240,8 +241,6 @@ module Native::Network
     end
 
     private def execute_desktop(request : Request) : Response
-      require "http/client"
-
       if request.stream && request.chunk_handler
         execute_desktop_stream(request)
       else
@@ -356,6 +355,11 @@ module Native::Network
     @on_close : Int32, String -> Nil
 
     def initialize(@url : String)
+      @on_open = nil
+      @on_message = nil
+      @on_chunk = nil
+      @on_error = nil
+      @on_close = nil
     end
 
     def on_open(&block : -> Nil) : Nil

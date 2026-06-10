@@ -89,7 +89,7 @@ module Native::UI
       @weight_sum
     end
 
-    def padding=(left : Int32, top : Int32, right : Int32, bottom : Int32)
+    def set_padding(left : Int32, top : Int32, right : Int32, bottom : Int32)
       @padding_left = left
       @padding_top = top
       @padding_right = right
