@@ -72,6 +72,11 @@ module Native::CLI
 
     def run
       if @platform == "ios"
+        if !System.platform?("darwin")
+          puts "[native.cr] Error: iOS builds can only be performed on macOS."
+          puts "[native.cr] To build for iOS, you need a Mac with Xcode installed."
+          exit(1)
+        end
         build_ios
       else
         build_android
@@ -95,18 +100,28 @@ module Native::CLI
       ndk = ENV["ANDROID_NDK"]?
       unless ndk && Dir.exists?(ndk)
         puts "[native.cr] Error: ANDROID_NDK not set"
+        puts "[native.cr] Install Android NDK and set ANDROID_NDK environment variable"
         exit(1)
       end
 
       android_project = find_android_project
       unless android_project
-        puts "[native.cr] Error: Android project not found. Run 'native.cr create my_app --android' first."
+        puts "[native.cr] Error: Android project not found."
+        puts "[native.cr] Run 'native.cr create my_app --android' first."
         exit(1)
       end
 
       lib_dir = "lib/native"
-      unless File.exists?("#{lib_dir}/libnative_cr_engine.so") && File.exists?("#{lib_dir}/libnative_cr.so")
-        puts "[native.cr] Error: Prebuilt libraries not found. Run 'shards install' first."
+
+      unless File.exists?("#{lib_dir}/libnative_cr_engine.so")
+        puts "[native.cr] Error: Prebuilt engine library not found."
+        puts "[native.cr] Run 'shards install' first to download libnative_cr_engine.so"
+        exit(1)
+      end
+
+      unless File.exists?("#{lib_dir}/libnative_cr_android.jar")
+        puts "[native.cr] Error: Prebuilt Java library not found."
+        puts "[native.cr] Run 'shards install' first to download libnative_cr_android.jar"
         exit(1)
       end
 
@@ -114,7 +129,7 @@ module Native::CLI
       clang = "#{toolchain}/bin/aarch64-linux-android24-clang"
 
       unless File.exists?(clang)
-        puts "[native.cr] Error: NDK toolchain not found"
+        puts "[native.cr] Error: NDK toolchain not found at #{toolchain}"
         exit(1)
       end
 
@@ -122,9 +137,8 @@ module Native::CLI
       Dir.mkdir_p(lib_dir_out)
 
       FileUtils.cp("#{lib_dir}/libnative_cr_engine.so", lib_dir_out)
-      FileUtils.cp("#{lib_dir}/libnative_cr.so", lib_dir_out)
 
-      puts "[native.cr] Compiling user code..."
+      puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
       cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android --cross-compile -o #{user_o}"
       cmd += " --release" if @release
@@ -138,7 +152,7 @@ module Native::CLI
 
       puts "[native.cr] Linking final library..."
       final_so = "#{@output}/lib/arm64-v8a/libuser_app.so"
-      link_cmd = "#{clang} -shared -fPIC -o #{final_so} #{user_o} #{lib_dir_out}/libnative_cr_engine.so #{lib_dir_out}/libnative_cr.so"
+      link_cmd = "#{clang} -shared -fPIC -o #{final_so} #{user_o} #{lib_dir_out}/libnative_cr_engine.so"
       link_output = `#{link_cmd} 2>&1`
 
       unless $?.success?
@@ -148,11 +162,13 @@ module Native::CLI
       end
 
       jni_dir = "#{android_project}/app/src/main/jniLibs/arm64-v8a"
+      libs_dir = "#{android_project}/app/libs"
       Dir.mkdir_p(jni_dir)
+      Dir.mkdir_p(libs_dir)
 
       FileUtils.cp(final_so, "#{jni_dir}/libuser_app.so")
       FileUtils.cp("#{lib_dir_out}/libnative_cr_engine.so", jni_dir)
-      FileUtils.cp("#{lib_dir_out}/libnative_cr.so", jni_dir)
+      FileUtils.cp("#{lib_dir}/libnative_cr_android.jar", libs_dir)
 
       apk_path = Native::CLI::Apk.build(android_project, @release)
 
@@ -180,21 +196,24 @@ module Native::CLI
 
       ios_project = find_ios_project
       unless ios_project
-        puts "[native.cr] Error: iOS project not found. Run 'native.cr create my_app --ios' first."
+        puts "[native.cr] Error: iOS project not found."
+        puts "[native.cr] Run 'native.cr create my_app --ios' first."
         exit(1)
       end
 
       lib_dir = "lib/native"
-      unless File.exists?("#{lib_dir}/libnative_cr_ios.a")
-        puts "[native.cr] Error: Prebuilt iOS library not found. Run 'shards install' first."
+
+      unless File.exists?("#{lib_dir}/libnative_cr_engine.a")
+        puts "[native.cr] Error: Prebuilt engine library not found."
+        puts "[native.cr] Run 'shards install' first to download libnative_cr_engine.a"
         exit(1)
       end
 
       frameworks_dir = "#{ios_project}/Frameworks"
       Dir.mkdir_p(frameworks_dir)
-      FileUtils.cp("#{lib_dir}/libnative_cr_ios.a", frameworks_dir)
+      FileUtils.cp("#{lib_dir}/libnative_cr_engine.a", frameworks_dir)
 
-      puts "[native.cr] Compiling user code..."
+      puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
       cmd = "crystal build #{@entry_point} -D ios --target aarch64-apple-darwin --cross-compile -o #{user_o}"
       cmd += " --release" if @release
@@ -215,8 +234,7 @@ module Native::CLI
       ipa_path = Native::CLI::Ipa.build(ios_project, @release)
 
       if ipa_path
-        FileUtils.cp(ipa_path, "#{@output}/app.ipa")
-        puts "\n[native.cr] Build complete! IPA: #{@output}/app.ipa"
+        puts "\n[native.cr] Build complete! IPA: #{ipa_path}"
       else
         puts "[native.cr] IPA build failed"
         exit(1)
