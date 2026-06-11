@@ -1,7 +1,7 @@
 # src/native/framework/ui/view.cr
 
 module Native::UI
-  abstract class View
+  class View
     @native : Int64 = 0
     @x : Int32 = 0
     @y : Int32 = 0
@@ -10,9 +10,6 @@ module Native::UI
     @visible : Bool = true
     @enabled : Bool = true
     @tag : String? = nil
-
-    def initialize
-    end
 
     def x : Int32
       @x

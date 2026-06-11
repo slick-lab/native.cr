@@ -157,10 +157,6 @@ module Native::CLI
             @count += 1
             @label.text = "Tap: \#{@count}"
           end
-
-          def draw : Nil
-            @root.draw(renderer)
-          end
         end
 
         Native::App.start(MyApp)
@@ -208,9 +204,6 @@ module Native::CLI
             @score += 1
             Native::Platform::HapticFeedback.light
           end
-
-          def draw : Nil
-          end
         end
 
         Native::App.start(MyGame)
@@ -219,6 +212,7 @@ module Native::CLI
     end
 
     private def create_shard_yml
+      version = `crystal --version 2>/dev/null`.lines.first?.to_s.strip
       File.write("#{@path}/shard.yml", <<-YAML
         name: #{@project_name}
         version: 0.1.0
@@ -229,9 +223,9 @@ module Native::CLI
         dependencies:
           native:
             github: slick-lab/native.cr
-            version: ~> 0.0.98
+            version: ~> 0.1.0
 
-        crystal: ">= 1.20.0"
+        crystal: ">= #{version}"
 
         license: MIT
       YAML

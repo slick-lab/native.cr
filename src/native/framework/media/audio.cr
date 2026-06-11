@@ -576,7 +576,7 @@ module Native::Audio
     @@sfx_volume : Float32 = 1.0
 
     def self.master_volume=(value : Float32)
-      @@master_volume = value.clamp(0.0, 1.0)
+      @@master_volume = value.clamp(0.0, 1.0).to_f32
       apply_volumes
     end
 

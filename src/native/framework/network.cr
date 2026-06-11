@@ -42,6 +42,8 @@ module Native::Network
     end
   end
 
+  # src/native/framework/network.cr
+
   struct Response
     property status_code : Int32 = 0
     property headers : Hash(String, String) = {} of String => String
@@ -54,6 +56,14 @@ module Native::Network
 
     def ok? : Bool
       status_code >= 200 && status_code < 300
+    end
+
+    def client_error? : Bool
+      status_code >= 400 && status_code < 500
+    end
+
+    def server_error? : Bool
+      status_code >= 500 && status_code < 600
     end
 
     def json

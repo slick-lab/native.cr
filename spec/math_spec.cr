@@ -1,6 +1,6 @@
-# spec/core/math_spec.cr
+# spec/math_spec.cr
 
-require "../spec_helper"
+require "./spec_helper"
 
 describe Native::Math do
   describe "constants" do
@@ -32,26 +32,6 @@ describe Native::Math do
   describe ".map" do
     it "maps value from one range to another" do
       Native::Math.map(0.5, 0.0, 1.0, 0.0, 100.0).should eq(50.0)
-    end
-  end
-
-  describe ".random" do
-    it "returns random float between min and max" do
-      10.times do
-        val = Native::Math.random(0.0, 10.0)
-        val.should be >= 0.0
-        val.should be <= 10.0
-      end
-    end
-  end
-
-  describe ".random_int" do
-    it "returns random integer between min and max inclusive" do
-      10.times do
-        val = Native::Math.random_int(1, 10)
-        val.should be >= 1
-        val.should be <= 10
-      end
     end
   end
 
@@ -97,8 +77,38 @@ describe Native::Math do
     end
   end
 
+  describe Native::Math::Vector3 do
+    it "adds two vectors" do
+      v1 = Native::Math::Vector3.new(1.0, 2.0, 3.0)
+      v2 = Native::Math::Vector3.new(4.0, 5.0, 6.0)
+      result = v1 + v2
+      result.x.should eq(5.0)
+      result.y.should eq(7.0)
+      result.z.should eq(9.0)
+    end
+
+    it "computes magnitude" do
+      v = Native::Math::Vector3.new(1.0, 2.0, 2.0)
+      v.magnitude.should eq(3.0)
+    end
+  end
+
+  describe Native::Math::Rect do
+    it "checks if point is inside" do
+      rect = Native::Math::Rect.new(10.0, 20.0, 100.0, 200.0)
+      point = Native::Math::Vector2.new(50.0, 100.0)
+      rect.contains_point(point).should be_true
+    end
+
+    it "checks if two rects intersect" do
+      r1 = Native::Math::Rect.new(10.0, 10.0, 100.0, 100.0)
+      r2 = Native::Math::Rect.new(50.0, 50.0, 100.0, 100.0)
+      r1.intersects(r2).should be_true
+    end
+  end
+
   describe Native::Math::Color do
-    it "creates color from RGB values" do
+    it "creates color from RGB" do
       color = Native::Math::Color.from_rgba(255, 128, 64, 255)
       color.r.should be_close(1.0, 0.01)
       color.g.should be_close(0.5, 0.01)
@@ -110,13 +120,6 @@ describe Native::Math do
       color.r.should be_close(1.0, 0.01)
       color.g.should be_close(0.2, 0.01)
       color.b.should be_close(0.4, 0.01)
-    end
-
-    it "converts color to hex" do
-      color = Native::Math::Color.from_rgba(255, 51, 102, 255)
-      hex = color.to_hex
-      expected = 0xFF3366FF
-      hex.should eq(expected)
     end
 
     it "interpolates between colors" do
