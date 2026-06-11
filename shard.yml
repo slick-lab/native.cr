@@ -20,8 +20,6 @@ development_dependencies:
 scripts:
   postinstall: scripts/postinstall.cr
 
-crystal: ">= 1.20.0"
-
 license: MIT
 
 description: |

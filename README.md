@@ -109,7 +109,7 @@ class MyApp < Native::App
   @[Preserve]
   property count : Int32 = 0
 
-  def setup
+  def setup : Nil
     @label = UI::Text.new
     @label.text = "Tap: 0"
     @label.text_size = 24
@@ -131,10 +131,6 @@ class MyApp < Native::App
   def increment
     @count += 1
     @label.text = "Tap: #{@count}"
-  end
-
-  def draw
-    @root.draw(renderer)
   end
 end
 
