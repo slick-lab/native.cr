@@ -28,7 +28,7 @@ module Native::Audio
     end
 
     def load(path : String) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -46,20 +46,20 @@ module Native::Audio
         @sound_ptr = env.CallStaticLongMethod(sound_class, load_method, activity, env.NewStringUTF(path))
         @is_loaded = @sound_ptr != 0
         @is_loaded
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.sound_load(path.to_utf8)
         @sound_ptr = ptr.to_i64
         @is_loaded = ptr != Pointer(Void).null
         @is_loaded
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def play(config : SoundConfig = SoundConfig.new) : SoundInstance?
       return nil unless @is_loaded
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return nil unless env
 
@@ -79,22 +79,22 @@ module Native::Audio
         else
           nil
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.sound_play(@sound_ptr, config.volume, config.loop, config.pitch, config.pan)
         if ptr != Pointer(Void).null
           SoundInstance.new(ptr.to_i64)
         else
           nil
         end
-      else
+      {% else %}
         nil
-      end
+      {% end %}
     end
 
     def stop_all : Nil
       return unless @is_loaded
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -105,9 +105,9 @@ module Native::Audio
             env.CallStaticVoidMethod(sound_class, stop_method, @sound_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.sound_stop_all(@sound_ptr)
-      end
+      {% end %}
     end
 
     def duration : Float64
@@ -121,7 +121,7 @@ module Native::Audio
     def unload : Nil
       return unless @is_loaded
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -132,9 +132,9 @@ module Native::Audio
             env.CallStaticVoidMethod(sound_class, unload_method, @sound_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.sound_unload(@sound_ptr)
-      end
+      {% end %}
 
       @sound_ptr = 0
       @is_loaded = false
@@ -151,7 +151,7 @@ module Native::Audio
     def stop : Nil
       return unless @is_playing
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -162,9 +162,9 @@ module Native::Audio
             env.CallStaticVoidMethod(sound_class, stop_method, @instance_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.sound_instance_stop(@instance_ptr)
-      end
+      {% end %}
 
       @is_playing = false
     end
@@ -172,7 +172,7 @@ module Native::Audio
     def pause : Nil
       return unless @is_playing
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -183,13 +183,13 @@ module Native::Audio
             env.CallStaticVoidMethod(sound_class, pause_method, @instance_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.sound_instance_pause(@instance_ptr)
-      end
+      {% end %}
     end
 
     def resume : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -200,15 +200,15 @@ module Native::Audio
             env.CallStaticVoidMethod(sound_class, resume_method, @instance_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.sound_instance_resume(@instance_ptr)
-      end
+      {% end %}
 
       @is_playing = true
     end
 
     def volume=(value : Float32)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -219,15 +219,15 @@ module Native::Audio
             env.CallStaticVoidMethod(sound_class, volume_method, @instance_ptr, value)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.sound_instance_set_volume(@instance_ptr, value)
-      end
+      {% end %}
     end
 
     def is_playing? : Bool
       return false unless @is_playing
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -239,11 +239,11 @@ module Native::Audio
           end
         end
         false
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.sound_instance_is_playing(@instance_ptr)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
   end
 
@@ -257,7 +257,7 @@ module Native::Audio
     end
 
     def load(path : String) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -274,19 +274,19 @@ module Native::Audio
 
         @music_ptr = env.CallStaticLongMethod(music_class, load_method, activity, env.NewStringUTF(path))
         @music_ptr != 0
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.music_load(path.to_utf8)
         @music_ptr = ptr.to_i64
         ptr != Pointer(Void).null
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def play(loop : Bool = false) : Nil
       return if @music_ptr == 0
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -297,9 +297,9 @@ module Native::Audio
             env.CallStaticVoidMethod(music_class, play_method, @music_ptr, loop)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_play(@music_ptr, loop)
-      end
+      {% end %}
 
       @is_playing = true
     end
@@ -307,7 +307,7 @@ module Native::Audio
     def pause : Nil
       return if @music_ptr == 0 || !@is_playing
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -318,9 +318,9 @@ module Native::Audio
             env.CallStaticVoidMethod(music_class, pause_method, @music_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_pause(@music_ptr)
-      end
+      {% end %}
 
       @is_playing = false
     end
@@ -328,7 +328,7 @@ module Native::Audio
     def resume : Nil
       return if @music_ptr == 0 || @is_playing
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -339,9 +339,9 @@ module Native::Audio
             env.CallStaticVoidMethod(music_class, resume_method, @music_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_resume(@music_ptr)
-      end
+      {% end %}
 
       @is_playing = true
     end
@@ -349,7 +349,7 @@ module Native::Audio
     def stop : Nil
       return if @music_ptr == 0
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -360,9 +360,9 @@ module Native::Audio
             env.CallStaticVoidMethod(music_class, stop_method, @music_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_stop(@music_ptr)
-      end
+      {% end %}
 
       @is_playing = false
     end
@@ -370,7 +370,7 @@ module Native::Audio
     def volume=(value : Float32)
       @volume = value.clamp(0.0, 1.0)
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -381,9 +381,9 @@ module Native::Audio
             env.CallStaticVoidMethod(music_class, volume_method, @music_ptr, @volume)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_set_volume(@music_ptr, @volume)
-      end
+      {% end %}
     end
 
     def volume : Float32
@@ -397,7 +397,7 @@ module Native::Audio
     def seek(position : Float64) : Nil
       return if @music_ptr == 0
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -408,15 +408,15 @@ module Native::Audio
             env.CallStaticVoidMethod(music_class, seek_method, @music_ptr, position)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_seek(@music_ptr, position)
-      end
+      {% end %}
     end
 
     def current_position : Float64
       return 0.0 if @music_ptr == 0
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0.0 unless env
 
@@ -428,17 +428,17 @@ module Native::Audio
           end
         end
         0.0
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_get_position(@music_ptr)
-      else
+      {% else %}
         0.0
-      end
+      {% end %}
     end
 
     def duration : Float64
       return 0.0 if @music_ptr == 0
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0.0 unless env
 
@@ -450,17 +450,17 @@ module Native::Audio
           end
         end
         0.0
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_get_duration(@music_ptr)
-      else
+      {% else %}
         0.0
-      end
+      {% end %}
     end
 
     def unload : Nil
       stop
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -471,9 +471,9 @@ module Native::Audio
             env.CallStaticVoidMethod(music_class, unload_method, @music_ptr)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.music_unload(@music_ptr)
-      end
+      {% end %}
 
       @music_ptr = 0
     end
@@ -489,7 +489,7 @@ module Native::Audio
     def start : Bool
       return false if @is_recording
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -507,20 +507,20 @@ module Native::Audio
         @recorder_ptr = env.CallStaticLongMethod(recorder_class, start_method, activity)
         @is_recording = @recorder_ptr != 0
         @is_recording
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.recorder_start
         @recorder_ptr = ptr.to_i64
         @is_recording = ptr != Pointer(Void).null
         @is_recording
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def stop : Bytes?
       return nil unless @is_recording && @recorder_ptr != 0
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return nil unless env
 
@@ -547,7 +547,7 @@ module Native::Audio
         else
           nil
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         size_ptr = Pointer(Int32).malloc(1)
         data_ptr = LibIOS.recorder_stop(@recorder_ptr, size_ptr)
         @is_recording = false
@@ -560,9 +560,9 @@ module Native::Audio
         else
           nil
         end
-      else
+      {% else %}
         nil
-      end
+      {% end %}
     end
 
     def is_recording? : Bool
@@ -603,7 +603,7 @@ module Native::Audio
     end
 
     private def self.apply_volumes
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -614,11 +614,11 @@ module Native::Audio
             env.CallStaticVoidMethod(audio_class, set_volume_method, @master_volume)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.set_master_volume(@master_volume)
         LibIOS.set_music_volume(@music_volume)
         LibIOS.set_sfx_volume(@sfx_volume)
-      end
+      {% end %}
     end
   end
 
@@ -635,7 +635,7 @@ module Native::Audio
     end
 
     def self.stop_all : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -646,14 +646,14 @@ module Native::Audio
             env.CallStaticVoidMethod(audio_class, stop_method)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.stop_all_sounds
         LibIOS.stop_music
-      end
+      {% end %}
     end
 
     def self.pause_all : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -664,14 +664,14 @@ module Native::Audio
             env.CallStaticVoidMethod(audio_class, pause_method)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.pause_all_sounds
         LibIOS.pause_music
-      end
+      {% end %}
     end
 
     def self.resume_all : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -682,10 +682,10 @@ module Native::Audio
             env.CallStaticVoidMethod(audio_class, resume_method)
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.resume_all_sounds
         LibIOS.resume_music
-      end
+      {% end %}
     end
   end
 end

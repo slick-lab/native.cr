@@ -53,7 +53,7 @@ module Native::GameLoop
       spawn do
         while @is_running
           update_loop
-          sleep(0.001)
+          sleep(0.001.seconds)
         end
       end
     end
@@ -185,7 +185,7 @@ module Native::GameLoop
       @on_fixed_update.try &.call(frame_time)
 
       if frame_time <= target_frame_time
-        sleep(target_frame_time - frame_time)
+        sleep((target_frame_time - frame_time).seconds)
       end
 
       @on_render.try &.call(frame_time)

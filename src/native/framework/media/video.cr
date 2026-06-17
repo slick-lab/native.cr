@@ -21,7 +21,7 @@ module Native::Media
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -35,61 +35,61 @@ module Native::Media
         @native = env.NewObject(video_class, constructor, activity).to_i64
 
         setupCallbacks
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_video_player
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def load(path : String)
       @video_path = path
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         load_video = env.GetMethodID(env.GetObjectClass(@native), "loadVideo", "(Ljava/lang/String;)V")
         env.CallVoidMethod(@native, load_video, env.NewStringUTF(path))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_load(@native, path.to_utf8)
-      end
+      {% end %}
     end
 
     def play
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         play_video = env.GetMethodID(env.GetObjectClass(@native), "play", "()V")
         env.CallVoidMethod(@native, play_video)
         @is_playing = true
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_play(@native)
         @is_playing = true
-      end
+      {% end %}
     end
 
     def pause
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         pause_video = env.GetMethodID(env.GetObjectClass(@native), "pause", "()V")
         env.CallVoidMethod(@native, pause_video)
         @is_playing = false
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_pause(@native)
         @is_playing = false
-      end
+      {% end %}
     end
 
     def stop
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         stop_video = env.GetMethodID(env.GetObjectClass(@native), "stop", "()V")
         env.CallVoidMethod(@native, stop_video)
         @is_playing = false
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_stop(@native)
         @is_playing = false
-      end
+      {% end %}
     end
 
     def playing? : Bool
@@ -98,14 +98,14 @@ module Native::Media
 
     def looping=(value : Bool)
       @is_looping = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_loop = env.GetMethodID(env.GetObjectClass(@native), "setLooping", "(Z)V")
         env.CallVoidMethod(@native, set_loop, value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_looping(@native, value)
-      end
+      {% end %}
     end
 
     def looping? : Bool
@@ -114,14 +114,14 @@ module Native::Media
 
     def volume=(value : Float32)
       @volume = value.clamp(0.0, 1.0)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_volume = env.GetMethodID(env.GetObjectClass(@native), "setVolume", "(FF)V")
         env.CallVoidMethod(@native, set_volume, @volume, @volume)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_volume(@native, @volume)
-      end
+      {% end %}
     end
 
     def volume : Float32
@@ -130,7 +130,7 @@ module Native::Media
 
     def scale_type=(value : ScaleType)
       @scale_type = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         scale_value = case value
@@ -140,9 +140,9 @@ module Native::Media
                       end
         set_scale = env.GetMethodID(env.GetObjectClass(@native), "setScaleType", "(I)V")
         env.CallVoidMethod(@native, set_scale, scale_value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_scale_type(@native, value.value)
-      end
+      {% end %}
     end
 
     def scale_type : ScaleType
@@ -150,40 +150,40 @@ module Native::Media
     end
 
     def seek_to(msec : Int32)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         seek = env.GetMethodID(env.GetObjectClass(@native), "seekTo", "(I)V")
         env.CallVoidMethod(@native, seek, msec)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_seek_to(@native, msec)
-      end
+      {% end %}
     end
 
     def current_position : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
         get_pos = env.GetMethodID(env.GetObjectClass(@native), "getCurrentPosition", "()I")
         env.CallIntMethod(@native, get_pos)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_current_position(@native)
-      else
+      {% else %}
         0
-      end
+      {% end %}
     end
 
     def duration : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
         get_dur = env.GetMethodID(env.GetObjectClass(@native), "getDuration", "()I")
         env.CallIntMethod(@native, get_dur)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.video_player_duration(@native)
-      else
+      {% else %}
         0
-      end
+      {% end %}
     end
 
     def on_prepared(&block : -> Nil)
@@ -203,7 +203,9 @@ module Native::Media
     end
 
     private def setupCallbacks
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 

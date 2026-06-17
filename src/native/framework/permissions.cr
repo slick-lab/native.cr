@@ -31,7 +31,7 @@ module Native::Permissions
     @@callbacks = {} of PermissionType => Array(PermissionStatus -> Nil)
 
     def self.check(type : PermissionType) : PermissionStatus
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return PermissionStatus::Denied unless env && activity
@@ -45,12 +45,12 @@ module Native::Permissions
         when -1 then PermissionStatus::Denied
         else         PermissionStatus::NotDetermined
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         status = LibIOS.check_permission(type.value)
         PermissionStatus.from_value(status)
-      else
+      {% else %}
         PermissionStatus::NotDetermined
-      end
+      {% end %}
     end
 
     def self.request(type : PermissionType, &callback : PermissionStatus -> Nil)
@@ -64,7 +64,7 @@ module Native::Permissions
       @@callbacks[type] = [] of Proc(PermissionStatus, Nil) unless @@callbacks.has_key?(type)
       @@callbacks[type] << callback
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -74,9 +74,9 @@ module Native::Permissions
         perm_array = env.NewObjectArray(1, env.FindClass("java/lang/String"), nil)
         env.SetObjectArrayElement(perm_array, 0, env.NewStringUTF(perm_name))
         env.CallVoidMethod(activity, request_perms, perm_array, type.value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.request_permission(type.value)
-      end
+      {% end %}
     end
 
     def self.request_multiple(types : Array(PermissionType), &callback : Hash(PermissionType, PermissionStatus) -> Nil)
@@ -105,7 +105,7 @@ module Native::Permissions
     end
 
     def self.open_settings
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -122,9 +122,9 @@ module Native::Permissions
         intent = env.NewObject(intent_class, env.GetMethodID(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V"), action, uri)
         start_activity = env.GetMethodID(env.GetObjectClass(activity), "startActivity", "(Landroid/content/Intent;)V")
         env.CallVoidMethod(activity, start_activity, intent)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.open_settings
-      end
+      {% end %}
     end
 
     private def self.permission_string(type : PermissionType) : String

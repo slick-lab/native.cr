@@ -32,7 +32,7 @@ module Native::Dialog
     end
 
     def show
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -43,9 +43,9 @@ module Native::Dialog
 
         show_method = env.GetMethodID(toast_class, "show", "()V")
         env.CallVoidMethod(toast, show_method)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.show_toast(@text.to_utf8, @duration == Length::Long ? 3.5 : 2.0)
-      end
+      {% end %}
     end
 
     def self.show(text : String, duration : Length = Length::Short)

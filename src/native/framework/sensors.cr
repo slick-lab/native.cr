@@ -44,11 +44,11 @@ module Native::Sensors
     end
 
     def initialize
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         init_android
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         init_ios
-      end
+      {% end %}
     end
 
     private def init_android
@@ -66,7 +66,7 @@ module Native::Sensors
     end
 
     def sensor_available?(type : SensorType) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env && @@manager_ptr != 0_i64
         sensor_type = sensor_type_value(type)
@@ -74,11 +74,11 @@ module Native::Sensors
         get_default_sensor = env.GetMethodID(env.GetObjectClass(@@manager_ptr), "getDefaultSensor", "(I)Landroid/hardware/Sensor;")
         sensor = env.CallObjectMethod(@@manager_ptr, get_default_sensor, sensor_type)
         return sensor != Pointer(Void).null
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         return LibIOS.sensor_available(type.value)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def start_listening(type : SensorType, &callback : SensorData -> Nil)
@@ -86,11 +86,11 @@ module Native::Sensors
       @@listeners[type] << callback
 
       unless @@active_sensors[type]
-        if Native::Platform.android?
+        {% if flag?(:native_android) %}
           start_listening_android(type)
-        elsif Native::Platform.ios?
+        {% elsif flag?(:native_ios) %}
           start_listening_ios(type)
-        end
+        {% end %}
         @@active_sensors[type] = true
       end
     end
@@ -119,11 +119,11 @@ module Native::Sensors
       @@listeners[type] = [] of SensorData -> Nil
       @@active_sensors[type] = false
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         stop_listening_android(type)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         stop_listening_ios(type)
-      end
+      {% end %}
     end
 
     private def stop_listening_android(type)

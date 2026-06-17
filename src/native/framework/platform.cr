@@ -1,6 +1,6 @@
 module Native::Platform
   def self.android? : Bool
-    {% if flag?(:android) %}
+    {% if flag?(:native_android) %}
       true
     {% else %}
       false
@@ -8,7 +8,7 @@ module Native::Platform
   end
 
   def self.ios? : Bool
-    {% if flag?(:ios) %}
+    {% if flag?(:native_ios) %}
       true
     {% else %}
       false

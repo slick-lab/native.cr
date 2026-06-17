@@ -32,7 +32,7 @@ module Native::UI
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -42,16 +42,16 @@ module Native::UI
         @native = env.NewObject(rv_class, constructor, activity).to_i64
 
         set_layout_manager(LayoutManager::Linear)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_table_view
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def adapter=(adapter : RecyclerViewAdapter)
       @adapter = adapter
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -64,9 +64,9 @@ module Native::UI
 
         set_adapter = env.GetMethodID(env.GetObjectClass(@native), "setAdapter", "(Landroidx/recyclerview/widget/RecyclerView$Adapter;)V")
         env.CallVoidMethod(@native, set_adapter, adapter_obj)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.table_view_set_delegate(@native, Pointer(Void).address.to_i64)
-      end
+      {% end %}
     end
 
     def adapter : RecyclerViewAdapter?
@@ -83,7 +83,7 @@ module Native::UI
     end
 
     def set_layout_manager(manager : LayoutManager)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -109,9 +109,9 @@ module Native::UI
 
         set_lm = env.GetMethodID(env.GetObjectClass(@native), "setLayoutManager", "(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V")
         env.CallVoidMethod(@native, set_lm, lm)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.table_view_set_style(@native, manager.value)
-      end
+      {% end %}
     end
 
     def on_item_click(&block : Int32 -> Nil)
@@ -123,7 +123,7 @@ module Native::UI
     end
 
     def scroll_to_position(position : Int32, smooth : Bool = false)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -134,9 +134,9 @@ module Native::UI
           scroll_to = env.GetMethodID(env.GetObjectClass(@native), "scrollToPosition", "(I)V")
           env.CallVoidMethod(@native, scroll_to, position)
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.table_view_scroll_to_row(@native, position, smooth)
-      end
+      {% end %}
     end
 
     def scroll_to_top(smooth : Bool = false)
@@ -144,7 +144,7 @@ module Native::UI
     end
 
     def notify_data_changed
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -155,13 +155,13 @@ module Native::UI
           notify_changed = env.GetMethodID(env.GetObjectClass(adapter_obj), "notifyDataSetChanged", "()V")
           env.CallVoidMethod(adapter_obj, notify_changed)
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.table_view_reload_data(@native)
-      end
+      {% end %}
     end
 
     def notify_item_inserted(position : Int32)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -172,11 +172,11 @@ module Native::UI
           notify_insert = env.GetMethodID(env.GetObjectClass(adapter_obj), "notifyItemInserted", "(I)V")
           env.CallVoidMethod(adapter_obj, notify_insert, position)
         end
-      end
+      {% end %}
     end
 
     def notify_item_removed(position : Int32)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -187,7 +187,7 @@ module Native::UI
           notify_remove = env.GetMethodID(env.GetObjectClass(adapter_obj), "notifyItemRemoved", "(I)V")
           env.CallVoidMethod(adapter_obj, notify_remove, position)
         end
-      end
+      {% end %}
     end
 
     def handleItemClick(position : Int32)

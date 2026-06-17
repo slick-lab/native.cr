@@ -24,11 +24,11 @@ module Native::Share
 
     def show(&block : Bool -> Nil)
       @on_complete = block
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         show_android
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         show_ios
-      end
+      {% end %}
     end
 
     private def show_android

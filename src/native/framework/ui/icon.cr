@@ -38,7 +38,7 @@ module Native::UI
       @icon_code = icon_code
       self.text = icon_code
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -53,9 +53,9 @@ module Native::UI
         if typeface
           env.CallVoidMethod(@native, set_typeface, typeface)
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.label_set_font(@native, @font_family.to_utf8)
-      end
+      {% end %}
     end
 
     def icon_code : String

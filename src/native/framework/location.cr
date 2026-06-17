@@ -54,7 +54,7 @@ module Native::Location
     end
 
     def initialize
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -68,7 +68,7 @@ module Native::Location
         env.CallStaticVoidMethod(location_class, init_method, activity)
 
         setupCallbacks
-      end
+      {% end %}
     end
 
     def start_updates(accuracy : LocationAccuracy = LocationAccuracy::Balanced,
@@ -80,7 +80,7 @@ module Native::Location
       @@min_distance = min_distance
       @@min_time = min_time
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -89,9 +89,9 @@ module Native::Location
 
         start_method = env.GetStaticMethodID(location_class, "startUpdates", "(IIFJ)V")
         env.CallStaticVoidMethod(location_class, start_method, accuracy.value, 0, min_distance, min_time)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.location_start_updates(accuracy.value, min_distance, min_time)
-      end
+      {% end %}
 
       @@is_listening = true
     end
@@ -99,7 +99,7 @@ module Native::Location
     def stop_updates
       return unless @@is_listening
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -108,9 +108,9 @@ module Native::Location
 
         stop_method = env.GetStaticMethodID(location_class, "stopUpdates", "()V")
         env.CallStaticVoidMethod(location_class, stop_method)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.location_stop_updates
-      end
+      {% end %}
 
       @@is_listening = false
     end
@@ -120,7 +120,7 @@ module Native::Location
         return @@last_location
       end
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return nil unless env
 
@@ -137,7 +137,7 @@ module Native::Location
         else
           nil
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.location_get_last
         if ptr
           json = String.new(ptr)
@@ -146,9 +146,9 @@ module Native::Location
         else
           nil
         end
-      else
+      {% else %}
         nil
-      end
+      {% end %}
     end
 
     def is_listening? : Bool
@@ -164,7 +164,9 @@ module Native::Location
     end
 
     private def setupCallbacks
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env
 
