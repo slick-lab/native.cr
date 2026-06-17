@@ -22,7 +22,7 @@ module Native::Navigation
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -32,22 +32,22 @@ module Native::Navigation
         @native = env.NewObject(toolbar_class, constructor, activity).to_i64
 
         setupNavigation
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_navigation_bar
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def title=(value : String)
       @title = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_title = env.GetMethodID(env.GetObjectClass(@native), "setTitle", "(Ljava/lang/CharSequence;)V")
         env.CallVoidMethod(@native, set_title, env.NewStringUTF(value))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.navigation_bar_set_title(@native, value.to_utf8)
-      end
+      {% end %}
     end
 
     def title : String
@@ -56,12 +56,12 @@ module Native::Navigation
 
     def subtitle=(value : String)
       @subtitle = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_subtitle = env.GetMethodID(env.GetObjectClass(@native), "setSubtitle", "(Ljava/lang/CharSequence;)V")
         env.CallVoidMethod(@native, set_subtitle, env.NewStringUTF(value))
-      end
+      {% end %}
     end
 
     def subtitle : String
@@ -70,12 +70,12 @@ module Native::Navigation
 
     def navigation_icon=(resource_id : Int32)
       @navigation_icon = resource_id
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_nav = env.GetMethodID(env.GetObjectClass(@native), "setNavigationIcon", "(I)V")
         env.CallVoidMethod(@native, set_nav, resource_id)
-      end
+      {% end %}
     end
 
     def navigation_icon : Int32
@@ -90,7 +90,7 @@ module Native::Navigation
       item = MenuItem.new(id, title, icon, show_as_action)
       @menu_items << item
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -108,7 +108,7 @@ module Native::Navigation
           set_show = env.GetMethodID(env.GetObjectClass(menu_item), "setShowAsAction", "(I)V")
           env.CallVoidMethod(menu_item, set_show, 2)
         end
-      end
+      {% end %}
     end
 
     def on_menu_item_click(&block : Int32 -> Nil)
@@ -116,18 +116,20 @@ module Native::Navigation
     end
 
     def setupWithActivity
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
 
         set_actionbar = env.GetMethodID(env.GetObjectClass(activity), "setSupportActionBar", "(Landroidx/appcompat/widget/Toolbar;)V")
         env.CallVoidMethod(activity, set_actionbar, @native)
-      end
+      {% end %}
     end
 
     private def setupNavigation
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 

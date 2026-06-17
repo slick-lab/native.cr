@@ -28,7 +28,7 @@ module Native::Media
     @on_error : (String -> Nil)?
 
     def initialize
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -42,22 +42,22 @@ module Native::Media
         @camera_ptr = env.NewObject(camera_class, constructor, activity).to_i64
 
         setupCallbacks
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_camera_controller
         @camera_ptr = ptr.to_i64
-      end
+      {% end %}
     end
 
     def facing=(value : Facing)
       @facing = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
         set_facing = env.GetMethodID(env.GetObjectClass(@camera_ptr), "setFacing", "(I)V")
         env.CallVoidMethod(@camera_ptr, set_facing, value.value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.camera_set_facing(@camera_ptr, value.value)
-      end
+      {% end %}
     end
 
     def facing : Facing
@@ -66,14 +66,14 @@ module Native::Media
 
     def flash_mode=(value : FlashMode)
       @flash_mode = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
         set_flash = env.GetMethodID(env.GetObjectClass(@camera_ptr), "setFlashMode", "(I)V")
         env.CallVoidMethod(@camera_ptr, set_flash, value.value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.camera_set_flash_mode(@camera_ptr, value.value)
-      end
+      {% end %}
     end
 
     def flash_mode : FlashMode
@@ -89,58 +89,58 @@ module Native::Media
     end
 
     def start_preview(view : UI::View)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0 && view.native_ptr != 0
         start_preview = env.GetMethodID(env.GetObjectClass(@camera_ptr), "startPreview", "(Landroid/view/View;)V")
         env.CallVoidMethod(@camera_ptr, start_preview, view.native_ptr)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.camera_start_preview(@camera_ptr, view.native_ptr)
-      end
+      {% end %}
     end
 
     def stop_preview
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
         stop_preview = env.GetMethodID(env.GetObjectClass(@camera_ptr), "stopPreview", "()V")
         env.CallVoidMethod(@camera_ptr, stop_preview)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.camera_stop_preview(@camera_ptr)
-      end
+      {% end %}
     end
 
     def take_photo
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
         take_photo = env.GetMethodID(env.GetObjectClass(@camera_ptr), "takePhoto", "()V")
         env.CallVoidMethod(@camera_ptr, take_photo)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.camera_take_photo(@camera_ptr)
-      end
+      {% end %}
     end
 
     def start_recording(output_path : String)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
         start_rec = env.GetMethodID(env.GetObjectClass(@camera_ptr), "startRecording", "(Ljava/lang/String;)V")
         env.CallVoidMethod(@camera_ptr, start_rec, env.NewStringUTF(output_path))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.camera_start_recording(@camera_ptr, output_path.to_utf8)
-      end
+      {% end %}
     end
 
     def stop_recording
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
         stop_rec = env.GetMethodID(env.GetObjectClass(@camera_ptr), "stopRecording", "()V")
         env.CallVoidMethod(@camera_ptr, stop_rec)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.camera_stop_recording(@camera_ptr)
-      end
+      {% end %}
     end
 
     def switch_camera
@@ -160,7 +160,9 @@ module Native::Media
     end
 
     private def setupCallbacks
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @camera_ptr != 0
 

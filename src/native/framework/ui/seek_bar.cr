@@ -11,7 +11,7 @@ module Native::UI
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -21,47 +21,47 @@ module Native::UI
         @native = env.NewObject(seek_class, constructor, activity).to_i64
 
         setupSeekBarListener
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_slider
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def progress=(value : Int32)
       @progress = value.clamp(0, @max)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_progress = env.GetMethodID(env.GetObjectClass(@native), "setProgress", "(I)V")
         env.CallVoidMethod(@native, set_progress, @progress)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.slider_set_value(@native, @progress, @max)
-      end
+      {% end %}
     end
 
     def progress : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return @progress unless env && @native != 0
         get_progress = env.GetMethodID(env.GetObjectClass(@native), "getProgress", "()I")
         @progress = env.CallIntMethod(@native, get_progress)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         value = LibIOS.slider_get_value(@native)
         @progress = (value * @max).to_i
-      end
+      {% end %}
       @progress
     end
 
     def max=(value : Int32)
       @max = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_max = env.GetMethodID(env.GetObjectClass(@native), "setMax", "(I)V")
         env.CallVoidMethod(@native, set_max, @max)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.slider_set_max(@native, @max)
-      end
+      {% end %}
     end
 
     def max : Int32
@@ -81,7 +81,9 @@ module Native::UI
     end
 
     private def setupSeekBarListener
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 

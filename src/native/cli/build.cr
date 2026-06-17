@@ -147,7 +147,7 @@ module Native::CLI
 
       puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
-      cmd = "crystal build #{@entry_point} -D android --target aarch64-linux-android --cross-compile -o #{user_o}"
+      cmd = "crystal build #{@entry_point} -Dnative_android --target aarch64-linux-android --cross-compile -o #{user_o}"
       cmd += " --release" if @release
       output = `#{cmd} 2>&1`
 

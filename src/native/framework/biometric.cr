@@ -70,7 +70,7 @@ module Native::Biometric
     end
 
     def self.is_enrolled? : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -78,17 +78,17 @@ module Native::Biometric
         keyguard = env.CallObjectMethod(Native::Android::JNI.activity, env.GetMethodID(env.GetObjectClass(Native::Android::JNI.activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("keyguard"))
         is_keyguard = env.GetMethodID(env.GetObjectClass(keyguard), "isKeyguardSecure", "()Z")
         env.CallBooleanMethod(keyguard, is_keyguard)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.is_biometric_enrolled
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def self.authenticate(config : BiometricConfig = BiometricConfig.new) : BiometricResult
       return BiometricResult.new(success: false, error: BiometricError::NotAvailable) unless is_available?
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return BiometricResult.new(success: false, error: BiometricError::NotAvailable) unless env && activity
@@ -129,7 +129,7 @@ module Native::Biometric
         env.CallVoidMethod(biometric_prompt, authenticate, prompt_info)
 
         wait_result
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         result_code = LibIOS.authenticate_biometric(
           config.title.to_utf8,
           config.subtitle.to_utf8,
@@ -139,9 +139,9 @@ module Native::Biometric
           config.allow_fallback
         )
         parse_result(result_code)
-      else
+      {% else %}
         BiometricResult.new(success: false, error: BiometricError::NotAvailable)
-      end
+      {% end %}
     end
 
     def self.authenticate_async(config : BiometricConfig = BiometricConfig.new, &callback : BiometricResult -> Nil) : Nil
@@ -152,7 +152,7 @@ module Native::Biometric
     end
 
     private def self.check_availability : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -170,7 +170,7 @@ module Native::Biometric
 
         @@is_available = result == 0
         @@available_type = BiometricType::Fingerprint if @@is_available
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         result = LibIOS.get_biometric_type
         @@is_available = result != 0
         @@available_type = case result
@@ -178,10 +178,10 @@ module Native::Biometric
                            when 2 then BiometricType::FaceID
                            else        BiometricType::None
                            end
-      else
+      {% else %}
         @@is_available = false
         @@available_type = BiometricType::None
-      end
+      {% end %}
     end
 
     private def self.parse_result(result_code : Int32) : BiometricResult

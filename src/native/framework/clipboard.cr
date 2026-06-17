@@ -10,7 +10,7 @@ module Native::Clipboard
     end
 
     def set_text(text : String) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -31,15 +31,15 @@ module Native::Clipboard
         else
           false
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.clipboard_set_text(text.to_utf8)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def get_text : String?
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return nil unless env && activity
@@ -69,7 +69,7 @@ module Native::Clipboard
           env.DeleteLocalRef(clipboard)
         end
         nil
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.clipboard_get_text
         if ptr
           result = String.new(ptr)
@@ -78,13 +78,13 @@ module Native::Clipboard
         else
           nil
         end
-      else
+      {% else %}
         nil
-      end
+      {% end %}
     end
 
     def has_text? : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -99,11 +99,11 @@ module Native::Clipboard
         else
           false
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.clipboard_has_text
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def clear : Bool

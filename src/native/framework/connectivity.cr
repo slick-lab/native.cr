@@ -46,7 +46,7 @@ module Native::Connectivity
     end
 
     def initialize
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -60,13 +60,13 @@ module Native::Connectivity
         env.CallStaticVoidMethod(conn_class, init_method, activity)
 
         setupCallbacks
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         @@is_monitoring = true
-      end
+      {% end %}
     end
 
     def get_network_info : NetworkInfo
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return @@current_info unless env
 
@@ -83,7 +83,7 @@ module Native::Connectivity
         else
           @@current_info
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.connectivity_get_info
         if ptr
           json = String.new(ptr)
@@ -92,9 +92,9 @@ module Native::Connectivity
         else
           @@current_info
         end
-      else
+      {% else %}
         @@current_info
-      end
+      {% end %}
     end
 
     def is_connected? : Bool
@@ -113,7 +113,7 @@ module Native::Connectivity
       @@listeners << callback
       return if @@is_monitoring
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -122,9 +122,9 @@ module Native::Connectivity
 
         start_mon = env.GetStaticMethodID(conn_class, "startMonitoring", "()V")
         env.CallStaticVoidMethod(conn_class, start_mon)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.connectivity_start_monitoring
-      end
+      {% end %}
 
       @@is_monitoring = true
     end
@@ -132,7 +132,7 @@ module Native::Connectivity
     def stop_monitoring
       return unless @@is_monitoring
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -141,9 +141,9 @@ module Native::Connectivity
 
         stop_mon = env.GetStaticMethodID(conn_class, "stopMonitoring", "()V")
         env.CallStaticVoidMethod(conn_class, stop_mon)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.connectivity_stop_monitoring
-      end
+      {% end %}
 
       @@is_monitoring = false
     end
@@ -153,7 +153,9 @@ module Native::Connectivity
     end
 
     private def setupCallbacks
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env
 

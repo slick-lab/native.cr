@@ -73,7 +73,7 @@ module Native::Notifications
     def self.initialize(channels : Array(NotificationChannel) = [] of NotificationChannel) : Nil
       return if @@initialized
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -89,15 +89,17 @@ module Native::Notifications
         channels.each do |channel|
           create_channel(channel)
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.notification_init
-      end
+      {% end %}
 
       @@initialized = true
     end
 
     def self.create_channel(channel : NotificationChannel) : Nil
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
 
       env = Native::Android::JNI.env
       return unless env
@@ -123,7 +125,7 @@ module Native::Notifications
     def self.show(notification : Notification) : Bool
       return false unless @@initialized
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -152,18 +154,18 @@ module Native::Notifications
           notification.actions.any?,
           notification.actions.map(&.id).join(",")
         )
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.show_notification(notification.id, notification.title.to_utf8, notification.body.to_utf8, notification.badge_number, notification.sound.to_utf8, notification.payload.to_json.to_utf8)
-      else
+      {% else %}
         false
-      end
+      {% end %}
       true
     end
 
     def self.schedule(notification : Notification) : Bool
       return false unless notification.schedule_time
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -184,18 +186,18 @@ module Native::Notifications
           notification.payload.to_json,
           notification.repeat_interval ? true : false
         )
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         trigger_time = notification.schedule_time.not_nil!.to_unix_f
         repeats = notification.repeat_interval ? notification.repeat_interval.not_nil!.to_i == 86400 : false
         LibIOS.schedule_notification(notification.id, notification.title.to_utf8, notification.body.to_utf8, trigger_time, repeats, notification.payload.to_json.to_utf8)
-      else
+      {% else %}
         false
-      end
+      {% end %}
       true
     end
 
     def self.cancel(id : Int32) : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -204,13 +206,13 @@ module Native::Notifications
 
         cancel_method = env.GetStaticMethodID(notif_class, "cancelNotification", "(I)V")
         env.CallStaticVoidMethod(notif_class, cancel_method, id)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.cancel_notification(id)
-      end
+      {% end %}
     end
 
     def self.cancel_all : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -219,13 +221,13 @@ module Native::Notifications
 
         cancel_method = env.GetStaticMethodID(notif_class, "cancelAllNotifications", "()V")
         env.CallStaticVoidMethod(notif_class, cancel_method)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.cancel_all_notifications
-      end
+      {% end %}
     end
 
     def self.set_badge_number(count : Int32) : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -234,13 +236,13 @@ module Native::Notifications
 
         badge_method = env.GetStaticMethodID(notif_class, "setBadgeNumber", "(I)V")
         env.CallStaticVoidMethod(notif_class, badge_method, count)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.set_badge_number(count)
-      end
+      {% end %}
     end
 
     def self.get_permission_status : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -248,21 +250,21 @@ module Native::Notifications
         notif_manager = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("notification"))
         are_notifs_enabled = env.GetMethodID(env.GetObjectClass(notif_manager), "areNotificationsEnabled", "()Z")
         env.CallBooleanMethod(notif_manager, are_notifs_enabled)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.notification_permission_granted
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def self.request_permission : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         true
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.request_notification_permission
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
   end
 

@@ -15,7 +15,7 @@ module Native::UI
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -23,25 +23,25 @@ module Native::UI
         image_class = env.FindClass("android/widget/ImageView")
         constructor = env.GetMethodID(image_class, "<init>", "(Landroid/content/Context;)V")
         @native = env.NewObject(image_class, constructor, activity).to_i64
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_image_view
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def setImageResource(resource_id : Int32)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_image = env.GetMethodID(env.GetObjectClass(@native), "setImageResource", "(I)V")
         env.CallVoidMethod(@native, set_image, resource_id)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_resource(@native, resource_id)
-      end
+      {% end %}
     end
 
     def setImagePath(path : String)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jpath = env.NewStringUTF(path)
@@ -50,13 +50,13 @@ module Native::UI
         parse_method = env.GetStaticMethodID(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
         uri = env.CallStaticObjectMethod(uri_class, parse_method, jpath)
         env.CallVoidMethod(@native, set_image, uri)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_path(@native, path.to_utf8)
-      end
+      {% end %}
     end
 
     def setImageData(data : Bytes)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         byte_array = env.NewByteArray(data.size)
@@ -66,13 +66,13 @@ module Native::UI
         decode_method = env.GetStaticMethodID(bitmap_class, "decodeByteArray", "([BII)Landroid/graphics/Bitmap;")
         bitmap = env.CallStaticObjectMethod(bitmap_class, decode_method, byte_array, 0, data.size)
         env.CallVoidMethod(@native, set_image, bitmap)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_data(@native, data, data.size)
-      end
+      {% end %}
     end
 
     def scale_type=(type : ScaleType)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         scale_value = case type
@@ -88,14 +88,14 @@ module Native::UI
         scale_obj = env.GetStaticObjectField(env.FindClass("android/widget/ImageView$ScaleType"), scale_field)
         set_scale = env.GetMethodID(env.GetObjectClass(@native), "setScaleType", "(Landroid/widget/ImageView$ScaleType;)V")
         env.CallVoidMethod(@native, set_scale, scale_obj)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         scale_value = type.value
         LibIOS.image_view_set_scale_type(@native, scale_value)
-      end
+      {% end %}
     end
 
     def scale_type : ScaleType
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return ScaleType::FitCenter unless env && @native != 0
         get_scale = env.GetMethodID(env.GetObjectClass(@native), "getScaleType", "()Landroid/widget/ImageView$ScaleType;")
@@ -112,31 +112,31 @@ module Native::UI
         when "CENTER_INSIDE" then ScaleType::CenterInside
         else                      ScaleType::FitCenter
         end
-      else
+      {% else %}
         ScaleType::FitCenter
-      end
+      {% end %}
     end
 
     def alpha=(value : Float32)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_alpha = env.GetMethodID(env.GetObjectClass(@native), "setAlpha", "(F)V")
         env.CallVoidMethod(@native, set_alpha, value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_alpha(@native, value)
-      end
+      {% end %}
     end
 
     def alpha : Float32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 1.0f32 unless env && @native != 0
         get_alpha = env.GetMethodID(env.GetObjectClass(@native), "getAlpha", "()F")
         env.CallFloatMethod(@native, get_alpha)
-      else
+      {% else %}
         1.0f32
-      end
+      {% end %}
     end
   end
 end

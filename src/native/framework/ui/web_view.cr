@@ -12,7 +12,7 @@ module Native::UI
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -24,22 +24,22 @@ module Native::UI
         setupWebView
         setupWebViewClient
         setupWebChromeClient
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_web_view
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def url=(value : String)
       @url = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         load_url = env.GetMethodID(env.GetObjectClass(@native), "loadUrl", "(Ljava/lang/String;)V")
         env.CallVoidMethod(@native, load_url, env.NewStringUTF(value))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_load_url(@native, value.to_utf8)
-      end
+      {% end %}
     end
 
     def url : String
@@ -47,27 +47,27 @@ module Native::UI
     end
 
     def load_html(html : String, base_url : String = "")
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         load_data = env.GetMethodID(env.GetObjectClass(@native), "loadDataWithBaseURL", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
         env.CallVoidMethod(@native, load_data, env.NewStringUTF(base_url), env.NewStringUTF(html), env.NewStringUTF("text/html"), env.NewStringUTF("UTF-8"), env.NewStringUTF(""))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_load_html(@native, html.to_utf8, base_url.to_utf8)
-      end
+      {% end %}
     end
 
     def java_script_enabled=(value : Bool)
       @java_script_enabled = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         settings = env.CallObjectMethod(@native, env.GetMethodID(env.GetObjectClass(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
         set_js = env.GetMethodID(env.GetObjectClass(settings), "setJavaScriptEnabled", "(Z)V")
         env.CallVoidMethod(settings, set_js, value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_set_js_enabled(@native, value)
-      end
+      {% end %}
     end
 
     def java_script_enabled? : Bool
@@ -76,13 +76,13 @@ module Native::UI
 
     def dom_storage_enabled=(value : Bool)
       @dom_storage_enabled = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         settings = env.CallObjectMethod(@native, env.GetMethodID(env.GetObjectClass(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
         set_dom = env.GetMethodID(env.GetObjectClass(settings), "setDomStorageEnabled", "(Z)V")
         env.CallVoidMethod(settings, set_dom, value)
-      end
+      {% end %}
     end
 
     def dom_storage_enabled? : Bool
@@ -90,73 +90,73 @@ module Native::UI
     end
 
     def can_go_back? : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env && @native != 0
         can_go = env.GetMethodID(env.GetObjectClass(@native), "canGoBack", "()Z")
         env.CallBooleanMethod(@native, can_go)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_can_go_back(@native)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def can_go_forward? : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env && @native != 0
         can_go = env.GetMethodID(env.GetObjectClass(@native), "canGoForward", "()Z")
         env.CallBooleanMethod(@native, can_go)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_can_go_forward(@native)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def go_back
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         go = env.GetMethodID(env.GetObjectClass(@native), "goBack", "()V")
         env.CallVoidMethod(@native, go)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_go_back(@native)
-      end
+      {% end %}
     end
 
     def go_forward
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         go = env.GetMethodID(env.GetObjectClass(@native), "goForward", "()V")
         env.CallVoidMethod(@native, go)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_go_forward(@native)
-      end
+      {% end %}
     end
 
     def reload
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         reload = env.GetMethodID(env.GetObjectClass(@native), "reload", "()V")
         env.CallVoidMethod(@native, reload)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_reload(@native)
-      end
+      {% end %}
     end
 
     def stop_loading
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         stop = env.GetMethodID(env.GetObjectClass(@native), "stopLoading", "()V")
         env.CallVoidMethod(@native, stop)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.web_view_stop_loading(@native)
-      end
+      {% end %}
     end
 
     def on_page_started(&block : String -> Nil)
@@ -172,7 +172,9 @@ module Native::UI
     end
 
     private def setupWebView
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
@@ -182,7 +184,9 @@ module Native::UI
     end
 
     private def setupWebViewClient
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
@@ -198,7 +202,9 @@ module Native::UI
     end
 
     private def setupWebChromeClient
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 

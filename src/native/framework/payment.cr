@@ -91,7 +91,7 @@ module Native::Payment
     def self.initialize(merchant_id : String = "") : Bool
       return true if @@initialized
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -105,12 +105,12 @@ module Native::Payment
         env.CallStaticVoidMethod(billing_class, init_method, activity, env.NewStringUTF(merchant_id))
 
         setupCallbacks
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.payment_init(merchant_id.to_utf8)
         setupCallbacks
-      else
+      {% else %}
         false
-      end
+      {% end %}
 
       @@initialized = true
     end
@@ -123,13 +123,13 @@ module Native::Payment
       missing = product_ids.reject { |id| @@products_cache.has_key?(id) }
 
       if missing.any?
-        if Native::Platform.android?
+        {% if flag?(:native_android) %}
           fetched = fetch_products_android(missing)
-        elsif Native::Platform.ios?
+        {% elsif flag?(:native_ios) %}
           fetched = fetch_products_ios(missing)
-        else
+        {% else %}
           fetched = [] of Product
-        end
+        {% end %}
 
         fetched.each { |p| @@products_cache[p.id] = p }
         cached + fetched
@@ -143,7 +143,7 @@ module Native::Payment
 
       @@purchase_callbacks << callback
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -152,11 +152,11 @@ module Native::Payment
 
         purchase_method = env.GetStaticMethodID(billing_class, "purchase", "(Landroid/app/Activity;Ljava/lang/String;)V")
         env.CallStaticVoidMethod(billing_class, purchase_method, Native::Android::JNI.activity, env.NewStringUTF(product_id))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.payment_purchase(product_id.to_utf8)
-      else
+      {% else %}
         false
-      end
+      {% end %}
       true
     end
 
@@ -165,7 +165,7 @@ module Native::Payment
 
       @@restore_callbacks << callback
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -174,18 +174,18 @@ module Native::Payment
 
         restore_method = env.GetStaticMethodID(billing_class, "restore", "()V")
         env.CallStaticVoidMethod(billing_class, restore_method)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.payment_restore
-      else
+      {% else %}
         false
-      end
+      {% end %}
       true
     end
 
     def self.is_purchased?(product_id : String) : Bool
       return false unless @@initialized
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -194,17 +194,17 @@ module Native::Payment
 
         purchased_method = env.GetStaticMethodID(billing_class, "isPurchased", "(Ljava/lang/String;)Z")
         env.CallStaticBooleanMethod(billing_class, purchased_method, env.NewStringUTF(product_id))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.payment_is_purchased(product_id.to_utf8)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def self.is_subscription_active?(product_id : String) : Bool
       return false unless @@initialized
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env
 
@@ -213,15 +213,15 @@ module Native::Payment
 
         active_method = env.GetStaticMethodID(billing_class, "isSubscriptionActive", "(Ljava/lang/String;)Z")
         env.CallStaticBooleanMethod(billing_class, active_method, env.NewStringUTF(product_id))
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.payment_is_subscription_active(product_id.to_utf8)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     private def self.setupCallbacks : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env
 
@@ -237,9 +237,9 @@ module Native::Payment
 
         set_callback = env.GetStaticMethodID(billing_class, "setCallback", "(Lcom/nativecr/BillingCallback;)V")
         env.CallStaticVoidMethod(billing_class, set_callback, callback_obj)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         # iOS callbacks are handled by the Swift bridge
-      end
+      {% end %}
     end
 
     private def self.fetch_products_android(product_ids : Array(String)) : Array(Product)

@@ -26,9 +26,9 @@ require "./native/framework/dialog/*"
 require "./native/framework/media/*"
 require "./native/framework/navigation/*"
 
-{% if flag?(:android) %}
+{% if flag?(:native_android) %}
   require "./native/engine/android/*"
-{% elsif flag?(:ios) %}
+{% elsif flag?(:native_ios) %}
   require "./native/engine/ios/*"
 {% end %}
 

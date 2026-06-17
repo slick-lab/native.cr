@@ -4,7 +4,7 @@ module Native::Storage
     end
 
     def set(key : String, value : String) : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -28,9 +28,9 @@ module Native::Storage
         env.DeleteLocalRef(jvalue)
         env.DeleteLocalRef(prefs)
         env.DeleteLocalRef(editor)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.user_defaults_set(key.to_utf8, value.to_utf8)
-      end
+      {% end %}
     end
 
     def set(key : String, value : Int32) : Nil
@@ -54,7 +54,7 @@ module Native::Storage
     end
 
     def get_string(key : String, default : String = "") : String
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return default unless env && activity
@@ -80,7 +80,7 @@ module Native::Storage
         env.DeleteLocalRef(result) if result
 
         value
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.user_defaults_get(key.to_utf8)
         if ptr
           result = String.new(ptr)
@@ -89,9 +89,9 @@ module Native::Storage
         else
           default
         end
-      else
+      {% else %}
         default
-      end
+      {% end %}
     end
 
     def get_int(key : String, default : Int32 = 0) : Int32
@@ -115,7 +115,7 @@ module Native::Storage
     end
 
     def contains?(key : String) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -132,15 +132,15 @@ module Native::Storage
         env.DeleteLocalRef(prefs)
 
         result
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.user_defaults_contains(key.to_utf8)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def delete(key : String) : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -162,13 +162,13 @@ module Native::Storage
         env.DeleteLocalRef(jkey)
         env.DeleteLocalRef(prefs)
         env.DeleteLocalRef(editor)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.user_defaults_delete(key.to_utf8)
-      end
+      {% end %}
     end
 
     def clear : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -187,13 +187,13 @@ module Native::Storage
 
         env.DeleteLocalRef(prefs)
         env.DeleteLocalRef(editor)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.user_defaults_clear
-      end
+      {% end %}
     end
 
     def all_keys : Array(String)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         keys = [] of String
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
@@ -220,7 +220,7 @@ module Native::Storage
         env.DeleteLocalRef(iterator)
 
         keys
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr_array = LibIOS.user_defaults_all_keys
         keys = [] of String
         if ptr_array
@@ -234,9 +234,9 @@ module Native::Storage
           LibIOS.free_string_array(ptr_array)
         end
         keys
-      else
+      {% else %}
         [] of String
-      end
+      {% end %}
     end
   end
 
@@ -251,7 +251,7 @@ module Native::Storage
     end
 
     def write(filename : String, data : Bytes) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -293,11 +293,11 @@ module Native::Storage
         env.DeleteLocalRef(byte_array)
 
         true
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.file_write(filename.to_utf8, data, data.size, @type.value)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def write_text(filename : String, content : String) : Bool
@@ -305,7 +305,7 @@ module Native::Storage
     end
 
     def read(filename : String) : Bytes?
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return nil unless env && activity
@@ -358,7 +358,7 @@ module Native::Storage
         env.DeleteLocalRef(byte_array)
 
         data
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         size_ptr = Pointer(Int32).malloc(1)
         data_ptr = LibIOS.file_read(filename.to_utf8, size_ptr, @type.value)
         if data_ptr && size_ptr.value > 0
@@ -368,9 +368,9 @@ module Native::Storage
         else
           nil
         end
-      else
+      {% else %}
         nil
-      end
+      {% end %}
     end
 
     def read_text(filename : String) : String?
@@ -379,7 +379,7 @@ module Native::Storage
     end
 
     def exists?(filename : String) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -410,15 +410,15 @@ module Native::Storage
         env.DeleteLocalRef(file)
 
         result
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.file_exists(filename.to_utf8, @type.value)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def delete(filename : String) : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
@@ -449,15 +449,15 @@ module Native::Storage
         env.DeleteLocalRef(file)
 
         result
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.file_delete(filename.to_utf8, @type.value)
-      else
+      {% else %}
         false
-      end
+      {% end %}
     end
 
     def list(directory : String = "") : Array(String)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         files = [] of String
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
@@ -503,7 +503,7 @@ module Native::Storage
         env.DeleteLocalRef(file)
 
         files
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr_array = LibIOS.file_list(directory.to_utf8, @type.value)
         files = [] of String
         if ptr_array
@@ -517,9 +517,9 @@ module Native::Storage
           LibIOS.free_string_array(ptr_array)
         end
         files
-      else
+      {% else %}
         [] of String
-      end
+      {% end %}
     end
   end
 end

@@ -10,7 +10,7 @@ module Native::UI
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -20,33 +20,33 @@ module Native::UI
         @native = env.NewObject(switch_class, constructor, activity).to_i64
 
         setupCheckedListener
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_switch
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def checked=(value : Bool)
       @checked = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_checked = env.GetMethodID(env.GetObjectClass(@native), "setChecked", "(Z)V")
         env.CallVoidMethod(@native, set_checked, value)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.switch_set_on(@native, value)
-      end
+      {% end %}
     end
 
     def checked? : Bool
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return @checked unless env && @native != 0
         is_checked = env.GetMethodID(env.GetObjectClass(@native), "isChecked", "()Z")
         @checked = env.CallBooleanMethod(@native, is_checked)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         @checked = LibIOS.switch_is_on(@native)
-      end
+      {% end %}
       @checked
     end
 
@@ -56,13 +56,13 @@ module Native::UI
 
     def text_on=(value : String)
       @text_on = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jtext = env.NewStringUTF(value)
         set_text = env.GetMethodID(env.GetObjectClass(@native), "setTextOn", "(Ljava/lang/CharSequence;)V")
         env.CallVoidMethod(@native, set_text, jtext)
-      end
+      {% end %}
     end
 
     def text_on : String
@@ -71,13 +71,13 @@ module Native::UI
 
     def text_off=(value : String)
       @text_off = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jtext = env.NewStringUTF(value)
         set_text = env.GetMethodID(env.GetObjectClass(@native), "setTextOff", "(Ljava/lang/CharSequence;)V")
         env.CallVoidMethod(@native, set_text, jtext)
-      end
+      {% end %}
     end
 
     def text_off : String
@@ -85,12 +85,12 @@ module Native::UI
     end
 
     def show_text=(value : Bool)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_show = env.GetMethodID(env.GetObjectClass(@native), "setShowText", "(Z)V")
         env.CallVoidMethod(@native, set_show, value)
-      end
+      {% end %}
     end
 
     def on_checked_change(&block : Bool -> Nil)
@@ -98,7 +98,9 @@ module Native::UI
     end
 
     private def setupCheckedListener
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 

@@ -124,13 +124,13 @@ module Native::Network
     end
 
     private def execute(request : Request) : Response
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         execute_android(request)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         execute_ios(request)
-      else
+      {% else %}
         execute_desktop(request)
-      end
+      {% end %}
     end
 
     private def execute_android(request : Request) : Response
@@ -394,35 +394,35 @@ module Native::Network
     end
 
     def connect : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         connect_android
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         connect_ios
-      end
+      {% end %}
     end
 
     def send(text : String) : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         send_android(text)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         send_ios(text)
-      end
+      {% end %}
     end
 
     def send_binary(data : Bytes) : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         send_binary_android(data)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         send_binary_ios(data)
-      end
+      {% end %}
     end
 
     def close : Nil
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         close_android
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         close_ios
-      end
+      {% end %}
     end
 
     private def connect_android : Nil

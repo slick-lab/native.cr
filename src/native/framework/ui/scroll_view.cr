@@ -24,7 +24,7 @@ module Native::UI
     def initialize(direction : ScrollDirection = ScrollDirection::Vertical)
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -39,37 +39,37 @@ module Native::UI
         @native = env.NewObject(scroll_class, constructor, activity).to_i64
 
         setupScrollListener
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_scroll_view
         @native = ptr.to_i64
         LibIOS.scroll_view_set_direction(@native, direction == ScrollDirection::Vertical ? 0 : 1)
-      end
+      {% end %}
     end
 
     def addView(view : View)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
         add_view = env.GetMethodID(env.GetObjectClass(@native), "addView", "(Landroid/view/View;)V")
         env.CallVoidMethod(@native, add_view, view.native_ptr)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_add_view(@native, view.native_ptr)
-      end
+      {% end %}
     end
 
     def removeView(view : View)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
         remove_view = env.GetMethodID(env.GetObjectClass(@native), "removeView", "(Landroid/view/View;)V")
         env.CallVoidMethod(@native, remove_view, view.native_ptr)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_remove_view(@native, view.native_ptr)
-      end
+      {% end %}
     end
 
     def scroll_to(x : Int32, y : Int32, animated : Bool = true)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -80,13 +80,13 @@ module Native::UI
           scroll_to = env.GetMethodID(env.GetObjectClass(@native), "scrollTo", "(II)V")
           env.CallVoidMethod(@native, scroll_to, x, y)
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_scroll_to(@native, x, y, animated)
-      end
+      {% end %}
     end
 
     def scroll_to_bottom(animated : Bool = true)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -95,9 +95,9 @@ module Native::UI
           bottom = child.height - height
           scroll_to(0, bottom, animated)
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_scroll_to_bottom(@native, animated)
-      end
+      {% end %}
     end
 
     def scroll_to_top(animated : Bool = true)
@@ -105,61 +105,61 @@ module Native::UI
     end
 
     def scroll_x : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
         get_x = env.GetMethodID(env.GetObjectClass(@native), "getScrollX", "()I")
         env.CallIntMethod(@native, get_x)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_get_scroll_x(@native)
-      else
+      {% else %}
         0
-      end
+      {% end %}
     end
 
     def scroll_y : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
         get_y = env.GetMethodID(env.GetObjectClass(@native), "getScrollY", "()I")
         env.CallIntMethod(@native, get_y)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_get_scroll_y(@native)
-      else
+      {% else %}
         0
-      end
+      {% end %}
     end
 
     def max_scroll_x : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
         child = getChildAt(0)
         child ? child.width - width : 0
-      else
+      {% else %}
         0
-      end
+      {% end %}
     end
 
     def max_scroll_y : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
         child = getChildAt(0)
         child ? child.height - height : 0
-      else
+      {% else %}
         0
-      end
+      {% end %}
     end
 
     def scroll_bar_style=(value : ScrollBarStyle)
       @scroll_bar_style = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_style = env.GetMethodID(env.GetObjectClass(@native), "setScrollBarStyle", "(I)V")
         env.CallVoidMethod(@native, set_style, value.value)
-      end
+      {% end %}
     end
 
     def scroll_bar_style : ScrollBarStyle
@@ -179,7 +179,7 @@ module Native::UI
     end
 
     private def getChildAt(index : Int32) : View?
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return nil unless env && @native != 0
         get_child = env.GetMethodID(env.GetObjectClass(@native), "getChildAt", "(I)Landroid/view/View;")
@@ -191,13 +191,15 @@ module Native::UI
         else
           nil
         end
-      else
+      {% else %}
         nil
-      end
+      {% end %}
     end
 
     private def setupScrollListener
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 

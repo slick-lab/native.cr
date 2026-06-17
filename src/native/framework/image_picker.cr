@@ -44,7 +44,7 @@ module Native::ImagePicker
                   &callback : ImagePickerResult -> Nil)
       @@callback = callback
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -57,11 +57,11 @@ module Native::ImagePicker
 
         pick_method = env.GetStaticMethodID(picker_class, "pickImage", "(Landroid/app/Activity;III)V")
         env.CallStaticVoidMethod(picker_class, pick_method, activity, source.value, quality.value, 0)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.image_picker_pick(source.value, quality.value, max_width, max_height)
-      else
+      {% else %}
         callback.call(ImagePickerResult.new(success: false, error_message: "Platform not supported"))
-      end
+      {% end %}
     end
 
     def self.take_photo(quality : ImageQuality = ImageQuality::High,
@@ -70,7 +70,7 @@ module Native::ImagePicker
                         &callback : ImagePickerResult -> Nil)
       @@callback = callback
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -83,11 +83,11 @@ module Native::ImagePicker
 
         take_method = env.GetStaticMethodID(picker_class, "takePhoto", "(Landroid/app/Activity;III)V")
         env.CallStaticVoidMethod(picker_class, take_method, activity, quality.value, 0)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.image_picker_take_photo(quality.value, max_width, max_height)
-      else
+      {% else %}
         callback.call(ImagePickerResult.new(success: false, error_message: "Platform not supported"))
-      end
+      {% end %}
     end
 
     def self.pick_multiple(max_count : Int32 = 10,

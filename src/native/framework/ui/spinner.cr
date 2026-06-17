@@ -11,7 +11,7 @@ module Native::UI
     def initialize
       super()
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -21,15 +21,15 @@ module Native::UI
         @native = env.NewObject(spinner_class, constructor, activity).to_i64
 
         setupSpinnerListener
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_picker_view
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def items=(items : Array(String))
       @items = items
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
@@ -53,9 +53,9 @@ module Native::UI
 
         set_adapter = env.GetMethodID(env.GetObjectClass(@native), "setAdapter", "(Landroid/widget/SpinnerAdapter;)V")
         env.CallVoidMethod(@native, set_adapter, adapter)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.picker_view_set_items(@native, items.to_utf8)
-      end
+      {% end %}
     end
 
     def items : Array(String)
@@ -64,25 +64,25 @@ module Native::UI
 
     def selected_position=(position : Int32)
       @selected_position = position.clamp(0, @items.size - 1)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_selection = env.GetMethodID(env.GetObjectClass(@native), "setSelection", "(I)V")
         env.CallVoidMethod(@native, set_selection, @selected_position)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.picker_view_set_selected(@native, @selected_position)
-      end
+      {% end %}
     end
 
     def selected_position : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return @selected_position unless env && @native != 0
         get_selection = env.GetMethodID(env.GetObjectClass(@native), "getSelectedItemPosition", "()I")
         @selected_position = env.CallIntMethod(@native, get_selection)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         @selected_position = LibIOS.picker_view_get_selected(@native)
-      end
+      {% end %}
       @selected_position
     end
 
@@ -93,12 +93,12 @@ module Native::UI
 
     def prompt=(value : String)
       @prompt = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_prompt = env.GetMethodID(env.GetObjectClass(@native), "setPrompt", "(Ljava/lang/CharSequence;)V")
         env.CallVoidMethod(@native, set_prompt, env.NewStringUTF(value))
-      end
+      {% end %}
     end
 
     def prompt : String
@@ -107,12 +107,12 @@ module Native::UI
 
     def dropdown_width=(width : Int32)
       @dropdown_width = width
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_width = env.GetMethodID(env.GetObjectClass(@native), "setDropDownWidth", "(I)V")
         env.CallVoidMethod(@native, set_width, width)
-      end
+      {% end %}
     end
 
     def dropdown_width : Int32
@@ -124,7 +124,9 @@ module Native::UI
     end
 
     private def setupSpinnerListener
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 

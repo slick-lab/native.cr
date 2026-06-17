@@ -32,7 +32,7 @@ module Native::UI
       super()
       @orientation = orientation
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -42,19 +42,19 @@ module Native::UI
         @native = env.NewObject(layout_class, constructor, activity).to_i64
 
         set_orientation
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_stack_view
         @native = ptr.to_i64
-      end
+      {% end %}
     end
 
     def orientation=(value : Orientation)
       @orientation = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         set_orientation
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_set_axis(@native, value == Orientation::Vertical ? 0 : 1)
-      end
+      {% end %}
     end
 
     def orientation : Orientation
@@ -63,12 +63,12 @@ module Native::UI
 
     def gravity=(value : Gravity)
       @gravity = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_gravity = env.GetMethodID(env.GetObjectClass(@native), "setGravity", "(I)V")
         env.CallVoidMethod(@native, set_gravity, value.value)
-      end
+      {% end %}
     end
 
     def gravity : Gravity
@@ -77,12 +77,12 @@ module Native::UI
 
     def weight_sum=(value : Float32)
       @weight_sum = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_weight_sum = env.GetMethodID(env.GetObjectClass(@native), "setWeightSum", "(F)V")
         env.CallVoidMethod(@native, set_weight_sum, value)
-      end
+      {% end %}
     end
 
     def weight_sum : Float32
@@ -95,18 +95,18 @@ module Native::UI
       @padding_right = right
       @padding_bottom = bottom
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_padding = env.GetMethodID(env.GetObjectClass(@native), "setPadding", "(IIII)V")
         env.CallVoidMethod(@native, set_padding, left, top, right, bottom)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_set_padding(@native, left, top, right, bottom)
-      end
+      {% end %}
     end
 
     def addView(view : View, weight : Float32 = 0.0)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
 
@@ -125,9 +125,9 @@ module Native::UI
             end
           end
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_add_view(@native, view.native_ptr)
-      end
+      {% end %}
     end
 
     def addView(view : View, width : Int32, height : Int32, weight : Float32 = 0.0)
@@ -137,29 +137,29 @@ module Native::UI
     end
 
     def removeView(view : View)
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
         remove_view = env.GetMethodID(env.GetObjectClass(@native), "removeView", "(Landroid/view/View;)V")
         env.CallVoidMethod(@native, remove_view, view.native_ptr)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_remove_view(@native, view.native_ptr)
-      end
+      {% end %}
     end
 
     def removeAllViews
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         remove_all = env.GetMethodID(env.GetObjectClass(@native), "removeAllViews", "()V")
         env.CallVoidMethod(@native, remove_all)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_remove_all_views(@native)
-      end
+      {% end %}
     end
 
     def getChildAt(index : Int32) : View?
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return nil unless env && @native != 0
         get_child = env.GetMethodID(env.GetObjectClass(@native), "getChildAt", "(I)Landroid/view/View;")
@@ -171,20 +171,20 @@ module Native::UI
         else
           nil
         end
-      else
+      {% else %}
         nil
-      end
+      {% end %}
     end
 
     def childCount : Int32
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
         get_count = env.GetMethodID(env.GetObjectClass(@native), "getChildCount", "()I")
         env.CallIntMethod(@native, get_count)
-      else
+      {% else %}
         0
-      end
+      {% end %}
     end
 
     private def set_orientation

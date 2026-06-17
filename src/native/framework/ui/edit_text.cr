@@ -16,7 +16,7 @@ module Native::UI
       super()
       @text = text
 
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return unless env && activity
@@ -30,31 +30,31 @@ module Native::UI
         end
         setTextSize(@text_size)
         setupTextWatcher
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_text_field
         @native = ptr.to_i64
         if !text.empty?
           setText(text)
         end
         setTextSize(@text_size)
-      end
+      {% end %}
     end
 
     def text=(value : String)
       @text = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jtext = env.NewStringUTF(value)
         set_text = env.GetMethodID(env.GetObjectClass(@native), "setText", "(Ljava/lang/CharSequence;)V")
         env.CallVoidMethod(@native, set_text, jtext)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text(@native, value.to_utf8)
-      end
+      {% end %}
     end
 
     def text : String
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return @text unless env && @native != 0
         get_text = env.GetMethodID(env.GetObjectClass(@native), "getText", "()Landroid/text/Editable;")
@@ -63,27 +63,27 @@ module Native::UI
           @text = env.GetStringUTFChars(result, nil).to_s
           env.DeleteLocalRef(result)
         end
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         ptr = LibIOS.text_field_get_text(@native)
         if ptr
           @text = String.new(ptr)
           LibIOS.free_string(ptr)
         end
-      end
+      {% end %}
       @text
     end
 
     def hint=(value : String)
       @hint = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jhint = env.NewStringUTF(value)
         set_hint = env.GetMethodID(env.GetObjectClass(@native), "setHint", "(Ljava/lang/CharSequence;)V")
         env.CallVoidMethod(@native, set_hint, jhint)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_placeholder(@native, value.to_utf8)
-      end
+      {% end %}
     end
 
     def hint : String
@@ -92,14 +92,14 @@ module Native::UI
 
     def text_size=(value : Int32)
       @text_size = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_size = env.GetMethodID(env.GetObjectClass(@native), "setTextSize", "(F)V")
         env.CallVoidMethod(@native, set_size, value.to_f32)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text_size(@native, value)
-      end
+      {% end %}
     end
 
     def text_size : Int32
@@ -108,38 +108,38 @@ module Native::UI
 
     def text_color=(value : Native::Math::Color)
       @text_color = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
         set_color = env.GetMethodID(env.GetObjectClass(@native), "setTextColor", "(I)V")
         env.CallVoidMethod(@native, set_color, color)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text_color(@native, value.r, value.g, value.b)
-      end
+      {% end %}
     end
 
     def hint_color=(value : Native::Math::Color)
       @hint_color = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
         set_hint_color = env.GetMethodID(env.GetObjectClass(@native), "setHintTextColor", "(I)V")
         env.CallVoidMethod(@native, set_hint_color, color)
-      end
+      {% end %}
     end
 
     def input_type=(type : Int32)
       @input_type = type
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_input = env.GetMethodID(env.GetObjectClass(@native), "setInputType", "(I)V")
         env.CallVoidMethod(@native, set_input, type)
-      elsif Native::Platform.ios?
+      {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_input_type(@native, type)
-      end
+      {% end %}
     end
 
     def input_type : Int32
@@ -169,12 +169,12 @@ module Native::UI
 
     def lines=(value : Int32)
       @lines = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         set_lines = env.GetMethodID(env.GetObjectClass(@native), "setLines", "(I)V")
         env.CallVoidMethod(@native, set_lines, value)
-      end
+      {% end %}
     end
 
     def lines : Int32
@@ -183,7 +183,7 @@ module Native::UI
 
     def max_length=(value : Int32)
       @max_length = value
-      if Native::Platform.android?
+      {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
         filters = env.NewObjectArray(1, env.FindClass("android/text/InputFilter"), nil)
@@ -193,7 +193,7 @@ module Native::UI
         env.SetObjectArrayElement(filters, 0, filter)
         set_filters = env.GetMethodID(env.GetObjectClass(@native), "setFilters", "([Landroid/text/InputFilter;)V")
         env.CallVoidMethod(@native, set_filters, filters)
-      end
+      {% end %}
     end
 
     def max_length : Int32
@@ -205,7 +205,9 @@ module Native::UI
     end
 
     private def setupTextWatcher
-      return unless Native::Platform.android?
+      {% unless flag?(:native_android) %}
+      return
+      {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
