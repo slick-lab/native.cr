@@ -37,8 +37,8 @@ module Native::Permissions
         return PermissionStatus::Denied unless env && activity
 
         perm_name = permission_string(type)
-        check_permission = env.GetMethodID(env.GetObjectClass(activity), "checkSelfPermission", "(Ljava/lang/String;)I")
-        result = env.CallIntMethod(activity, check_permission, env.NewStringUTF(perm_name))
+        check_permission = env.get_method_id(env.get_object_class(activity), "checkSelfPermission", "(Ljava/lang/String;)I")
+        result = env.call_int_method(activity, check_permission, env.new_string_utf(perm_name))
 
         case result
         when  0 then PermissionStatus::Granted
@@ -70,10 +70,10 @@ module Native::Permissions
         return unless env && activity
 
         perm_name = permission_string(type)
-        request_perms = env.GetMethodID(env.GetObjectClass(activity), "requestPermissions", "([Ljava/lang/String;I)V")
-        perm_array = env.NewObjectArray(1, env.FindClass("java/lang/String"), nil)
-        env.SetObjectArrayElement(perm_array, 0, env.NewStringUTF(perm_name))
-        env.CallVoidMethod(activity, request_perms, perm_array, type.value)
+        request_perms = env.get_method_id(env.get_object_class(activity), "requestPermissions", "([Ljava/lang/String;I)V")
+        perm_array = env.new_object_array(1, env.find_class("java/lang/String"), nil)
+        env.set_object_array_element(perm_array, 0, env.new_string_utf(perm_name))
+        env.call_void_method(activity, request_perms, perm_array, type.value)
       {% elsif flag?(:native_ios) %}
         LibIOS.request_permission(type.value)
       {% end %}
@@ -110,18 +110,18 @@ module Native::Permissions
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        intent_class = env.FindClass("android/content/Intent")
-        settings_action = env.GetStaticFieldID(intent_class, "ACTION_APPLICATION_DETAILS_SETTINGS", "Ljava/lang/String;")
-        action = env.GetStaticObjectField(intent_class, settings_action)
+        intent_class = env.find_class("android/content/Intent")
+        settings_action = env.get_static_field_id(intent_class, "ACTION_APPLICATION_DETAILS_SETTINGS", "Ljava/lang/String;")
+        action = env.get_static_object_field(intent_class, settings_action)
 
-        uri_class = env.FindClass("android/net/Uri")
-        parse_method = env.GetStaticMethodID(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
-        package_name = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getPackageName", "()Ljava/lang/String;"))
-        uri = env.CallStaticObjectMethod(uri_class, parse_method, env.NewStringUTF("package:"), package_name)
+        uri_class = env.find_class("android/net/Uri")
+        parse_method = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
+        package_name = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getPackageName", "()Ljava/lang/String;"))
+        uri = env.call_static_object_method(uri_class, parse_method, env.new_string_utf("package:"), package_name)
 
-        intent = env.NewObject(intent_class, env.GetMethodID(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V"), action, uri)
-        start_activity = env.GetMethodID(env.GetObjectClass(activity), "startActivity", "(Landroid/content/Intent;)V")
-        env.CallVoidMethod(activity, start_activity, intent)
+        intent = env.new_object(intent_class, env.get_method_id(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V"), action, uri)
+        start_activity = env.get_method_id(env.get_object_class(activity), "startActivity", "(Landroid/content/Intent;)V")
+        env.call_void_method(activity, start_activity, intent)
       {% elsif flag?(:native_ios) %}
         LibIOS.open_settings
       {% end %}

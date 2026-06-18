@@ -59,13 +59,13 @@ module Native::Location
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        location_class = env.FindClass("com/nativecr/LocationHelper")
+        location_class = env.find_class("com/nativecr/LocationHelper")
         if location_class == Pointer(Void).null
           return
         end
 
-        init_method = env.GetStaticMethodID(location_class, "init", "(Landroid/app/Activity;)V")
-        env.CallStaticVoidMethod(location_class, init_method, activity)
+        init_method = env.get_static_method_id(location_class, "init", "(Landroid/app/Activity;)V")
+        env.call_static_void_method(location_class, init_method, activity)
 
         setupCallbacks
       {% end %}
@@ -84,11 +84,11 @@ module Native::Location
         env = Native::Android::JNI.env
         return unless env
 
-        location_class = env.FindClass("com/nativecr/LocationHelper")
+        location_class = env.find_class("com/nativecr/LocationHelper")
         return if location_class == Pointer(Void).null
 
-        start_method = env.GetStaticMethodID(location_class, "startUpdates", "(IIFJ)V")
-        env.CallStaticVoidMethod(location_class, start_method, accuracy.value, 0, min_distance, min_time)
+        start_method = env.get_static_method_id(location_class, "startUpdates", "(IIFJ)V")
+        env.call_static_void_method(location_class, start_method, accuracy.value, 0, min_distance, min_time)
       {% elsif flag?(:native_ios) %}
         LibIOS.location_start_updates(accuracy.value, min_distance, min_time)
       {% end %}
@@ -103,11 +103,11 @@ module Native::Location
         env = Native::Android::JNI.env
         return unless env
 
-        location_class = env.FindClass("com/nativecr/LocationHelper")
+        location_class = env.find_class("com/nativecr/LocationHelper")
         return if location_class == Pointer(Void).null
 
-        stop_method = env.GetStaticMethodID(location_class, "stopUpdates", "()V")
-        env.CallStaticVoidMethod(location_class, stop_method)
+        stop_method = env.get_static_method_id(location_class, "stopUpdates", "()V")
+        env.call_static_void_method(location_class, stop_method)
       {% elsif flag?(:native_ios) %}
         LibIOS.location_stop_updates
       {% end %}
@@ -124,15 +124,15 @@ module Native::Location
         env = Native::Android::JNI.env
         return nil unless env
 
-        location_class = env.FindClass("com/nativecr/LocationHelper")
+        location_class = env.find_class("com/nativecr/LocationHelper")
         return nil if location_class == Pointer(Void).null
 
-        get_method = env.GetStaticMethodID(location_class, "getLastLocation", "()Ljava/lang/String;")
-        result = env.CallStaticObjectMethod(location_class, get_method)
+        get_method = env.get_static_method_id(location_class, "getLastLocation", "()Ljava/lang/String;")
+        result = env.call_static_object_method(location_class, get_method)
 
         if result
-          json = env.GetStringUTFChars(result, nil).to_s
-          env.DeleteLocalRef(result)
+          json = env.get_string_utf_chars(result, nil).to_s
+          env.delete_local_ref(result)
           parse_location_json(json)
         else
           nil
@@ -170,18 +170,18 @@ module Native::Location
       env = Native::Android::JNI.env
       return unless env
 
-      callback_class = env.FindClass("com/nativecr/LocationCallback")
+      callback_class = env.find_class("com/nativecr/LocationCallback")
       if callback_class == Pointer(Void).null
         return
       end
 
-      callback_obj = env.NewObject(callback_class, env.GetMethodID(callback_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
 
-      location_class = env.FindClass("com/nativecr/LocationHelper")
+      location_class = env.find_class("com/nativecr/LocationHelper")
       return if location_class == Pointer(Void).null
 
-      set_callback = env.GetStaticMethodID(location_class, "setCallback", "(Lcom/nativecr/LocationCallback;)V")
-      env.CallStaticVoidMethod(location_class, set_callback, callback_obj)
+      set_callback = env.get_static_method_id(location_class, "setCallback", "(Lcom/nativecr/LocationCallback;)V")
+      env.call_static_void_method(location_class, set_callback, callback_obj)
     end
 
     private def parse_location_json(json : String) : Location?

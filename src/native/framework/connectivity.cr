@@ -51,13 +51,13 @@ module Native::Connectivity
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        conn_class = env.FindClass("com/nativecr/ConnectivityHelper")
+        conn_class = env.find_class("com/nativecr/ConnectivityHelper")
         if conn_class == Pointer(Void).null
           return
         end
 
-        init_method = env.GetStaticMethodID(conn_class, "init", "(Landroid/app/Activity;)V")
-        env.CallStaticVoidMethod(conn_class, init_method, activity)
+        init_method = env.get_static_method_id(conn_class, "init", "(Landroid/app/Activity;)V")
+        env.call_static_void_method(conn_class, init_method, activity)
 
         setupCallbacks
       {% elsif flag?(:native_ios) %}
@@ -70,15 +70,15 @@ module Native::Connectivity
         env = Native::Android::JNI.env
         return @@current_info unless env
 
-        conn_class = env.FindClass("com/nativecr/ConnectivityHelper")
+        conn_class = env.find_class("com/nativecr/ConnectivityHelper")
         return @@current_info if conn_class == Pointer(Void).null
 
-        get_info = env.GetStaticMethodID(conn_class, "getNetworkInfo", "()Ljava/lang/String;")
-        result = env.CallStaticObjectMethod(conn_class, get_info)
+        get_info = env.get_static_method_id(conn_class, "getNetworkInfo", "()Ljava/lang/String;")
+        result = env.call_static_object_method(conn_class, get_info)
 
         if result
-          json = env.GetStringUTFChars(result, nil).to_s
-          env.DeleteLocalRef(result)
+          json = env.get_string_utf_chars(result, nil).to_s
+          env.delete_local_ref(result)
           parse_network_info_json(json)
         else
           @@current_info
@@ -117,11 +117,11 @@ module Native::Connectivity
         env = Native::Android::JNI.env
         return unless env
 
-        conn_class = env.FindClass("com/nativecr/ConnectivityHelper")
+        conn_class = env.find_class("com/nativecr/ConnectivityHelper")
         return if conn_class == Pointer(Void).null
 
-        start_mon = env.GetStaticMethodID(conn_class, "startMonitoring", "()V")
-        env.CallStaticVoidMethod(conn_class, start_mon)
+        start_mon = env.get_static_method_id(conn_class, "startMonitoring", "()V")
+        env.call_static_void_method(conn_class, start_mon)
       {% elsif flag?(:native_ios) %}
         LibIOS.connectivity_start_monitoring
       {% end %}
@@ -136,11 +136,11 @@ module Native::Connectivity
         env = Native::Android::JNI.env
         return unless env
 
-        conn_class = env.FindClass("com/nativecr/ConnectivityHelper")
+        conn_class = env.find_class("com/nativecr/ConnectivityHelper")
         return if conn_class == Pointer(Void).null
 
-        stop_mon = env.GetStaticMethodID(conn_class, "stopMonitoring", "()V")
-        env.CallStaticVoidMethod(conn_class, stop_mon)
+        stop_mon = env.get_static_method_id(conn_class, "stopMonitoring", "()V")
+        env.call_static_void_method(conn_class, stop_mon)
       {% elsif flag?(:native_ios) %}
         LibIOS.connectivity_stop_monitoring
       {% end %}
@@ -159,18 +159,18 @@ module Native::Connectivity
       env = Native::Android::JNI.env
       return unless env
 
-      callback_class = env.FindClass("com/nativecr/ConnectivityCallback")
+      callback_class = env.find_class("com/nativecr/ConnectivityCallback")
       if callback_class == Pointer(Void).null
         return
       end
 
-      callback_obj = env.NewObject(callback_class, env.GetMethodID(callback_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
 
-      conn_class = env.FindClass("com/nativecr/ConnectivityHelper")
+      conn_class = env.find_class("com/nativecr/ConnectivityHelper")
       return if conn_class == Pointer(Void).null
 
-      set_callback = env.GetStaticMethodID(conn_class, "setCallback", "(Lcom/nativecr/ConnectivityCallback;)V")
-      env.CallStaticVoidMethod(conn_class, set_callback, callback_obj)
+      set_callback = env.get_static_method_id(conn_class, "setCallback", "(Lcom/nativecr/ConnectivityCallback;)V")
+      env.call_static_void_method(conn_class, set_callback, callback_obj)
     end
 
     private def parse_network_info_json(json : String) : NetworkInfo

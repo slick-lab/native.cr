@@ -14,9 +14,9 @@ module Native::UI
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        card_class = env.FindClass("androidx/cardview/widget/CardView")
-        constructor = env.GetMethodID(card_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.NewObject(card_class, constructor, activity).to_i64
+        card_class = env.find_class("androidx/cardview/widget/CardView")
+        constructor = env.get_method_id(card_class, "<init>", "(Landroid/content/Context;)V")
+        @native = env.new_object(card_class, constructor, activity).to_i64
 
         applyCardElevation
         applyCardRadius
@@ -51,8 +51,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_padding = env.GetMethodID(env.GetObjectClass(@native), "setContentPadding", "(IIII)V")
-        env.CallVoidMethod(@native, set_padding, value, value, value, value)
+        set_padding = env.get_method_id(env.get_object_class(@native), "setContentPadding", "(IIII)V")
+        env.call_void_method(@native, set_padding, value, value, value, value)
       {% end %}
     end
 
@@ -64,8 +64,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
-        add_view = env.GetMethodID(env.GetObjectClass(@native), "addView", "(Landroid/view/View;)V")
-        env.CallVoidMethod(@native, add_view, view.native_ptr)
+        add_view = env.get_method_id(env.get_object_class(@native), "addView", "(Landroid/view/View;)V")
+        env.call_void_method(@native, add_view, view.native_ptr)
       {% elsif flag?(:native_ios) %}
         LibIOS.card_view_add_subview(@native, view.native_ptr)
       {% end %}
@@ -75,8 +75,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
-        remove_view = env.GetMethodID(env.GetObjectClass(@native), "removeView", "(Landroid/view/View;)V")
-        env.CallVoidMethod(@native, remove_view, view.native_ptr)
+        remove_view = env.get_method_id(env.get_object_class(@native), "removeView", "(Landroid/view/View;)V")
+        env.call_void_method(@native, remove_view, view.native_ptr)
       {% elsif flag?(:native_ios) %}
         LibIOS.card_view_remove_subview(@native, view.native_ptr)
       {% end %}
@@ -86,8 +86,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_elevation = env.GetMethodID(env.GetObjectClass(@native), "setCardElevation", "(F)V")
-        env.CallVoidMethod(@native, set_elevation, @card_elevation)
+        set_elevation = env.get_method_id(env.get_object_class(@native), "setCardElevation", "(F)V")
+        env.call_void_method(@native, set_elevation, @card_elevation)
       {% elsif flag?(:native_ios) %}
         LibIOS.card_view_set_elevation(@native, @card_elevation)
       {% end %}
@@ -97,8 +97,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_radius = env.GetMethodID(env.GetObjectClass(@native), "setRadius", "(F)V")
-        env.CallVoidMethod(@native, set_radius, @card_radius)
+        set_radius = env.get_method_id(env.get_object_class(@native), "setRadius", "(F)V")
+        env.call_void_method(@native, set_radius, @card_radius)
       {% elsif flag?(:native_ios) %}
         LibIOS.card_view_set_radius(@native, @card_radius)
       {% end %}
@@ -109,8 +109,8 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         argb = (255 << 24) | ((color.r * 255).to_i << 16) | ((color.g * 255).to_i << 8) | (color.b * 255).to_i
-        set_bg = env.GetMethodID(env.GetObjectClass(@native), "setCardBackgroundColor", "(I)V")
-        env.CallVoidMethod(@native, set_bg, argb)
+        set_bg = env.get_method_id(env.get_object_class(@native), "setCardBackgroundColor", "(I)V")
+        env.call_void_method(@native, set_bg, argb)
       {% elsif flag?(:native_ios) %}
         LibIOS.card_view_set_background_color(@native, color.r, color.g, color.b)
       {% end %}

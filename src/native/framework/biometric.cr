@@ -74,10 +74,10 @@ module Native::Biometric
         env = Native::Android::JNI.env
         return false unless env
 
-        keyguard_class = env.FindClass("android/app/KeyguardManager")
-        keyguard = env.CallObjectMethod(Native::Android::JNI.activity, env.GetMethodID(env.GetObjectClass(Native::Android::JNI.activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("keyguard"))
-        is_keyguard = env.GetMethodID(env.GetObjectClass(keyguard), "isKeyguardSecure", "()Z")
-        env.CallBooleanMethod(keyguard, is_keyguard)
+        keyguard_class = env.find_class("android/app/KeyguardManager")
+        keyguard = env.call_object_method(Native::Android::JNI.activity, env.get_method_id(env.get_object_class(Native::Android::JNI.activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("keyguard"))
+        is_keyguard = env.get_method_id(env.get_object_class(keyguard), "isKeyguardSecure", "()Z")
+        env.call_boolean_method(keyguard, is_keyguard)
       {% elsif flag?(:native_ios) %}
         LibIOS.is_biometric_enrolled
       {% else %}
@@ -93,40 +93,40 @@ module Native::Biometric
         activity = Native::Android::JNI.activity
         return BiometricResult.new(success: false, error: BiometricError::NotAvailable) unless env && activity
 
-        biometric_class = env.FindClass("androidx/biometric/BiometricPrompt")
+        biometric_class = env.find_class("androidx/biometric/BiometricPrompt")
         if biometric_class == Pointer(Void).null
           return BiometricResult.new(success: false, error: BiometricError::NotAvailable)
         end
 
-        executor_class = env.FindClass("android/os/Handler")
-        executor = env.CallStaticObjectMethod(executor_class, env.GetStaticMethodID(executor_class, "getMain", "()Landroid/os/Handler;"))
+        executor_class = env.find_class("android/os/Handler")
+        executor = env.call_static_object_method(executor_class, env.get_static_method_id(executor_class, "getMain", "()Landroid/os/Handler;"))
 
-        callback_class = env.FindClass("com/nativecr/BiometricCallback")
-        callback_obj = env.NewObject(callback_class, env.GetMethodID(callback_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+        callback_class = env.find_class("com/nativecr/BiometricCallback")
+        callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
 
-        prompt_info_class = env.FindClass("androidx/biometric/BiometricPrompt$PromptInfo")
-        builder_class = env.FindClass("androidx/biometric/BiometricPrompt$PromptInfo$Builder")
-        builder = env.NewObject(builder_class, env.GetMethodID(builder_class, "<init>", "()V"))
+        prompt_info_class = env.find_class("androidx/biometric/BiometricPrompt$PromptInfo")
+        builder_class = env.find_class("androidx/biometric/BiometricPrompt$PromptInfo$Builder")
+        builder = env.new_object(builder_class, env.get_method_id(builder_class, "<init>", "()V"))
 
-        set_title = env.GetMethodID(builder_class, "setTitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.CallObjectMethod(builder, set_title, env.NewStringUTF(config.title))
+        set_title = env.get_method_id(builder_class, "setTitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
+        env.call_object_method(builder, set_title, env.new_string_utf(config.title))
 
-        set_subtitle = env.GetMethodID(builder_class, "setSubtitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.CallObjectMethod(builder, set_subtitle, env.NewStringUTF(config.subtitle))
+        set_subtitle = env.get_method_id(builder_class, "setSubtitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
+        env.call_object_method(builder, set_subtitle, env.new_string_utf(config.subtitle))
 
-        set_desc = env.GetMethodID(builder_class, "setDescription", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.CallObjectMethod(builder, set_desc, env.NewStringUTF(config.description))
+        set_desc = env.get_method_id(builder_class, "setDescription", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
+        env.call_object_method(builder, set_desc, env.new_string_utf(config.description))
 
-        set_negative = env.GetMethodID(builder_class, "setNegativeButtonText", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.CallObjectMethod(builder, set_negative, env.NewStringUTF(config.cancel_title))
+        set_negative = env.get_method_id(builder_class, "setNegativeButtonText", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
+        env.call_object_method(builder, set_negative, env.new_string_utf(config.cancel_title))
 
-        build = env.GetMethodID(builder_class, "build", "()Landroidx/biometric/BiometricPrompt$PromptInfo;")
-        prompt_info = env.CallObjectMethod(builder, build)
+        build = env.get_method_id(builder_class, "build", "()Landroidx/biometric/BiometricPrompt$PromptInfo;")
+        prompt_info = env.call_object_method(builder, build)
 
-        biometric_prompt = env.NewObject(biometric_class, env.GetMethodID(biometric_class, "<init>", "(Landroidx/core/content/ContextCompat;Ljava/util/concurrent/Executor;Landroidx/biometric/BiometricPrompt$AuthenticationCallback;)V"), activity, executor, callback_obj)
+        biometric_prompt = env.new_object(biometric_class, env.get_method_id(biometric_class, "<init>", "(Landroidx/core/content/ContextCompat;Ljava/util/concurrent/Executor;Landroidx/biometric/BiometricPrompt$AuthenticationCallback;)V"), activity, executor, callback_obj)
 
-        authenticate = env.GetMethodID(biometric_class, "authenticate", "(Landroidx/biometric/BiometricPrompt$PromptInfo;)V")
-        env.CallVoidMethod(biometric_prompt, authenticate, prompt_info)
+        authenticate = env.get_method_id(biometric_class, "authenticate", "(Landroidx/biometric/BiometricPrompt$PromptInfo;)V")
+        env.call_void_method(biometric_prompt, authenticate, prompt_info)
 
         wait_result
       {% elsif flag?(:native_ios) %}
@@ -156,17 +156,17 @@ module Native::Biometric
         env = Native::Android::JNI.env
         return unless env
 
-        biometric_class = env.FindClass("androidx/biometric/BiometricManager")
+        biometric_class = env.find_class("androidx/biometric/BiometricManager")
         if biometric_class == Pointer(Void).null
           @@is_available = false
           return
         end
 
-        from = env.GetStaticMethodID(biometric_class, "from", "(Landroid/content/Context;)Landroidx/biometric/BiometricManager;")
-        manager = env.CallStaticObjectMethod(biometric_class, from, Native::Android::JNI.activity)
+        from = env.get_static_method_id(biometric_class, "from", "(Landroid/content/Context;)Landroidx/biometric/BiometricManager;")
+        manager = env.call_static_object_method(biometric_class, from, Native::Android::JNI.activity)
 
-        can_auth = env.GetMethodID(biometric_class, "canAuthenticate", "(I)I")
-        result = env.CallIntMethod(manager, can_auth, 0)
+        can_auth = env.get_method_id(biometric_class, "canAuthenticate", "(I)I")
+        result = env.call_int_method(manager, can_auth, 0)
 
         @@is_available = result == 0
         @@available_type = BiometricType::Fingerprint if @@is_available

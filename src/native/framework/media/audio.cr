@@ -33,17 +33,17 @@ module Native::Audio
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class == Pointer(Void).null
           return false
         end
 
-        load_method = env.GetStaticMethodID(sound_class, "load", "(Landroid/app/Activity;Ljava/lang/String;)J")
+        load_method = env.get_static_method_id(sound_class, "load", "(Landroid/app/Activity;Ljava/lang/String;)J")
         if load_method == Pointer(Void).null
           return false
         end
 
-        @sound_ptr = env.CallStaticLongMethod(sound_class, load_method, activity, env.NewStringUTF(path))
+        @sound_ptr = env.call_static_long_method(sound_class, load_method, activity, env.new_string_utf(path))
         @is_loaded = @sound_ptr != 0
         @is_loaded
       {% elsif flag?(:native_ios) %}
@@ -63,17 +63,17 @@ module Native::Audio
         env = Native::Android::JNI.env
         return nil unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class == Pointer(Void).null
           return nil
         end
 
-        play_method = env.GetStaticMethodID(sound_class, "play", "(JFIFF)J")
+        play_method = env.get_static_method_id(sound_class, "play", "(JFIFF)J")
         if play_method == Pointer(Void).null
           return nil
         end
 
-        instance_ptr = env.CallStaticLongMethod(sound_class, play_method, @sound_ptr, config.volume, config.loop ? 1 : 0, config.pitch, config.pan)
+        instance_ptr = env.call_static_long_method(sound_class, play_method, @sound_ptr, config.volume, config.loop ? 1 : 0, config.pitch, config.pan)
         if instance_ptr != 0
           SoundInstance.new(instance_ptr)
         else
@@ -98,11 +98,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class != Pointer(Void).null
-          stop_method = env.GetStaticMethodID(sound_class, "stopAll", "(J)V")
+          stop_method = env.get_static_method_id(sound_class, "stopAll", "(J)V")
           if stop_method != Pointer(Void).null
-            env.CallStaticVoidMethod(sound_class, stop_method, @sound_ptr)
+            env.call_static_void_method(sound_class, stop_method, @sound_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -125,11 +125,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class != Pointer(Void).null
-          unload_method = env.GetStaticMethodID(sound_class, "unload", "(J)V")
+          unload_method = env.get_static_method_id(sound_class, "unload", "(J)V")
           if unload_method != Pointer(Void).null
-            env.CallStaticVoidMethod(sound_class, unload_method, @sound_ptr)
+            env.call_static_void_method(sound_class, unload_method, @sound_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -155,11 +155,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class != Pointer(Void).null
-          stop_method = env.GetStaticMethodID(sound_class, "stopInstance", "(J)V")
+          stop_method = env.get_static_method_id(sound_class, "stopInstance", "(J)V")
           if stop_method != Pointer(Void).null
-            env.CallStaticVoidMethod(sound_class, stop_method, @instance_ptr)
+            env.call_static_void_method(sound_class, stop_method, @instance_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -176,11 +176,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class != Pointer(Void).null
-          pause_method = env.GetStaticMethodID(sound_class, "pause", "(J)V")
+          pause_method = env.get_static_method_id(sound_class, "pause", "(J)V")
           if pause_method != Pointer(Void).null
-            env.CallStaticVoidMethod(sound_class, pause_method, @instance_ptr)
+            env.call_static_void_method(sound_class, pause_method, @instance_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -193,11 +193,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class != Pointer(Void).null
-          resume_method = env.GetStaticMethodID(sound_class, "resume", "(J)V")
+          resume_method = env.get_static_method_id(sound_class, "resume", "(J)V")
           if resume_method != Pointer(Void).null
-            env.CallStaticVoidMethod(sound_class, resume_method, @instance_ptr)
+            env.call_static_void_method(sound_class, resume_method, @instance_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -212,11 +212,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class != Pointer(Void).null
-          volume_method = env.GetStaticMethodID(sound_class, "setVolume", "(JF)V")
+          volume_method = env.get_static_method_id(sound_class, "setVolume", "(JF)V")
           if volume_method != Pointer(Void).null
-            env.CallStaticVoidMethod(sound_class, volume_method, @instance_ptr, value)
+            env.call_static_void_method(sound_class, volume_method, @instance_ptr, value)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -231,11 +231,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return false unless env
 
-        sound_class = env.FindClass("com/nativecr/SoundPlayer")
+        sound_class = env.find_class("com/nativecr/SoundPlayer")
         if sound_class != Pointer(Void).null
-          playing_method = env.GetStaticMethodID(sound_class, "isPlaying", "(J)Z")
+          playing_method = env.get_static_method_id(sound_class, "isPlaying", "(J)Z")
           if playing_method != Pointer(Void).null
-            return env.CallStaticBooleanMethod(sound_class, playing_method, @instance_ptr)
+            return env.call_static_boolean_method(sound_class, playing_method, @instance_ptr)
           end
         end
         false
@@ -262,17 +262,17 @@ module Native::Audio
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class == Pointer(Void).null
           return false
         end
 
-        load_method = env.GetStaticMethodID(music_class, "load", "(Landroid/app/Activity;Ljava/lang/String;)J")
+        load_method = env.get_static_method_id(music_class, "load", "(Landroid/app/Activity;Ljava/lang/String;)J")
         if load_method == Pointer(Void).null
           return false
         end
 
-        @music_ptr = env.CallStaticLongMethod(music_class, load_method, activity, env.NewStringUTF(path))
+        @music_ptr = env.call_static_long_method(music_class, load_method, activity, env.new_string_utf(path))
         @music_ptr != 0
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.music_load(path.to_utf8)
@@ -290,11 +290,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          play_method = env.GetStaticMethodID(music_class, "play", "(JZ)V")
+          play_method = env.get_static_method_id(music_class, "play", "(JZ)V")
           if play_method != Pointer(Void).null
-            env.CallStaticVoidMethod(music_class, play_method, @music_ptr, loop)
+            env.call_static_void_method(music_class, play_method, @music_ptr, loop)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -311,11 +311,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          pause_method = env.GetStaticMethodID(music_class, "pause", "(J)V")
+          pause_method = env.get_static_method_id(music_class, "pause", "(J)V")
           if pause_method != Pointer(Void).null
-            env.CallStaticVoidMethod(music_class, pause_method, @music_ptr)
+            env.call_static_void_method(music_class, pause_method, @music_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -332,11 +332,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          resume_method = env.GetStaticMethodID(music_class, "resume", "(J)V")
+          resume_method = env.get_static_method_id(music_class, "resume", "(J)V")
           if resume_method != Pointer(Void).null
-            env.CallStaticVoidMethod(music_class, resume_method, @music_ptr)
+            env.call_static_void_method(music_class, resume_method, @music_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -353,11 +353,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          stop_method = env.GetStaticMethodID(music_class, "stop", "(J)V")
+          stop_method = env.get_static_method_id(music_class, "stop", "(J)V")
           if stop_method != Pointer(Void).null
-            env.CallStaticVoidMethod(music_class, stop_method, @music_ptr)
+            env.call_static_void_method(music_class, stop_method, @music_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -374,11 +374,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          volume_method = env.GetStaticMethodID(music_class, "setVolume", "(JF)V")
+          volume_method = env.get_static_method_id(music_class, "setVolume", "(JF)V")
           if volume_method != Pointer(Void).null
-            env.CallStaticVoidMethod(music_class, volume_method, @music_ptr, @volume)
+            env.call_static_void_method(music_class, volume_method, @music_ptr, @volume)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -401,11 +401,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          seek_method = env.GetStaticMethodID(music_class, "seek", "(JD)V")
+          seek_method = env.get_static_method_id(music_class, "seek", "(JD)V")
           if seek_method != Pointer(Void).null
-            env.CallStaticVoidMethod(music_class, seek_method, @music_ptr, position)
+            env.call_static_void_method(music_class, seek_method, @music_ptr, position)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -420,11 +420,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return 0.0 unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          position_method = env.GetStaticMethodID(music_class, "getPosition", "(J)D")
+          position_method = env.get_static_method_id(music_class, "getPosition", "(J)D")
           if position_method != Pointer(Void).null
-            return env.CallStaticDoubleMethod(music_class, position_method, @music_ptr)
+            return env.call_static_double_method(music_class, position_method, @music_ptr)
           end
         end
         0.0
@@ -442,11 +442,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return 0.0 unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          duration_method = env.GetStaticMethodID(music_class, "getDuration", "(J)D")
+          duration_method = env.get_static_method_id(music_class, "getDuration", "(J)D")
           if duration_method != Pointer(Void).null
-            return env.CallStaticDoubleMethod(music_class, duration_method, @music_ptr)
+            return env.call_static_double_method(music_class, duration_method, @music_ptr)
           end
         end
         0.0
@@ -464,11 +464,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        music_class = env.FindClass("com/nativecr/MusicPlayer")
+        music_class = env.find_class("com/nativecr/MusicPlayer")
         if music_class != Pointer(Void).null
-          unload_method = env.GetStaticMethodID(music_class, "unload", "(J)V")
+          unload_method = env.get_static_method_id(music_class, "unload", "(J)V")
           if unload_method != Pointer(Void).null
-            env.CallStaticVoidMethod(music_class, unload_method, @music_ptr)
+            env.call_static_void_method(music_class, unload_method, @music_ptr)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -494,17 +494,17 @@ module Native::Audio
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
-        recorder_class = env.FindClass("com/nativecr/AudioRecorder")
+        recorder_class = env.find_class("com/nativecr/AudioRecorder")
         if recorder_class == Pointer(Void).null
           return false
         end
 
-        start_method = env.GetStaticMethodID(recorder_class, "start", "(Landroid/app/Activity;)J")
+        start_method = env.get_static_method_id(recorder_class, "start", "(Landroid/app/Activity;)J")
         if start_method == Pointer(Void).null
           return false
         end
 
-        @recorder_ptr = env.CallStaticLongMethod(recorder_class, start_method, activity)
+        @recorder_ptr = env.call_static_long_method(recorder_class, start_method, activity)
         @is_recording = @recorder_ptr != 0
         @is_recording
       {% elsif flag?(:native_ios) %}
@@ -524,25 +524,25 @@ module Native::Audio
         env = Native::Android::JNI.env
         return nil unless env
 
-        recorder_class = env.FindClass("com/nativecr/AudioRecorder")
+        recorder_class = env.find_class("com/nativecr/AudioRecorder")
         if recorder_class == Pointer(Void).null
           return nil
         end
 
-        stop_method = env.GetStaticMethodID(recorder_class, "stop", "(J)[B")
+        stop_method = env.get_static_method_id(recorder_class, "stop", "(J)[B")
         if stop_method == Pointer(Void).null
           return nil
         end
 
-        byte_array = env.CallStaticObjectMethod(recorder_class, stop_method, @recorder_ptr)
+        byte_array = env.call_static_object_method(recorder_class, stop_method, @recorder_ptr)
         @is_recording = false
         @recorder_ptr = 0
 
         if byte_array
-          length = env.GetArrayLength(byte_array)
+          length = env.get_array_length(byte_array)
           data = Bytes.new(length)
-          env.GetByteArrayRegion(byte_array, 0, length, data)
-          env.DeleteLocalRef(byte_array)
+          env.get_byte_array_region(byte_array, 0, length, data)
+          env.delete_local_ref(byte_array)
           data
         else
           nil
@@ -607,11 +607,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        audio_class = env.FindClass("com/nativecr/AudioMixer")
+        audio_class = env.find_class("com/nativecr/AudioMixer")
         if audio_class != Pointer(Void).null
-          set_volume_method = env.GetStaticMethodID(audio_class, "setMasterVolume", "(F)V")
+          set_volume_method = env.get_static_method_id(audio_class, "setMasterVolume", "(F)V")
           if set_volume_method != Pointer(Void).null
-            env.CallStaticVoidMethod(audio_class, set_volume_method, @master_volume)
+            env.call_static_void_method(audio_class, set_volume_method, @master_volume)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -639,11 +639,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        audio_class = env.FindClass("com/nativecr/AudioMixer")
+        audio_class = env.find_class("com/nativecr/AudioMixer")
         if audio_class != Pointer(Void).null
-          stop_method = env.GetStaticMethodID(audio_class, "stopAll", "()V")
+          stop_method = env.get_static_method_id(audio_class, "stopAll", "()V")
           if stop_method != Pointer(Void).null
-            env.CallStaticVoidMethod(audio_class, stop_method)
+            env.call_static_void_method(audio_class, stop_method)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -657,11 +657,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        audio_class = env.FindClass("com/nativecr/AudioMixer")
+        audio_class = env.find_class("com/nativecr/AudioMixer")
         if audio_class != Pointer(Void).null
-          pause_method = env.GetStaticMethodID(audio_class, "pauseAll", "()V")
+          pause_method = env.get_static_method_id(audio_class, "pauseAll", "()V")
           if pause_method != Pointer(Void).null
-            env.CallStaticVoidMethod(audio_class, pause_method)
+            env.call_static_void_method(audio_class, pause_method)
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -675,11 +675,11 @@ module Native::Audio
         env = Native::Android::JNI.env
         return unless env
 
-        audio_class = env.FindClass("com/nativecr/AudioMixer")
+        audio_class = env.find_class("com/nativecr/AudioMixer")
         if audio_class != Pointer(Void).null
-          resume_method = env.GetStaticMethodID(audio_class, "resumeAll", "()V")
+          resume_method = env.get_static_method_id(audio_class, "resumeAll", "()V")
           if resume_method != Pointer(Void).null
-            env.CallStaticVoidMethod(audio_class, resume_method)
+            env.call_static_void_method(audio_class, resume_method)
           end
         end
       {% elsif flag?(:native_ios) %}

@@ -9,25 +9,25 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        jkey = env.NewStringUTF(key)
-        jvalue = env.NewStringUTF(value)
+        jkey = env.new_string_utf(key)
+        jvalue = env.new_string_utf(value)
 
-        get_prefs = env.GetMethodID(env.GetObjectClass(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.CallObjectMethod(activity, get_prefs, env.NewStringUTF(@name), 0)
+        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
+        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
 
-        edit = env.GetMethodID(env.GetObjectClass(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
-        editor = env.CallObjectMethod(prefs, edit)
+        edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
+        editor = env.call_object_method(prefs, edit)
 
-        put_string = env.GetMethodID(env.GetObjectClass(editor), "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;")
-        env.CallObjectMethod(editor, put_string, jkey, jvalue)
+        put_string = env.get_method_id(env.get_object_class(editor), "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;")
+        env.call_object_method(editor, put_string, jkey, jvalue)
 
-        apply = env.GetMethodID(env.GetObjectClass(editor), "apply", "()V")
-        env.CallVoidMethod(editor, apply)
+        apply = env.get_method_id(env.get_object_class(editor), "apply", "()V")
+        env.call_void_method(editor, apply)
 
-        env.DeleteLocalRef(jkey)
-        env.DeleteLocalRef(jvalue)
-        env.DeleteLocalRef(prefs)
-        env.DeleteLocalRef(editor)
+        env.delete_local_ref(jkey)
+        env.delete_local_ref(jvalue)
+        env.delete_local_ref(prefs)
+        env.delete_local_ref(editor)
       {% elsif flag?(:native_ios) %}
         LibIOS.user_defaults_set(key.to_utf8, value.to_utf8)
       {% end %}
@@ -59,25 +59,25 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return default unless env && activity
 
-        jkey = env.NewStringUTF(key)
-        jdefault = env.NewStringUTF(default)
+        jkey = env.new_string_utf(key)
+        jdefault = env.new_string_utf(default)
 
-        get_prefs = env.GetMethodID(env.GetObjectClass(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.CallObjectMethod(activity, get_prefs, env.NewStringUTF(@name), 0)
+        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
+        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
 
-        get_string = env.GetMethodID(env.GetObjectClass(prefs), "getString", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")
-        result = env.CallObjectMethod(prefs, get_string, jkey, jdefault)
+        get_string = env.get_method_id(env.get_object_class(prefs), "getString", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")
+        result = env.call_object_method(prefs, get_string, jkey, jdefault)
 
         value = if result
-                  env.GetStringUTFChars(result, nil).to_s
+                  env.get_string_utf_chars(result, nil).to_s
                 else
                   default
                 end
 
-        env.DeleteLocalRef(jkey)
-        env.DeleteLocalRef(jdefault)
-        env.DeleteLocalRef(prefs)
-        env.DeleteLocalRef(result) if result
+        env.delete_local_ref(jkey)
+        env.delete_local_ref(jdefault)
+        env.delete_local_ref(prefs)
+        env.delete_local_ref(result) if result
 
         value
       {% elsif flag?(:native_ios) %}
@@ -120,16 +120,16 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
-        jkey = env.NewStringUTF(key)
+        jkey = env.new_string_utf(key)
 
-        get_prefs = env.GetMethodID(env.GetObjectClass(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.CallObjectMethod(activity, get_prefs, env.NewStringUTF(@name), 0)
+        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
+        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
 
-        contains = env.GetMethodID(env.GetObjectClass(prefs), "contains", "(Ljava/lang/String;)Z")
-        result = env.CallBooleanMethod(prefs, contains, jkey)
+        contains = env.get_method_id(env.get_object_class(prefs), "contains", "(Ljava/lang/String;)Z")
+        result = env.call_boolean_method(prefs, contains, jkey)
 
-        env.DeleteLocalRef(jkey)
-        env.DeleteLocalRef(prefs)
+        env.delete_local_ref(jkey)
+        env.delete_local_ref(prefs)
 
         result
       {% elsif flag?(:native_ios) %}
@@ -145,23 +145,23 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        jkey = env.NewStringUTF(key)
+        jkey = env.new_string_utf(key)
 
-        get_prefs = env.GetMethodID(env.GetObjectClass(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.CallObjectMethod(activity, get_prefs, env.NewStringUTF(@name), 0)
+        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
+        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
 
-        edit = env.GetMethodID(env.GetObjectClass(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
-        editor = env.CallObjectMethod(prefs, edit)
+        edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
+        editor = env.call_object_method(prefs, edit)
 
-        remove = env.GetMethodID(env.GetObjectClass(editor), "remove", "(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;")
-        env.CallObjectMethod(editor, remove, jkey)
+        remove = env.get_method_id(env.get_object_class(editor), "remove", "(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;")
+        env.call_object_method(editor, remove, jkey)
 
-        apply = env.GetMethodID(env.GetObjectClass(editor), "apply", "()V")
-        env.CallVoidMethod(editor, apply)
+        apply = env.get_method_id(env.get_object_class(editor), "apply", "()V")
+        env.call_void_method(editor, apply)
 
-        env.DeleteLocalRef(jkey)
-        env.DeleteLocalRef(prefs)
-        env.DeleteLocalRef(editor)
+        env.delete_local_ref(jkey)
+        env.delete_local_ref(prefs)
+        env.delete_local_ref(editor)
       {% elsif flag?(:native_ios) %}
         LibIOS.user_defaults_delete(key.to_utf8)
       {% end %}
@@ -173,20 +173,20 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        get_prefs = env.GetMethodID(env.GetObjectClass(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.CallObjectMethod(activity, get_prefs, env.NewStringUTF(@name), 0)
+        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
+        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
 
-        edit = env.GetMethodID(env.GetObjectClass(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
-        editor = env.CallObjectMethod(prefs, edit)
+        edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
+        editor = env.call_object_method(prefs, edit)
 
-        clr = env.GetMethodID(env.GetObjectClass(editor), "clear", "()Landroid/content/SharedPreferences$Editor;")
-        env.CallObjectMethod(editor, clr)
+        clr = env.get_method_id(env.get_object_class(editor), "clear", "()Landroid/content/SharedPreferences$Editor;")
+        env.call_object_method(editor, clr)
 
-        apply = env.GetMethodID(env.GetObjectClass(editor), "apply", "()V")
-        env.CallVoidMethod(editor, apply)
+        apply = env.get_method_id(env.get_object_class(editor), "apply", "()V")
+        env.call_void_method(editor, apply)
 
-        env.DeleteLocalRef(prefs)
-        env.DeleteLocalRef(editor)
+        env.delete_local_ref(prefs)
+        env.delete_local_ref(editor)
       {% elsif flag?(:native_ios) %}
         LibIOS.user_defaults_clear
       {% end %}
@@ -199,25 +199,25 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return keys unless env && activity
 
-        get_prefs = env.GetMethodID(env.GetObjectClass(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.CallObjectMethod(activity, get_prefs, env.NewStringUTF(@name), 0)
+        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
+        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
 
-        get_all = env.GetMethodID(env.GetObjectClass(prefs), "getAll", "()Ljava/util/Map;")
-        map = env.CallObjectMethod(prefs, get_all)
+        get_all = env.get_method_id(env.get_object_class(prefs), "getAll", "()Ljava/util/Map;")
+        map = env.call_object_method(prefs, get_all)
 
-        key_set = env.CallObjectMethod(map, env.GetMethodID(env.GetObjectClass(map), "keySet", "()Ljava/util/Set;"))
-        iterator = env.CallObjectMethod(key_set, env.GetMethodID(env.GetObjectClass(key_set), "iterator", "()Ljava/util/Iterator;"))
+        key_set = env.call_object_method(map, env.get_method_id(env.get_object_class(map), "keySet", "()Ljava/util/Set;"))
+        iterator = env.call_object_method(key_set, env.get_method_id(env.get_object_class(key_set), "iterator", "()Ljava/util/Iterator;"))
 
-        while env.CallBooleanMethod(iterator, env.GetMethodID(env.GetObjectClass(iterator), "hasNext", "()Z"))
-          jkey = env.CallObjectMethod(iterator, env.GetMethodID(env.GetObjectClass(iterator), "next", "()Ljava/lang/Object;"))
-          keys << env.GetStringUTFChars(jkey, nil).to_s
-          env.DeleteLocalRef(jkey)
+        while env.call_boolean_method(iterator, env.get_method_id(env.get_object_class(iterator), "hasNext", "()Z"))
+          jkey = env.call_object_method(iterator, env.get_method_id(env.get_object_class(iterator), "next", "()Ljava/lang/Object;"))
+          keys << env.get_string_utf_chars(jkey, nil).to_s
+          env.delete_local_ref(jkey)
         end
 
-        env.DeleteLocalRef(prefs)
-        env.DeleteLocalRef(map)
-        env.DeleteLocalRef(key_set)
-        env.DeleteLocalRef(iterator)
+        env.delete_local_ref(prefs)
+        env.delete_local_ref(map)
+        env.delete_local_ref(key_set)
+        env.delete_local_ref(iterator)
 
         keys
       {% elsif flag?(:native_ios) %}
@@ -262,35 +262,35 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.GetMethodID(env.GetObjectClass(activity), method_name, "()Ljava/io/File;")
-        dir = env.CallObjectMethod(activity, get_dir)
+        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
+        dir = env.call_object_method(activity, get_dir)
 
-        get_path = env.GetMethodID(env.GetObjectClass(dir), "getPath", "()Ljava/lang/String;")
-        path = env.CallObjectMethod(dir, get_path)
+        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
+        path = env.call_object_method(dir, get_path)
 
-        full_path = "#{env.GetStringUTFChars(path, nil).to_s}/#{filename}"
-        env.DeleteLocalRef(dir)
-        env.DeleteLocalRef(path)
+        full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
+        env.delete_local_ref(dir)
+        env.delete_local_ref(path)
 
-        file_class = env.FindClass("java/io/File")
-        file_constructor = env.GetMethodID(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.NewObject(file_class, file_constructor, env.NewStringUTF(full_path))
+        file_class = env.find_class("java/io/File")
+        file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
+        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
-        fos_class = env.FindClass("java/io/FileOutputStream")
-        fos_constructor = env.GetMethodID(fos_class, "<init>", "(Ljava/io/File;)V")
-        fos = env.NewObject(fos_class, fos_constructor, file)
+        fos_class = env.find_class("java/io/FileOutputStream")
+        fos_constructor = env.get_method_id(fos_class, "<init>", "(Ljava/io/File;)V")
+        fos = env.new_object(fos_class, fos_constructor, file)
 
-        write_method = env.GetMethodID(fos_class, "write", "([B)V")
-        byte_array = env.NewByteArray(data.size)
-        env.SetByteArrayRegion(byte_array, 0, data.size, data)
-        env.CallVoidMethod(fos, write_method, byte_array)
+        write_method = env.get_method_id(fos_class, "write", "([B)V")
+        byte_array = env.new_byte_array(data.size)
+        env.set_byte_array_region(byte_array, 0, data.size, data)
+        env.call_void_method(fos, write_method, byte_array)
 
-        close_method = env.GetMethodID(fos_class, "close", "()V")
-        env.CallVoidMethod(fos, close_method)
+        close_method = env.get_method_id(fos_class, "close", "()V")
+        env.call_void_method(fos, close_method)
 
-        env.DeleteLocalRef(file)
-        env.DeleteLocalRef(fos)
-        env.DeleteLocalRef(byte_array)
+        env.delete_local_ref(file)
+        env.delete_local_ref(fos)
+        env.delete_local_ref(byte_array)
 
         true
       {% elsif flag?(:native_ios) %}
@@ -316,46 +316,46 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.GetMethodID(env.GetObjectClass(activity), method_name, "()Ljava/io/File;")
-        dir = env.CallObjectMethod(activity, get_dir)
+        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
+        dir = env.call_object_method(activity, get_dir)
 
-        get_path = env.GetMethodID(env.GetObjectClass(dir), "getPath", "()Ljava/lang/String;")
-        path = env.CallObjectMethod(dir, get_path)
+        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
+        path = env.call_object_method(dir, get_path)
 
-        full_path = "#{env.GetStringUTFChars(path, nil).to_s}/#{filename}"
-        env.DeleteLocalRef(dir)
-        env.DeleteLocalRef(path)
+        full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
+        env.delete_local_ref(dir)
+        env.delete_local_ref(path)
 
-        file_class = env.FindClass("java/io/File")
-        file_constructor = env.GetMethodID(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.NewObject(file_class, file_constructor, env.NewStringUTF(full_path))
+        file_class = env.find_class("java/io/File")
+        file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
+        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
-        fis_class = env.FindClass("java/io/FileInputStream")
-        fis_constructor = env.GetMethodID(fis_class, "<init>", "(Ljava/io/File;)V")
-        fis = env.NewObject(fis_class, fis_constructor, file)
+        fis_class = env.find_class("java/io/FileInputStream")
+        fis_constructor = env.get_method_id(fis_class, "<init>", "(Ljava/io/File;)V")
+        fis = env.new_object(fis_class, fis_constructor, file)
 
-        available = env.GetMethodID(fis_class, "available", "()I")
-        size = env.CallIntMethod(fis, available)
+        available = env.get_method_id(fis_class, "available", "()I")
+        size = env.call_int_method(fis, available)
 
         if size <= 0
-          env.DeleteLocalRef(file)
-          env.DeleteLocalRef(fis)
+          env.delete_local_ref(file)
+          env.delete_local_ref(fis)
           return nil
         end
 
-        byte_array = env.NewByteArray(size)
-        read_method = env.GetMethodID(fis_class, "read", "([B)I")
-        env.CallIntMethod(fis, read_method, byte_array)
+        byte_array = env.new_byte_array(size)
+        read_method = env.get_method_id(fis_class, "read", "([B)I")
+        env.call_int_method(fis, read_method, byte_array)
 
-        close_method = env.GetMethodID(fis_class, "close", "()V")
-        env.CallVoidMethod(fis, close_method)
+        close_method = env.get_method_id(fis_class, "close", "()V")
+        env.call_void_method(fis, close_method)
 
         data = Bytes.new(size)
-        env.GetByteArrayRegion(byte_array, 0, size, data)
+        env.get_byte_array_region(byte_array, 0, size, data)
 
-        env.DeleteLocalRef(file)
-        env.DeleteLocalRef(fis)
-        env.DeleteLocalRef(byte_array)
+        env.delete_local_ref(file)
+        env.delete_local_ref(fis)
+        env.delete_local_ref(byte_array)
 
         data
       {% elsif flag?(:native_ios) %}
@@ -390,24 +390,24 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.GetMethodID(env.GetObjectClass(activity), method_name, "()Ljava/io/File;")
-        dir = env.CallObjectMethod(activity, get_dir)
+        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
+        dir = env.call_object_method(activity, get_dir)
 
-        get_path = env.GetMethodID(env.GetObjectClass(dir), "getPath", "()Ljava/lang/String;")
-        path = env.CallObjectMethod(dir, get_path)
+        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
+        path = env.call_object_method(dir, get_path)
 
-        full_path = "#{env.GetStringUTFChars(path, nil).to_s}/#{filename}"
-        env.DeleteLocalRef(dir)
-        env.DeleteLocalRef(path)
+        full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
+        env.delete_local_ref(dir)
+        env.delete_local_ref(path)
 
-        file_class = env.FindClass("java/io/File")
-        file_constructor = env.GetMethodID(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.NewObject(file_class, file_constructor, env.NewStringUTF(full_path))
+        file_class = env.find_class("java/io/File")
+        file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
+        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
-        exists_method = env.GetMethodID(file_class, "exists", "()Z")
-        result = env.CallBooleanMethod(file, exists_method)
+        exists_method = env.get_method_id(file_class, "exists", "()Z")
+        result = env.call_boolean_method(file, exists_method)
 
-        env.DeleteLocalRef(file)
+        env.delete_local_ref(file)
 
         result
       {% elsif flag?(:native_ios) %}
@@ -429,24 +429,24 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.GetMethodID(env.GetObjectClass(activity), method_name, "()Ljava/io/File;")
-        dir = env.CallObjectMethod(activity, get_dir)
+        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
+        dir = env.call_object_method(activity, get_dir)
 
-        get_path = env.GetMethodID(env.GetObjectClass(dir), "getPath", "()Ljava/lang/String;")
-        path = env.CallObjectMethod(dir, get_path)
+        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
+        path = env.call_object_method(dir, get_path)
 
-        full_path = "#{env.GetStringUTFChars(path, nil).to_s}/#{filename}"
-        env.DeleteLocalRef(dir)
-        env.DeleteLocalRef(path)
+        full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
+        env.delete_local_ref(dir)
+        env.delete_local_ref(path)
 
-        file_class = env.FindClass("java/io/File")
-        file_constructor = env.GetMethodID(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.NewObject(file_class, file_constructor, env.NewStringUTF(full_path))
+        file_class = env.find_class("java/io/File")
+        file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
+        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
-        delete_method = env.GetMethodID(file_class, "delete", "()Z")
-        result = env.CallBooleanMethod(file, delete_method)
+        delete_method = env.get_method_id(file_class, "delete", "()Z")
+        result = env.call_boolean_method(file, delete_method)
 
-        env.DeleteLocalRef(file)
+        env.delete_local_ref(file)
 
         result
       {% elsif flag?(:native_ios) %}
@@ -469,38 +469,38 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.GetMethodID(env.GetObjectClass(activity), method_name, "()Ljava/io/File;")
-        dir = env.CallObjectMethod(activity, get_dir)
+        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
+        dir = env.call_object_method(activity, get_dir)
 
-        get_path = env.GetMethodID(env.GetObjectClass(dir), "getPath", "()Ljava/lang/String;")
-        path = env.CallObjectMethod(dir, get_path)
+        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
+        path = env.call_object_method(dir, get_path)
 
-        full_path = env.GetStringUTFChars(path, nil).to_s
+        full_path = env.get_string_utf_chars(path, nil).to_s
         if !directory.empty?
           full_path = "#{full_path}/#{directory}"
         end
-        env.DeleteLocalRef(dir)
-        env.DeleteLocalRef(path)
+        env.delete_local_ref(dir)
+        env.delete_local_ref(path)
 
-        file_class = env.FindClass("java/io/File")
-        file_constructor = env.GetMethodID(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.NewObject(file_class, file_constructor, env.NewStringUTF(full_path))
+        file_class = env.find_class("java/io/File")
+        file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
+        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
-        list_method = env.GetMethodID(file_class, "list", "()[Ljava/lang/String;")
-        array = env.CallObjectMethod(file, list_method)
+        list_method = env.get_method_id(file_class, "list", "()[Ljava/lang/String;")
+        array = env.call_object_method(file, list_method)
 
         if array
-          length = env.GetArrayLength(array.as(Void*))
+          length = env.get_array_length(array.as(Void*))
           length.times do |i|
-            jfile = env.GetObjectArrayElement(array, i)
-            filename = env.GetStringUTFChars(jfile, nil).to_s
+            jfile = env.get_object_array_element(array, i)
+            filename = env.get_string_utf_chars(jfile, nil).to_s
             files << filename
-            env.DeleteLocalRef(jfile)
+            env.delete_local_ref(jfile)
           end
-          env.DeleteLocalRef(array)
+          env.delete_local_ref(array)
         end
 
-        env.DeleteLocalRef(file)
+        env.delete_local_ref(file)
 
         files
       {% elsif flag?(:native_ios) %}

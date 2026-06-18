@@ -37,9 +37,9 @@ module Native::UI
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        rv_class = env.FindClass("androidx/recyclerview/widget/RecyclerView")
-        constructor = env.GetMethodID(rv_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.NewObject(rv_class, constructor, activity).to_i64
+        rv_class = env.find_class("androidx/recyclerview/widget/RecyclerView")
+        constructor = env.get_method_id(rv_class, "<init>", "(Landroid/content/Context;)V")
+        @native = env.new_object(rv_class, constructor, activity).to_i64
 
         set_layout_manager(LayoutManager::Linear)
       {% elsif flag?(:native_ios) %}
@@ -55,17 +55,17 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        rv_adapter_class = env.FindClass("com/nativecr/RecyclerViewAdapter")
+        rv_adapter_class = env.find_class("com/nativecr/RecyclerViewAdapter")
         if rv_adapter_class == Pointer(Void).null
           return
         end
 
-        adapter_obj = env.NewObject(rv_adapter_class, env.GetMethodID(rv_adapter_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+        adapter_obj = env.new_object(rv_adapter_class, env.get_method_id(rv_adapter_class, "<init>", "(J)V"), 0i64)
 
-        set_adapter = env.GetMethodID(env.GetObjectClass(@native), "setAdapter", "(Landroidx/recyclerview/widget/RecyclerView$Adapter;)V")
-        env.CallVoidMethod(@native, set_adapter, adapter_obj)
+        set_adapter = env.get_method_id(env.get_object_class(@native), "setAdapter", "(Landroidx/recyclerview/widget/RecyclerView$Adapter;)V")
+        env.call_void_method(@native, set_adapter, adapter_obj)
       {% elsif flag?(:native_ios) %}
-        LibIOS.table_view_set_delegate(@native, Pointer(Void).address.to_i64)
+        LibIOS.table_view_set_delegate(@native, 0i64)
       {% end %}
     end
 
@@ -89,26 +89,26 @@ module Native::UI
 
         lm_class = case manager
                    when LayoutManager::Linear
-                     env.FindClass("androidx/recyclerview/widget/LinearLayoutManager")
+                     env.find_class("androidx/recyclerview/widget/LinearLayoutManager")
                    when LayoutManager::Grid
-                     env.FindClass("androidx/recyclerview/widget/GridLayoutManager")
+                     env.find_class("androidx/recyclerview/widget/GridLayoutManager")
                    when LayoutManager::StaggeredGrid
-                     env.FindClass("androidx/recyclerview/widget/StaggeredGridLayoutManager")
+                     env.find_class("androidx/recyclerview/widget/StaggeredGridLayoutManager")
                    end
 
         if manager == LayoutManager::Linear
-          constructor = env.GetMethodID(lm_class, "<init>", "(Landroid/content/Context;IZ)V")
-          lm = env.NewObject(lm_class, constructor, activity, 1, false)
+          constructor = env.get_method_id(lm_class, "<init>", "(Landroid/content/Context;IZ)V")
+          lm = env.new_object(lm_class, constructor, activity, 1, false)
         elsif manager == LayoutManager::Grid
-          constructor = env.GetMethodID(lm_class, "<init>", "(Landroid/content/Context;I)V")
-          lm = env.NewObject(lm_class, constructor, activity, 2)
+          constructor = env.get_method_id(lm_class, "<init>", "(Landroid/content/Context;I)V")
+          lm = env.new_object(lm_class, constructor, activity, 2)
         else
-          constructor = env.GetMethodID(lm_class, "<init>", "(II)V")
-          lm = env.NewObject(lm_class, constructor, 2, 1)
+          constructor = env.get_method_id(lm_class, "<init>", "(II)V")
+          lm = env.new_object(lm_class, constructor, 2, 1)
         end
 
-        set_lm = env.GetMethodID(env.GetObjectClass(@native), "setLayoutManager", "(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V")
-        env.CallVoidMethod(@native, set_lm, lm)
+        set_lm = env.get_method_id(env.get_object_class(@native), "setLayoutManager", "(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V")
+        env.call_void_method(@native, set_lm, lm)
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_set_style(@native, manager.value)
       {% end %}
@@ -128,11 +128,11 @@ module Native::UI
         return unless env && @native != 0
 
         if smooth
-          smooth_scroll = env.GetMethodID(env.GetObjectClass(@native), "smoothScrollToPosition", "(I)V")
-          env.CallVoidMethod(@native, smooth_scroll, position)
+          smooth_scroll = env.get_method_id(env.get_object_class(@native), "smoothScrollToPosition", "(I)V")
+          env.call_void_method(@native, smooth_scroll, position)
         else
-          scroll_to = env.GetMethodID(env.GetObjectClass(@native), "scrollToPosition", "(I)V")
-          env.CallVoidMethod(@native, scroll_to, position)
+          scroll_to = env.get_method_id(env.get_object_class(@native), "scrollToPosition", "(I)V")
+          env.call_void_method(@native, scroll_to, position)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_scroll_to_row(@native, position, smooth)
@@ -148,12 +148,12 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        get_adapter = env.GetMethodID(env.GetObjectClass(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
-        adapter_obj = env.CallObjectMethod(@native, get_adapter)
+        get_adapter = env.get_method_id(env.get_object_class(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
+        adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          notify_changed = env.GetMethodID(env.GetObjectClass(adapter_obj), "notifyDataSetChanged", "()V")
-          env.CallVoidMethod(adapter_obj, notify_changed)
+          notify_changed = env.get_method_id(env.get_object_class(adapter_obj), "notifyDataSetChanged", "()V")
+          env.call_void_method(adapter_obj, notify_changed)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_reload_data(@native)
@@ -165,12 +165,12 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        get_adapter = env.GetMethodID(env.GetObjectClass(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
-        adapter_obj = env.CallObjectMethod(@native, get_adapter)
+        get_adapter = env.get_method_id(env.get_object_class(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
+        adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          notify_insert = env.GetMethodID(env.GetObjectClass(adapter_obj), "notifyItemInserted", "(I)V")
-          env.CallVoidMethod(adapter_obj, notify_insert, position)
+          notify_insert = env.get_method_id(env.get_object_class(adapter_obj), "notifyItemInserted", "(I)V")
+          env.call_void_method(adapter_obj, notify_insert, position)
         end
       {% end %}
     end
@@ -180,12 +180,12 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        get_adapter = env.GetMethodID(env.GetObjectClass(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
-        adapter_obj = env.CallObjectMethod(@native, get_adapter)
+        get_adapter = env.get_method_id(env.get_object_class(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
+        adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          notify_remove = env.GetMethodID(env.GetObjectClass(adapter_obj), "notifyItemRemoved", "(I)V")
-          env.CallVoidMethod(adapter_obj, notify_remove, position)
+          notify_remove = env.get_method_id(env.get_object_class(adapter_obj), "notifyItemRemoved", "(I)V")
+          env.call_void_method(adapter_obj, notify_remove, position)
         end
       {% end %}
     end

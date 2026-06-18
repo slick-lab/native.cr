@@ -39,24 +39,24 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return "Unknown" unless env && activity
 
-      get_content_resolver = env.GetMethodID(env.GetObjectClass(activity), "getContentResolver", "()Landroid/content/ContentResolver;")
-      resolver = env.CallObjectMethod(activity, get_content_resolver)
+      get_content_resolver = env.get_method_id(env.get_object_class(activity), "getContentResolver", "()Landroid/content/ContentResolver;")
+      resolver = env.call_object_method(activity, get_content_resolver)
 
-      settings_class = env.FindClass("android/provider/Settings$Secure")
-      get_string = env.GetStaticMethodID(settings_class, "getString", "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;")
+      settings_class = env.find_class("android/provider/Settings$Secure")
+      get_string = env.get_static_method_id(settings_class, "getString", "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;")
 
-      android_id = env.NewStringUTF("android_id")
-      model = env.CallStaticObjectMethod(settings_class, get_string, resolver, android_id)
+      android_id = env.new_string_utf("android_id")
+      model = env.call_static_object_method(settings_class, get_string, resolver, android_id)
 
       result = if model
-                 env.GetStringUTFChars(model, nil).to_s
+                 env.get_string_utf_chars(model, nil).to_s
                else
                  "Unknown"
                end
 
-      env.DeleteLocalRef(resolver)
-      env.DeleteLocalRef(model)
-      env.DeleteLocalRef(android_id)
+      env.delete_local_ref(resolver)
+      env.delete_local_ref(model)
+      env.delete_local_ref(android_id)
 
       result
     elsif ios?
@@ -78,13 +78,13 @@ module Native::Platform
       env = Native::Android::JNI.env
       return "Unknown" unless env
 
-      version_class = env.FindClass("android/os/Build$VERSION")
-      release_field = env.GetStaticFieldID(version_class, "RELEASE", "Ljava/lang/String;")
-      release = env.GetStaticObjectField(version_class, release_field)
+      version_class = env.find_class("android/os/Build$VERSION")
+      release_field = env.get_static_field_id(version_class, "RELEASE", "Ljava/lang/String;")
+      release = env.get_static_object_field(version_class, release_field)
 
       if release
-        result = env.GetStringUTFChars(release, nil).to_s
-        env.DeleteLocalRef(release)
+        result = env.get_string_utf_chars(release, nil).to_s
+        env.delete_local_ref(release)
         result
       else
         "Unknown"
@@ -109,13 +109,13 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return 0 unless env && activity
 
-      resources = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getResources", "()Landroid/content/res/Resources;"))
-      metrics = env.CallObjectMethod(resources, env.GetMethodID(env.GetObjectClass(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+      resources = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getResources", "()Landroid/content/res/Resources;"))
+      metrics = env.call_object_method(resources, env.get_method_id(env.get_object_class(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
 
-      width = env.GetIntField(metrics, env.GetFieldID(env.GetObjectClass(metrics), "widthPixels", "I"))
+      width = env.get_int_field(metrics, env.get_field_id(env.get_object_class(metrics), "widthPixels", "I"))
 
-      env.DeleteLocalRef(resources)
-      env.DeleteLocalRef(metrics)
+      env.delete_local_ref(resources)
+      env.delete_local_ref(metrics)
 
       width
     elsif ios?
@@ -131,13 +131,13 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return 0 unless env && activity
 
-      resources = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getResources", "()Landroid/content/res/Resources;"))
-      metrics = env.CallObjectMethod(resources, env.GetMethodID(env.GetObjectClass(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+      resources = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getResources", "()Landroid/content/res/Resources;"))
+      metrics = env.call_object_method(resources, env.get_method_id(env.get_object_class(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
 
-      height = env.GetIntField(metrics, env.GetFieldID(env.GetObjectClass(metrics), "heightPixels", "I"))
+      height = env.get_int_field(metrics, env.get_field_id(env.get_object_class(metrics), "heightPixels", "I"))
 
-      env.DeleteLocalRef(resources)
-      env.DeleteLocalRef(metrics)
+      env.delete_local_ref(resources)
+      env.delete_local_ref(metrics)
 
       height
     elsif ios?
@@ -153,13 +153,13 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return 0.0f32 unless env && activity
 
-      resources = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getResources", "()Landroid/content/res/Resources;"))
-      metrics = env.CallObjectMethod(resources, env.GetMethodID(env.GetObjectClass(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+      resources = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getResources", "()Landroid/content/res/Resources;"))
+      metrics = env.call_object_method(resources, env.get_method_id(env.get_object_class(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
 
-      density = env.GetFloatField(metrics, env.GetFieldID(env.GetObjectClass(metrics), "density", "F"))
+      density = env.GetFloatField(metrics, env.get_field_id(env.get_object_class(metrics), "density", "F"))
 
-      env.DeleteLocalRef(resources)
-      env.DeleteLocalRef(metrics)
+      env.delete_local_ref(resources)
+      env.delete_local_ref(metrics)
 
       density
     elsif ios?
@@ -175,12 +175,12 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return unless env && activity
 
-      vibrator = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("vibrator"))
+      vibrator = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("vibrator"))
 
       if vibrator
-        vibrate_method = env.GetMethodID(env.GetObjectClass(vibrator), "vibrate", "(J)V")
-        env.CallVoidMethod(vibrator, vibrate_method, duration_ms.to_i64)
-        env.DeleteLocalRef(vibrator)
+        vibrate_method = env.get_method_id(env.get_object_class(vibrator), "vibrate", "(J)V")
+        env.call_void_method(vibrator, vibrate_method, duration_ms.to_i64)
+        env.delete_local_ref(vibrator)
       end
     elsif ios?
       LibIOS.vibrate
@@ -193,19 +193,19 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return false unless env && activity
 
-      uri_class = env.FindClass("android/net/Uri")
-      parse_method = env.GetStaticMethodID(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
-      uri = env.CallStaticObjectMethod(uri_class, parse_method, env.NewStringUTF(url))
+      uri_class = env.find_class("android/net/Uri")
+      parse_method = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
+      uri = env.call_static_object_method(uri_class, parse_method, env.new_string_utf(url))
 
-      intent_class = env.FindClass("android/content/Intent")
-      intent_constructor = env.GetMethodID(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V")
-      intent = env.NewObject(intent_class, intent_constructor, env.NewStringUTF("android.intent.action.VIEW"), uri)
+      intent_class = env.find_class("android/content/Intent")
+      intent_constructor = env.get_method_id(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V")
+      intent = env.new_object(intent_class, intent_constructor, env.new_string_utf("android.intent.action.VIEW"), uri)
 
-      start_activity = env.GetMethodID(env.GetObjectClass(activity), "startActivity", "(Landroid/content/Intent;)V")
-      env.CallVoidMethod(activity, start_activity, intent)
+      start_activity = env.get_method_id(env.get_object_class(activity), "startActivity", "(Landroid/content/Intent;)V")
+      env.call_void_method(activity, start_activity, intent)
 
-      env.DeleteLocalRef(uri)
-      env.DeleteLocalRef(intent)
+      env.delete_local_ref(uri)
+      env.delete_local_ref(intent)
 
       true
     elsif ios?
@@ -221,27 +221,27 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return unless env && activity
 
-      intent_class = env.FindClass("android/content/Intent")
-      intent_constructor = env.GetMethodID(intent_class, "<init>", "()V")
-      intent = env.NewObject(intent_class, intent_constructor)
+      intent_class = env.find_class("android/content/Intent")
+      intent_constructor = env.get_method_id(intent_class, "<init>", "()V")
+      intent = env.new_object(intent_class, intent_constructor)
 
-      set_action = env.GetMethodID(intent_class, "setAction", "(Ljava/lang/String;)Landroid/content/Intent;")
-      env.CallObjectMethod(intent, set_action, env.NewStringUTF("android.intent.action.SEND"))
+      set_action = env.get_method_id(intent_class, "setAction", "(Ljava/lang/String;)Landroid/content/Intent;")
+      env.call_object_method(intent, set_action, env.new_string_utf("android.intent.action.SEND"))
 
-      put_extra = env.GetMethodID(intent_class, "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;")
-      env.CallObjectMethod(intent, put_extra, env.NewStringUTF("android.intent.extra.TEXT"), env.NewStringUTF(text))
+      put_extra = env.get_method_id(intent_class, "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;")
+      env.call_object_method(intent, put_extra, env.new_string_utf("android.intent.extra.TEXT"), env.new_string_utf(text))
 
-      set_type = env.GetMethodID(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
-      env.CallObjectMethod(intent, set_type, env.NewStringUTF("text/plain"))
+      set_type = env.get_method_id(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
+      env.call_object_method(intent, set_type, env.new_string_utf("text/plain"))
 
-      create_chooser = env.GetStaticMethodID(intent_class, "createChooser", "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;")
-      chooser = env.CallStaticObjectMethod(intent_class, create_chooser, intent, env.NewStringUTF(title))
+      create_chooser = env.get_static_method_id(intent_class, "createChooser", "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;")
+      chooser = env.call_static_object_method(intent_class, create_chooser, intent, env.new_string_utf(title))
 
-      start_activity = env.GetMethodID(env.GetObjectClass(activity), "startActivity", "(Landroid/content/Intent;)V")
-      env.CallVoidMethod(activity, start_activity, chooser)
+      start_activity = env.get_method_id(env.get_object_class(activity), "startActivity", "(Landroid/content/Intent;)V")
+      env.call_void_method(activity, start_activity, chooser)
 
-      env.DeleteLocalRef(intent)
-      env.DeleteLocalRef(chooser)
+      env.delete_local_ref(intent)
+      env.delete_local_ref(chooser)
     elsif ios?
       LibIOS.share(text.to_utf8, title.to_utf8)
     end
@@ -253,18 +253,18 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return unless env && activity
 
-      clipboard = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("clipboard"))
+      clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
 
       if clipboard
-        clip_class = env.FindClass("android/content/ClipData")
-        new_plain_text = env.GetStaticMethodID(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
-        clip = env.CallStaticObjectMethod(clip_class, new_plain_text, env.NewStringUTF("text"), env.NewStringUTF(text))
+        clip_class = env.find_class("android/content/ClipData")
+        new_plain_text = env.get_static_method_id(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
+        clip = env.call_static_object_method(clip_class, new_plain_text, env.new_string_utf("text"), env.new_string_utf(text))
 
-        set_clip = env.GetMethodID(env.GetObjectClass(clipboard), "setPrimaryClip", "(Landroid/content/ClipData;)V")
-        env.CallVoidMethod(clipboard, set_clip, clip)
+        set_clip = env.get_method_id(env.get_object_class(clipboard), "setPrimaryClip", "(Landroid/content/ClipData;)V")
+        env.call_void_method(clipboard, set_clip, clip)
 
-        env.DeleteLocalRef(clipboard)
-        env.DeleteLocalRef(clip)
+        env.delete_local_ref(clipboard)
+        env.delete_local_ref(clip)
       end
     elsif ios?
       LibIOS.copy_to_clipboard(text.to_utf8)
@@ -277,29 +277,29 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return "" unless env && activity
 
-      clipboard = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("clipboard"))
+      clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
 
       if clipboard
-        has_text = env.GetMethodID(env.GetObjectClass(clipboard), "hasPrimaryClip", "()Z")
-        if env.CallBooleanMethod(clipboard, has_text)
-          get_clip = env.GetMethodID(env.GetObjectClass(clipboard), "getPrimaryClip", "()Landroid/content/ClipData;")
-          clip = env.CallObjectMethod(clipboard, get_clip)
+        has_text = env.get_method_id(env.get_object_class(clipboard), "hasPrimaryClip", "()Z")
+        if env.call_boolean_method(clipboard, has_text)
+          get_clip = env.get_method_id(env.get_object_class(clipboard), "getPrimaryClip", "()Landroid/content/ClipData;")
+          clip = env.call_object_method(clipboard, get_clip)
 
-          get_item = env.GetMethodID(env.GetObjectClass(clip), "getItemAt", "(I)Landroid/content/ClipData$Item;")
-          item = env.CallObjectMethod(clip, get_item, 0)
+          get_item = env.get_method_id(env.get_object_class(clip), "getItemAt", "(I)Landroid/content/ClipData$Item;")
+          item = env.call_object_method(clip, get_item, 0)
 
-          get_text = env.GetMethodID(env.GetObjectClass(item), "getText", "()Ljava/lang/CharSequence;")
-          text = env.CallObjectMethod(item, get_text)
+          get_text = env.get_method_id(env.get_object_class(item), "getText", "()Ljava/lang/CharSequence;")
+          text = env.call_object_method(item, get_text)
 
-          result = env.GetStringUTFChars(text, nil).to_s
+          result = env.get_string_utf_chars(text, nil).to_s
 
-          env.DeleteLocalRef(clipboard)
-          env.DeleteLocalRef(clip)
-          env.DeleteLocalRef(item)
+          env.delete_local_ref(clipboard)
+          env.delete_local_ref(clip)
+          env.delete_local_ref(item)
 
           return result
         end
-        env.DeleteLocalRef(clipboard)
+        env.delete_local_ref(clipboard)
       end
       ""
     elsif ios?
@@ -322,14 +322,14 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return 0 unless env && activity
 
-      intent_filter = env.NewObject(env.FindClass("android/content/IntentFilter"), env.GetMethodID(env.FindClass("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.NewStringUTF("android.intent.action.BATTERY_CHANGED"))
-      battery_status = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
+      intent_filter = env.new_object(env.find_class("android/content/IntentFilter"), env.get_method_id(env.find_class("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.new_string_utf("android.intent.action.BATTERY_CHANGED"))
+      battery_status = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
 
       if battery_status
-        level = env.GetIntField(battery_status, env.GetFieldID(env.GetObjectClass(battery_status), "level", "I"))
-        scale = env.GetIntField(battery_status, env.GetFieldID(env.GetObjectClass(battery_status), "scale", "I"))
+        level = env.get_int_field(battery_status, env.get_field_id(env.get_object_class(battery_status), "level", "I"))
+        scale = env.get_int_field(battery_status, env.get_field_id(env.get_object_class(battery_status), "scale", "I"))
         result = (level * 100 / scale)
-        env.DeleteLocalRef(battery_status)
+        env.delete_local_ref(battery_status)
         result
       else
         0
@@ -347,13 +347,13 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return false unless env && activity
 
-      intent_filter = env.NewObject(env.FindClass("android/content/IntentFilter"), env.GetMethodID(env.FindClass("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.NewStringUTF("android.intent.action.BATTERY_CHANGED"))
-      battery_status = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
+      intent_filter = env.new_object(env.find_class("android/content/IntentFilter"), env.get_method_id(env.find_class("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.new_string_utf("android.intent.action.BATTERY_CHANGED"))
+      battery_status = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
 
       if battery_status
-        plugged = env.GetIntField(battery_status, env.GetFieldID(env.GetObjectClass(battery_status), "plugged", "I"))
+        plugged = env.get_int_field(battery_status, env.get_field_id(env.get_object_class(battery_status), "plugged", "I"))
         result = plugged != 0
-        env.DeleteLocalRef(battery_status)
+        env.delete_local_ref(battery_status)
         result
       else
         false

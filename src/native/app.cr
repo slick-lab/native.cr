@@ -56,7 +56,7 @@ module Native
 
     def run : Nil
       loop do
-        sleep 0.016
+        sleep 0.016.seconds
       end
     end
 

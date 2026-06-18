@@ -36,42 +36,42 @@ module Native::Share
       activity = Native::Android::JNI.activity
       retun unless env && activity
 
-      intent_class = env.FindClass("android/content/Intent")
-      intent_constructor = env.GetMethodID(intent_class, "<init>", "()V")
-      intent = env.NewObject(intent_class, intent_constructor)
+      intent_class = env.find_class("android/content/Intent")
+      intent_constructor = env.get_method_id(intent_class, "<init>", "()V")
+      intent = env.new_object(intent_class, intent_constructor)
 
-      set_action = env.GetMethodID(intent_class, "setAction", "(Ljava/lang/String;)Landroid/content/Intent;")
-      env.CallObjectMethod(intent, set_action, env.NewStringUTF("android.intent.action.SEND"))
+      set_action = env.get_method_id(intent_class, "setAction", "(Ljava/lang/String;)Landroid/content/Intent;")
+      env.call_object_method(intent, set_action, env.new_string_utf("android.intent.action.SEND"))
 
       if @options.text && !@options.text.empty?
-        put_extra = env.GetMethodID(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/string:)Landroid/content/Intent;")
-        env.CallObjectMethod(intent, put_extra, env.NewStringUTF("android.intent.extra.TEXT"), env.NewStringUTF(@options.text))
+        put_extra = env.get_method_id(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/string:)Landroid/content/Intent;")
+        env.call_object_method(intent, put_extra, env.new_string_utf("android.intent.extra.TEXT"), env.new_string_utf(@options.text))
       end
 
       if @options.url && !@options.url.empty?
-        put_extra = env.GetMethodID(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/string:)Landroid/content/Intent;")
-        env.CallObjectMethod(intent, put_extra, env.NewStringUTF("android.intent.extra.TEXT"), env.NewStringUTF(@options.url))
+        put_extra = env.get_method_id(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/string:)Landroid/content/Intent;")
+        env.call_object_method(intent, put_extra, env.new_string_utf("android.intent.extra.TEXT"), env.new_string_utf(@options.url))
       end
 
       if @options.image_path && !@options.image_path.empty?
-        uri_class = env.FindClass("android/net/Uri")
-        uri_parse = env.GetStaticMethodID(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
-        image_uri = env.CallStaticObjectMethod(uri_class, uri_parse, env.NewStringUTF(@options.image_path))
+        uri_class = env.find_class("android/net/Uri")
+        uri_parse = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
+        image_uri = env.call_static_object_method(uri_class, uri_parse, env.new_string_utf(@options.image_path))
 
-        put_extra = env.GetMethodID(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/Object;)Landroid/content/Intent;")
-        env.CallObjectMethod(intent, put_extra, env.NewStringUTF("android.intent.extra.STREAM"), image_uri)
+        put_extra = env.get_method_id(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/Object;)Landroid/content/Intent;")
+        env.call_object_method(intent, put_extra, env.new_string_utf("android.intent.extra.STREAM"), image_uri)
 
-        set_type = env.GetMethodID(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
-        env.CallObjectMethod(intent, set_type, env.NewStringUTF(@options.mime_type))
+        set_type = env.get_method_id(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
+        env.call_object_method(intent, set_type, env.new_string_utf(@options.mime_type))
       else
-        set_type = env.GetMethodID(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
-        env.CallObjectMethod(intent, set_type, env.NewStringUTF(@options.mime_type))
+        set_type = env.get_method_id(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
+        env.call_object_method(intent, set_type, env.new_string_utf(@options.mime_type))
       end
 
-      create_chooser = env.GetStaticMethodID(intent_class, "createChooser", "(Landroid/content/Intent;Ljava/lang/String;)Landroid/content/Intent;")
-      chooser = env.CallStaticObjectMethod(intent_class, create_chooser, intent, env.NewStringUTF(@options.title))
-      start_activity = env.GetMethodID(activity.class, "startActivity", "(Landroid/content/Intent;)V")
-      env.CallVoidMethod(activity, start_activity, chooser)
+      create_chooser = env.get_static_method_id(intent_class, "createChooser", "(Landroid/content/Intent;Ljava/lang/String;)Landroid/content/Intent;")
+      chooser = env.call_static_object_method(intent_class, create_chooser, intent, env.new_string_utf(@options.title))
+      start_activity = env.get_method_id(activity.class, "startActivity", "(Landroid/content/Intent;)V")
+      env.call_void_method(activity, start_activity, chooser)
 
       @on_complete.try &.call(true)
     end

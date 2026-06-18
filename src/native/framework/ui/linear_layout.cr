@@ -37,9 +37,9 @@ module Native::UI
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        layout_class = env.FindClass("android/widget/LinearLayout")
-        constructor = env.GetMethodID(layout_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.NewObject(layout_class, constructor, activity).to_i64
+        layout_class = env.find_class("android/widget/LinearLayout")
+        constructor = env.get_method_id(layout_class, "<init>", "(Landroid/content/Context;)V")
+        @native = env.new_object(layout_class, constructor, activity).to_i64
 
         set_orientation
       {% elsif flag?(:native_ios) %}
@@ -66,8 +66,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_gravity = env.GetMethodID(env.GetObjectClass(@native), "setGravity", "(I)V")
-        env.CallVoidMethod(@native, set_gravity, value.value)
+        set_gravity = env.get_method_id(env.get_object_class(@native), "setGravity", "(I)V")
+        env.call_void_method(@native, set_gravity, value.value)
       {% end %}
     end
 
@@ -80,8 +80,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_weight_sum = env.GetMethodID(env.GetObjectClass(@native), "setWeightSum", "(F)V")
-        env.CallVoidMethod(@native, set_weight_sum, value)
+        set_weight_sum = env.get_method_id(env.get_object_class(@native), "setWeightSum", "(F)V")
+        env.call_void_method(@native, set_weight_sum, value)
       {% end %}
     end
 
@@ -98,8 +98,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_padding = env.GetMethodID(env.GetObjectClass(@native), "setPadding", "(IIII)V")
-        env.CallVoidMethod(@native, set_padding, left, top, right, bottom)
+        set_padding = env.get_method_id(env.get_object_class(@native), "setPadding", "(IIII)V")
+        env.call_void_method(@native, set_padding, left, top, right, bottom)
       {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_set_padding(@native, left, top, right, bottom)
       {% end %}
@@ -110,18 +110,18 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
 
-        add_view = env.GetMethodID(env.GetObjectClass(@native), "addView", "(Landroid/view/View;)V")
-        env.CallVoidMethod(@native, add_view, view.native_ptr)
+        add_view = env.get_method_id(env.get_object_class(@native), "addView", "(Landroid/view/View;)V")
+        env.call_void_method(@native, add_view, view.native_ptr)
 
         if weight > 0
-          layout_params = env.CallObjectMethod(view.native_ptr, env.GetMethodID(env.GetObjectClass(view.native_ptr), "getLayoutParams", "()Landroid/view/ViewGroup$LayoutParams;"))
+          layout_params = env.call_object_method(view.native_ptr, env.get_method_id(env.get_object_class(view.native_ptr), "getLayoutParams", "()Landroid/view/ViewGroup$LayoutParams;"))
           if layout_params
-            linear_params_class = env.FindClass("android/widget/LinearLayout$LayoutParams")
-            if env.IsInstanceOf(layout_params, linear_params_class)
-              set_weight = env.GetMethodID(linear_params_class, "setWeight", "(F)V")
-              env.CallVoidMethod(layout_params, set_weight, weight)
-              set_layout = env.GetMethodID(env.GetObjectClass(view.native_ptr), "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V")
-              env.CallVoidMethod(view.native_ptr, set_layout, layout_params)
+            linear_params_class = env.find_class("android/widget/LinearLayout$LayoutParams")
+            if env.is_instance_of(layout_params, linear_params_class)
+              set_weight = env.get_method_id(linear_params_class, "setWeight", "(F)V")
+              env.call_void_method(layout_params, set_weight, weight)
+              set_layout = env.get_method_id(env.get_object_class(view.native_ptr), "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V")
+              env.call_void_method(view.native_ptr, set_layout, layout_params)
             end
           end
         end
@@ -140,8 +140,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
-        remove_view = env.GetMethodID(env.GetObjectClass(@native), "removeView", "(Landroid/view/View;)V")
-        env.CallVoidMethod(@native, remove_view, view.native_ptr)
+        remove_view = env.get_method_id(env.get_object_class(@native), "removeView", "(Landroid/view/View;)V")
+        env.call_void_method(@native, remove_view, view.native_ptr)
       {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_remove_view(@native, view.native_ptr)
       {% end %}
@@ -151,8 +151,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        remove_all = env.GetMethodID(env.GetObjectClass(@native), "removeAllViews", "()V")
-        env.CallVoidMethod(@native, remove_all)
+        remove_all = env.get_method_id(env.get_object_class(@native), "removeAllViews", "()V")
+        env.call_void_method(@native, remove_all)
       {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_remove_all_views(@native)
       {% end %}
@@ -162,8 +162,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return nil unless env && @native != 0
-        get_child = env.GetMethodID(env.GetObjectClass(@native), "getChildAt", "(I)Landroid/view/View;")
-        child_ptr = env.CallObjectMethod(@native, get_child, index)
+        get_child = env.get_method_id(env.get_object_class(@native), "getChildAt", "(I)Landroid/view/View;")
+        child_ptr = env.call_object_method(@native, get_child, index)
         if child_ptr != Pointer(Void).null
           view = View.new
           view.native = child_ptr.to_i64
@@ -180,8 +180,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
-        get_count = env.GetMethodID(env.GetObjectClass(@native), "getChildCount", "()I")
-        env.CallIntMethod(@native, get_count)
+        get_count = env.get_method_id(env.get_object_class(@native), "getChildCount", "()I")
+        env.call_int_method(@native, get_count)
       {% else %}
         0
       {% end %}
@@ -190,8 +190,8 @@ module Native::UI
     private def set_orientation
       env = Native::Android::JNI.env
       return unless env && @native != 0
-      set_orientation = env.GetMethodID(env.GetObjectClass(@native), "setOrientation", "(I)V")
-      env.CallVoidMethod(@native, set_orientation, @orientation == Orientation::Vertical ? 1 : 0)
+      set_orientation = env.get_method_id(env.get_object_class(@native), "setOrientation", "(I)V")
+      env.call_void_method(@native, set_orientation, @orientation == Orientation::Vertical ? 1 : 0)
     end
   end
 end

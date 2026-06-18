@@ -96,13 +96,13 @@ module Native::Payment
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
-        billing_class = env.FindClass("com/nativecr/BillingHelper")
+        billing_class = env.find_class("com/nativecr/BillingHelper")
         if billing_class == Pointer(Void).null
           return false
         end
 
-        init_method = env.GetStaticMethodID(billing_class, "init", "(Landroid/app/Activity;Ljava/lang/String;)V")
-        env.CallStaticVoidMethod(billing_class, init_method, activity, env.NewStringUTF(merchant_id))
+        init_method = env.get_static_method_id(billing_class, "init", "(Landroid/app/Activity;Ljava/lang/String;)V")
+        env.call_static_void_method(billing_class, init_method, activity, env.new_string_utf(merchant_id))
 
         setupCallbacks
       {% elsif flag?(:native_ios) %}
@@ -147,11 +147,11 @@ module Native::Payment
         env = Native::Android::JNI.env
         return false unless env
 
-        billing_class = env.FindClass("com/nativecr/BillingHelper")
+        billing_class = env.find_class("com/nativecr/BillingHelper")
         return false if billing_class == Pointer(Void).null
 
-        purchase_method = env.GetStaticMethodID(billing_class, "purchase", "(Landroid/app/Activity;Ljava/lang/String;)V")
-        env.CallStaticVoidMethod(billing_class, purchase_method, Native::Android::JNI.activity, env.NewStringUTF(product_id))
+        purchase_method = env.get_static_method_id(billing_class, "purchase", "(Landroid/app/Activity;Ljava/lang/String;)V")
+        env.call_static_void_method(billing_class, purchase_method, Native::Android::JNI.activity, env.new_string_utf(product_id))
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_purchase(product_id.to_utf8)
       {% else %}
@@ -169,11 +169,11 @@ module Native::Payment
         env = Native::Android::JNI.env
         return false unless env
 
-        billing_class = env.FindClass("com/nativecr/BillingHelper")
+        billing_class = env.find_class("com/nativecr/BillingHelper")
         return false if billing_class == Pointer(Void).null
 
-        restore_method = env.GetStaticMethodID(billing_class, "restore", "()V")
-        env.CallStaticVoidMethod(billing_class, restore_method)
+        restore_method = env.get_static_method_id(billing_class, "restore", "()V")
+        env.call_static_void_method(billing_class, restore_method)
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_restore
       {% else %}
@@ -189,11 +189,11 @@ module Native::Payment
         env = Native::Android::JNI.env
         return false unless env
 
-        billing_class = env.FindClass("com/nativecr/BillingHelper")
+        billing_class = env.find_class("com/nativecr/BillingHelper")
         return false if billing_class == Pointer(Void).null
 
-        purchased_method = env.GetStaticMethodID(billing_class, "isPurchased", "(Ljava/lang/String;)Z")
-        env.CallStaticBooleanMethod(billing_class, purchased_method, env.NewStringUTF(product_id))
+        purchased_method = env.get_static_method_id(billing_class, "isPurchased", "(Ljava/lang/String;)Z")
+        env.call_static_boolean_method(billing_class, purchased_method, env.new_string_utf(product_id))
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_is_purchased(product_id.to_utf8)
       {% else %}
@@ -208,11 +208,11 @@ module Native::Payment
         env = Native::Android::JNI.env
         return false unless env
 
-        billing_class = env.FindClass("com/nativecr/BillingHelper")
+        billing_class = env.find_class("com/nativecr/BillingHelper")
         return false if billing_class == Pointer(Void).null
 
-        active_method = env.GetStaticMethodID(billing_class, "isSubscriptionActive", "(Ljava/lang/String;)Z")
-        env.CallStaticBooleanMethod(billing_class, active_method, env.NewStringUTF(product_id))
+        active_method = env.get_static_method_id(billing_class, "isSubscriptionActive", "(Ljava/lang/String;)Z")
+        env.call_static_boolean_method(billing_class, active_method, env.new_string_utf(product_id))
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_is_subscription_active(product_id.to_utf8)
       {% else %}
@@ -225,18 +225,18 @@ module Native::Payment
         env = Native::Android::JNI.env
         return unless env
 
-        callback_class = env.FindClass("com/nativecr/BillingCallback")
+        callback_class = env.find_class("com/nativecr/BillingCallback")
         if callback_class == Pointer(Void).null
           return
         end
 
-        callback_obj = env.NewObject(callback_class, env.GetMethodID(callback_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+        callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
 
-        billing_class = env.FindClass("com/nativecr/BillingHelper")
+        billing_class = env.find_class("com/nativecr/BillingHelper")
         return if billing_class == Pointer(Void).null
 
-        set_callback = env.GetStaticMethodID(billing_class, "setCallback", "(Lcom/nativecr/BillingCallback;)V")
-        env.CallStaticVoidMethod(billing_class, set_callback, callback_obj)
+        set_callback = env.get_static_method_id(billing_class, "setCallback", "(Lcom/nativecr/BillingCallback;)V")
+        env.call_static_void_method(billing_class, set_callback, callback_obj)
       {% elsif flag?(:native_ios) %}
         # iOS callbacks are handled by the Swift bridge
       {% end %}
@@ -248,20 +248,20 @@ module Native::Payment
       env = Native::Android::JNI.env
       return products unless env
 
-      billing_class = env.FindClass("com/nativecr/BillingHelper")
+      billing_class = env.find_class("com/nativecr/BillingHelper")
       return products if billing_class == Pointer(Void).null
 
-      fetch_method = env.GetStaticMethodID(billing_class, "fetchProducts", "([Ljava/lang/String;)Ljava/lang/String;")
+      fetch_method = env.get_static_method_id(billing_class, "fetchProducts", "([Ljava/lang/String;)Ljava/lang/String;")
 
-      product_array = env.NewObjectArray(product_ids.size, env.FindClass("java/lang/String"), nil)
+      product_array = env.new_object_array(product_ids.size, env.find_class("java/lang/String"), nil)
       product_ids.each_with_index do |id, i|
-        env.SetObjectArrayElement(product_array, i, env.NewStringUTF(id))
+        env.set_object_array_element(product_array, i, env.new_string_utf(id))
       end
 
-      result = env.CallStaticObjectMethod(billing_class, fetch_method, product_array)
+      result = env.call_static_object_method(billing_class, fetch_method, product_array)
 
       if result
-        json = env.GetStringUTFChars(result, nil).to_s
+        json = env.get_string_utf_chars(result, nil).to_s
         parse_products_json(json)
       else
         [] of Product

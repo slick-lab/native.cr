@@ -17,9 +17,9 @@ module Native::UI
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        webview_class = env.FindClass("android/webkit/WebView")
-        constructor = env.GetMethodID(webview_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.NewObject(webview_class, constructor, activity).to_i64
+        webview_class = env.find_class("android/webkit/WebView")
+        constructor = env.get_method_id(webview_class, "<init>", "(Landroid/content/Context;)V")
+        @native = env.new_object(webview_class, constructor, activity).to_i64
 
         setupWebView
         setupWebViewClient
@@ -35,8 +35,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        load_url = env.GetMethodID(env.GetObjectClass(@native), "loadUrl", "(Ljava/lang/String;)V")
-        env.CallVoidMethod(@native, load_url, env.NewStringUTF(value))
+        load_url = env.get_method_id(env.get_object_class(@native), "loadUrl", "(Ljava/lang/String;)V")
+        env.call_void_method(@native, load_url, env.new_string_utf(value))
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_load_url(@native, value.to_utf8)
       {% end %}
@@ -50,8 +50,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        load_data = env.GetMethodID(env.GetObjectClass(@native), "loadDataWithBaseURL", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
-        env.CallVoidMethod(@native, load_data, env.NewStringUTF(base_url), env.NewStringUTF(html), env.NewStringUTF("text/html"), env.NewStringUTF("UTF-8"), env.NewStringUTF(""))
+        load_data = env.get_method_id(env.get_object_class(@native), "loadDataWithBaseURL", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V")
+        env.call_void_method(@native, load_data, env.new_string_utf(base_url), env.new_string_utf(html), env.new_string_utf("text/html"), env.new_string_utf("UTF-8"), env.new_string_utf(""))
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_load_html(@native, html.to_utf8, base_url.to_utf8)
       {% end %}
@@ -62,9 +62,9 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        settings = env.CallObjectMethod(@native, env.GetMethodID(env.GetObjectClass(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
-        set_js = env.GetMethodID(env.GetObjectClass(settings), "setJavaScriptEnabled", "(Z)V")
-        env.CallVoidMethod(settings, set_js, value)
+        settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
+        set_js = env.get_method_id(env.get_object_class(settings), "setJavaScriptEnabled", "(Z)V")
+        env.call_void_method(settings, set_js, value)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_set_js_enabled(@native, value)
       {% end %}
@@ -79,9 +79,9 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        settings = env.CallObjectMethod(@native, env.GetMethodID(env.GetObjectClass(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
-        set_dom = env.GetMethodID(env.GetObjectClass(settings), "setDomStorageEnabled", "(Z)V")
-        env.CallVoidMethod(settings, set_dom, value)
+        settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
+        set_dom = env.get_method_id(env.get_object_class(settings), "setDomStorageEnabled", "(Z)V")
+        env.call_void_method(settings, set_dom, value)
       {% end %}
     end
 
@@ -93,8 +93,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env && @native != 0
-        can_go = env.GetMethodID(env.GetObjectClass(@native), "canGoBack", "()Z")
-        env.CallBooleanMethod(@native, can_go)
+        can_go = env.get_method_id(env.get_object_class(@native), "canGoBack", "()Z")
+        env.call_boolean_method(@native, can_go)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_can_go_back(@native)
       {% else %}
@@ -106,8 +106,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env && @native != 0
-        can_go = env.GetMethodID(env.GetObjectClass(@native), "canGoForward", "()Z")
-        env.CallBooleanMethod(@native, can_go)
+        can_go = env.get_method_id(env.get_object_class(@native), "canGoForward", "()Z")
+        env.call_boolean_method(@native, can_go)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_can_go_forward(@native)
       {% else %}
@@ -119,8 +119,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        go = env.GetMethodID(env.GetObjectClass(@native), "goBack", "()V")
-        env.CallVoidMethod(@native, go)
+        go = env.get_method_id(env.get_object_class(@native), "goBack", "()V")
+        env.call_void_method(@native, go)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_go_back(@native)
       {% end %}
@@ -130,8 +130,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        go = env.GetMethodID(env.GetObjectClass(@native), "goForward", "()V")
-        env.CallVoidMethod(@native, go)
+        go = env.get_method_id(env.get_object_class(@native), "goForward", "()V")
+        env.call_void_method(@native, go)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_go_forward(@native)
       {% end %}
@@ -141,8 +141,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        reload = env.GetMethodID(env.GetObjectClass(@native), "reload", "()V")
-        env.CallVoidMethod(@native, reload)
+        reload = env.get_method_id(env.get_object_class(@native), "reload", "()V")
+        env.call_void_method(@native, reload)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_reload(@native)
       {% end %}
@@ -152,8 +152,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        stop = env.GetMethodID(env.GetObjectClass(@native), "stopLoading", "()V")
-        env.CallVoidMethod(@native, stop)
+        stop = env.get_method_id(env.get_object_class(@native), "stopLoading", "()V")
+        env.call_void_method(@native, stop)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_stop_loading(@native)
       {% end %}
@@ -178,9 +178,9 @@ module Native::UI
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
-      settings = env.CallObjectMethod(@native, env.GetMethodID(env.GetObjectClass(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
-      set_cache = env.GetMethodID(env.GetObjectClass(settings), "setCacheMode", "(I)V")
-      env.CallVoidMethod(settings, set_cache, -1)
+      settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
+      set_cache = env.get_method_id(env.get_object_class(settings), "setCacheMode", "(I)V")
+      env.call_void_method(settings, set_cache, -1)
     end
 
     private def setupWebViewClient
@@ -190,15 +190,15 @@ module Native::UI
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
-      client_class = env.FindClass("com/nativecr/WebViewClientCallback")
+      client_class = env.find_class("com/nativecr/WebViewClientCallback")
       if client_class == Pointer(Void).null
         return
       end
 
-      client_obj = env.NewObject(client_class, env.GetMethodID(client_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+      client_obj = env.new_object(client_class, env.get_method_id(client_class, "<init>", "(J)V"), 0i64)
 
-      set_client = env.GetMethodID(env.GetObjectClass(@native), "setWebViewClient", "(Landroid/webkit/WebViewClient;)V")
-      env.CallVoidMethod(@native, set_client, client_obj)
+      set_client = env.get_method_id(env.get_object_class(@native), "setWebViewClient", "(Landroid/webkit/WebViewClient;)V")
+      env.call_void_method(@native, set_client, client_obj)
     end
 
     private def setupWebChromeClient
@@ -208,15 +208,15 @@ module Native::UI
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
-      chrome_class = env.FindClass("com/nativecr/WebChromeClientCallback")
+      chrome_class = env.find_class("com/nativecr/WebChromeClientCallback")
       if chrome_class == Pointer(Void).null
         return
       end
 
-      chrome_obj = env.NewObject(chrome_class, env.GetMethodID(chrome_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+      chrome_obj = env.new_object(chrome_class, env.get_method_id(chrome_class, "<init>", "(J)V"), 0i64)
 
-      set_chrome = env.GetMethodID(env.GetObjectClass(@native), "setWebChromeClient", "(Landroid/webkit/WebChromeClient;)V")
-      env.CallVoidMethod(@native, set_chrome, chrome_obj)
+      set_chrome = env.get_method_id(env.get_object_class(@native), "setWebChromeClient", "(Landroid/webkit/WebChromeClient;)V")
+      env.call_void_method(@native, set_chrome, chrome_obj)
     end
 
     def handlePageStarted(url : String)

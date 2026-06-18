@@ -27,9 +27,9 @@ module Native::Navigation
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        toolbar_class = env.FindClass("androidx/appcompat/widget/Toolbar")
-        constructor = env.GetMethodID(toolbar_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.NewObject(toolbar_class, constructor, activity).to_i64
+        toolbar_class = env.find_class("androidx/appcompat/widget/Toolbar")
+        constructor = env.get_method_id(toolbar_class, "<init>", "(Landroid/content/Context;)V")
+        @native = env.new_object(toolbar_class, constructor, activity).to_i64
 
         setupNavigation
       {% elsif flag?(:native_ios) %}
@@ -43,8 +43,8 @@ module Native::Navigation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_title = env.GetMethodID(env.GetObjectClass(@native), "setTitle", "(Ljava/lang/CharSequence;)V")
-        env.CallVoidMethod(@native, set_title, env.NewStringUTF(value))
+        set_title = env.get_method_id(env.get_object_class(@native), "setTitle", "(Ljava/lang/CharSequence;)V")
+        env.call_void_method(@native, set_title, env.new_string_utf(value))
       {% elsif flag?(:native_ios) %}
         LibIOS.navigation_bar_set_title(@native, value.to_utf8)
       {% end %}
@@ -59,8 +59,8 @@ module Native::Navigation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_subtitle = env.GetMethodID(env.GetObjectClass(@native), "setSubtitle", "(Ljava/lang/CharSequence;)V")
-        env.CallVoidMethod(@native, set_subtitle, env.NewStringUTF(value))
+        set_subtitle = env.get_method_id(env.get_object_class(@native), "setSubtitle", "(Ljava/lang/CharSequence;)V")
+        env.call_void_method(@native, set_subtitle, env.new_string_utf(value))
       {% end %}
     end
 
@@ -73,8 +73,8 @@ module Native::Navigation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_nav = env.GetMethodID(env.GetObjectClass(@native), "setNavigationIcon", "(I)V")
-        env.CallVoidMethod(@native, set_nav, resource_id)
+        set_nav = env.get_method_id(env.get_object_class(@native), "setNavigationIcon", "(I)V")
+        env.call_void_method(@native, set_nav, resource_id)
       {% end %}
     end
 
@@ -94,19 +94,19 @@ module Native::Navigation
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        menu_class = env.FindClass("android/view/Menu")
-        add_method = env.GetMethodID(env.GetObjectClass(@native), "getMenu", "()Landroid/view/Menu;")
-        menu = env.CallObjectMethod(@native, add_method)
+        menu_class = env.find_class("android/view/Menu")
+        add_method = env.get_method_id(env.get_object_class(@native), "getMenu", "()Landroid/view/Menu;")
+        menu = env.call_object_method(@native, add_method)
 
-        add_item = env.GetMethodID(env.GetObjectClass(menu), "add", "(IIII)Landroid/view/MenuItem;")
-        menu_item = env.CallObjectMethod(menu, add_item, 0, id, 0, env.NewStringUTF(title))
+        add_item = env.get_method_id(env.get_object_class(menu), "add", "(IIII)Landroid/view/MenuItem;")
+        menu_item = env.call_object_method(menu, add_item, 0, id, 0, env.new_string_utf(title))
 
         if icon != 0 && show_as_action
-          set_icon = env.GetMethodID(env.GetObjectClass(menu_item), "setIcon", "(I)Landroid/view/MenuItem;")
-          env.CallObjectMethod(menu_item, set_icon, icon)
+          set_icon = env.get_method_id(env.get_object_class(menu_item), "setIcon", "(I)Landroid/view/MenuItem;")
+          env.call_object_method(menu_item, set_icon, icon)
 
-          set_show = env.GetMethodID(env.GetObjectClass(menu_item), "setShowAsAction", "(I)V")
-          env.CallVoidMethod(menu_item, set_show, 2)
+          set_show = env.get_method_id(env.get_object_class(menu_item), "setShowAsAction", "(I)V")
+          env.call_void_method(menu_item, set_show, 2)
         end
       {% end %}
     end
@@ -121,8 +121,8 @@ module Native::Navigation
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        set_actionbar = env.GetMethodID(env.GetObjectClass(activity), "setSupportActionBar", "(Landroidx/appcompat/widget/Toolbar;)V")
-        env.CallVoidMethod(activity, set_actionbar, @native)
+        set_actionbar = env.get_method_id(env.get_object_class(activity), "setSupportActionBar", "(Landroidx/appcompat/widget/Toolbar;)V")
+        env.call_void_method(activity, set_actionbar, @native)
       {% end %}
     end
 
@@ -133,15 +133,15 @@ module Native::Navigation
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
-      callback_class = env.FindClass("com/nativecr/ToolbarCallback")
+      callback_class = env.find_class("com/nativecr/ToolbarCallback")
       if callback_class == Pointer(Void).null
         return
       end
 
-      callback_obj = env.NewObject(callback_class, env.GetMethodID(callback_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
 
-      set_nav = env.GetMethodID(env.GetObjectClass(@native), "setNavigationOnClickListener", "(Landroid/view/View$OnClickListener;)V")
-      env.CallVoidMethod(@native, set_nav, callback_obj)
+      set_nav = env.get_method_id(env.get_object_class(@native), "setNavigationOnClickListener", "(Landroid/view/View$OnClickListener;)V")
+      env.call_void_method(@native, set_nav, callback_obj)
     end
 
     def handleNavigationClick
