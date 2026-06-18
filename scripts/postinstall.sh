@@ -20,7 +20,7 @@ echo "[native.cr] Detected OS: $OS, Arch: $ARCH"
 VERSION=$(curl -s https://api.github.com/repos/slick-lab/native.cr/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$VERSION" ]; then
-  VERSION="v0.1.0"
+  VERSION="v0.1.2"
 fi
 
 echo "[native.cr] Latest version: $VERSION"
