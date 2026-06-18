@@ -56,9 +56,9 @@ module Native::Sensors
       activity = Native::Android::JNI.activity
       return unless env && activity
 
-      sensor_class = env.FindClass("android/hardware/Sensor")
-      get_service = env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;")
-      @@manager_ptr = env.CallObjectMethod(activity, get_service, env.NewStringUTF("sensor")).to_i64
+      sensor_class = env.find_class("android/hardware/Sensor")
+      get_service = env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;")
+      @@manager_ptr = env.call_object_method(activity, get_service, env.new_string_utf("sensor")).to_i64
     end
 
     private def init_ios
@@ -70,9 +70,9 @@ module Native::Sensors
         env = Native::Android::JNI.env
         return false unless env && @@manager_ptr != 0_i64
         sensor_type = sensor_type_value(type)
-        sensor_class = env.FindClass("android/hardware/Sensor")
-        get_default_sensor = env.GetMethodID(env.GetObjectClass(@@manager_ptr), "getDefaultSensor", "(I)Landroid/hardware/Sensor;")
-        sensor = env.CallObjectMethod(@@manager_ptr, get_default_sensor, sensor_type)
+        sensor_class = env.find_class("android/hardware/Sensor")
+        get_default_sensor = env.get_method_id(env.get_object_class(@@manager_ptr), "getDefaultSensor", "(I)Landroid/hardware/Sensor;")
+        sensor = env.call_object_method(@@manager_ptr, get_default_sensor, sensor_type)
         return sensor != Pointer(Void).null
       {% elsif flag?(:native_ios) %}
         return LibIOS.sensor_available(type.value)
@@ -99,14 +99,14 @@ module Native::Sensors
       env = Native::Android::JNI.env
       return unless env && @@manager_ptr != 0_i64
       sensor_type = sensor_type_value(type)
-      get_default = env.GetMethodID(env.GetObjectClass(@@manager_ptr), "getDefaultSensor", "(I)Landroid/hardware/Sensor;")
-      sensor = env.CallObjectMethod(@@manager_ptr, get_default, sensor_type)
+      get_default = env.get_method_id(env.get_object_class(@@manager_ptr), "getDefaultSensor", "(I)Landroid/hardware/Sensor;")
+      sensor = env.call_object_method(@@manager_ptr, get_default, sensor_type)
       if sensor != Pointer(Void).null
-        listener_class = env.FindClass("com/nativecr/SensorListener")
+        listener_class = env.find_class("com/nativecr/SensorListener")
         if listener_class != Pointer(Void).null
-          callback_obj = env.NewObject(listener_class, env.GetMethodID(listener_class, "<init>", "(JI)V"), Pointer(Void).address.to_i64, type.value)
-          register = env.GetMethodID(env.GetObjectClass(@@manager_ptr), "registerListener", "(Landroid/hardware/SensorEventListener;Landroid/hardware/Sensor;I)Z")
-          env.CallBooleanMethod(@@manager_ptr, register, callback_obj, sensor, delay_us)
+          callback_obj = env.new_object(listener_class, env.get_method_id(listener_class, "<init>", "(JI)V"), 0i64, type.value)
+          register = env.get_method_id(env.get_object_class(@@manager_ptr), "registerListener", "(Landroid/hardware/SensorEventListener;Landroid/hardware/Sensor;I)Z")
+          env.call_boolean_method(@@manager_ptr, register, callback_obj, sensor, delay_us)
         end
       end
     end
@@ -130,11 +130,11 @@ module Native::Sensors
       env = Native::Android::JNI.env
       return unless env && @@manager_ptr != 0_i64
       sensor_type = sensor_type_value(type)
-      listener_class = env.FindClass("com/native/SensorListener")
+      listener_class = env.find_class("com/native/SensorListener")
       if listener_class != Pointer(Void).null
-        callback_obj = env.GetStaticObjectField(listener_class, env.GetStaticFieldID(listener_class, "instance", "Lcom/native/SensorListener;"))
-        unregister = env.GetMethodID(env.GetObjectClass(@@manager_ptr), "unregisterListener", "(Landroid/hardware/SensorEventListener;)V")
-        env.CallVoidMethod(@@manager_ptr, unregister, callback_obj)
+        callback_obj = env.get_static_object_field(listener_class, env.get_static_field_id(listener_class, "instance", "Lcom/native/SensorListener;"))
+        unregister = env.get_method_id(env.get_object_class(@@manager_ptr), "unregisterListener", "(Landroid/hardware/SensorEventListener;)V")
+        env.call_void_method(@@manager_ptr, unregister, callback_obj)
       end
     end
 

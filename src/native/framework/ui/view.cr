@@ -52,8 +52,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_visibility = env.GetMethodID(env.GetObjectClass(@native), "setVisibility", "(I)V")
-        env.CallVoidMethod(@native, set_visibility, value ? 0 : 8)
+        set_visibility = env.get_method_id(env.get_object_class(@native), "setVisibility", "(I)V")
+        env.call_void_method(@native, set_visibility, value ? 0 : 8)
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_visible(@native, value)
       {% end %}
@@ -68,8 +68,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_enabled = env.GetMethodID(env.GetObjectClass(@native), "setEnabled", "(Z)V")
-        env.CallVoidMethod(@native, set_enabled, value)
+        set_enabled = env.get_method_id(env.get_object_class(@native), "setEnabled", "(Z)V")
+        env.call_void_method(@native, set_enabled, value)
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_enabled(@native, value)
       {% end %}
@@ -84,8 +84,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_tag = env.GetMethodID(env.GetObjectClass(@native), "setTag", "(Ljava/lang/Object;)V")
-        env.CallVoidMethod(@native, set_tag, env.NewStringUTF(value))
+        set_tag = env.get_method_id(env.get_object_class(@native), "setTag", "(Ljava/lang/Object;)V")
+        env.call_void_method(@native, set_tag, env.new_string_utf(value))
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_tag(@native, value.to_utf8)
       {% end %}
@@ -99,10 +99,10 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_x = env.GetMethodID(env.GetObjectClass(@native), "setX", "(F)V")
-        set_y = env.GetMethodID(env.GetObjectClass(@native), "setY", "(F)V")
-        env.CallVoidMethod(@native, set_x, @x.to_f32)
-        env.CallVoidMethod(@native, set_y, @y.to_f32)
+        set_x = env.get_method_id(env.get_object_class(@native), "setX", "(F)V")
+        set_y = env.get_method_id(env.get_object_class(@native), "setY", "(F)V")
+        env.call_void_method(@native, set_x, @x.to_f32)
+        env.call_void_method(@native, set_y, @y.to_f32)
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_position(@native, @x, @y)
       {% end %}
@@ -112,15 +112,15 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        layout_params = env.GetMethodID(env.GetObjectClass(@native), "getLayoutParams", "()Landroid/view/ViewGroup$LayoutParams;")
-        params = env.CallObjectMethod(@native, layout_params)
+        layout_params = env.get_method_id(env.get_object_class(@native), "getLayoutParams", "()Landroid/view/ViewGroup$LayoutParams;")
+        params = env.call_object_method(@native, layout_params)
         if params
-          set_width = env.GetFieldID(env.GetObjectClass(params), "width", "I")
-          set_height = env.GetFieldID(env.GetObjectClass(params), "height", "I")
-          env.SetIntField(params, set_width, @width)
-          env.SetIntField(params, set_height, @height)
-          set_layout = env.GetMethodID(env.GetObjectClass(@native), "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V")
-          env.CallVoidMethod(@native, set_layout, params)
+          set_width = env.get_field_id(env.get_object_class(params), "width", "I")
+          set_height = env.get_field_id(env.get_object_class(params), "height", "I")
+          env.set_int_field(params, set_width, @width)
+          env.set_int_field(params, set_height, @height)
+          set_layout = env.get_method_id(env.get_object_class(@native), "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V")
+          env.call_void_method(@native, set_layout, params)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_size(@native, @width, @height)
@@ -136,8 +136,8 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         argb = (255 << 24) | ((color.r * 255).to_i << 16) | ((color.g * 255).to_i << 8) | (color.b * 255).to_i
-        set_bg = env.GetMethodID(env.GetObjectClass(@native), "setBackgroundColor", "(I)V")
-        env.CallVoidMethod(@native, set_bg, argb)
+        set_bg = env.get_method_id(env.get_object_class(@native), "setBackgroundColor", "(I)V")
+        env.call_void_method(@native, set_bg, argb)
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_background_color(@native, color.r, color.g, color.b, color.a)
       {% end %}

@@ -15,18 +15,18 @@ module Native::Clipboard
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
-        clipboard = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("clipboard"))
+        clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
 
         if clipboard
-          clip_class = env.FindClass("android/content/ClipData")
-          new_plain_text = env.GetStaticMethodID(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
-          clip = env.CallStaticObjectMethod(clip_class, new_plain_text, env.NewStringUTF("text"), env.NewStringUTF(text))
+          clip_class = env.find_class("android/content/ClipData")
+          new_plain_text = env.get_static_method_id(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
+          clip = env.call_static_object_method(clip_class, new_plain_text, env.new_string_utf("text"), env.new_string_utf(text))
 
-          set_clip = env.GetMethodID(env.GetObjectClass(clipboard), "setPrimaryClip", "(Landroid/content/ClipData;)V")
-          env.CallVoidMethod(clipboard, set_clip, clip)
+          set_clip = env.get_method_id(env.get_object_class(clipboard), "setPrimaryClip", "(Landroid/content/ClipData;)V")
+          env.call_void_method(clipboard, set_clip, clip)
 
-          env.DeleteLocalRef(clipboard)
-          env.DeleteLocalRef(clip)
+          env.delete_local_ref(clipboard)
+          env.delete_local_ref(clip)
           true
         else
           false
@@ -44,29 +44,29 @@ module Native::Clipboard
         activity = Native::Android::JNI.activity
         return nil unless env && activity
 
-        clipboard = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("clipboard"))
+        clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
 
         if clipboard
-          has_text = env.GetMethodID(env.GetObjectClass(clipboard), "hasPrimaryClip", "()Z")
-          if env.CallBooleanMethod(clipboard, has_text)
-            get_clip = env.GetMethodID(env.GetObjectClass(clipboard), "getPrimaryClip", "()Landroid/content/ClipData;")
-            clip = env.CallObjectMethod(clipboard, get_clip)
+          has_text = env.get_method_id(env.get_object_class(clipboard), "hasPrimaryClip", "()Z")
+          if env.call_boolean_method(clipboard, has_text)
+            get_clip = env.get_method_id(env.get_object_class(clipboard), "getPrimaryClip", "()Landroid/content/ClipData;")
+            clip = env.call_object_method(clipboard, get_clip)
 
-            get_item = env.GetMethodID(env.GetObjectClass(clip), "getItemAt", "(I)Landroid/content/ClipData$Item;")
-            item = env.CallObjectMethod(clip, get_item, 0)
+            get_item = env.get_method_id(env.get_object_class(clip), "getItemAt", "(I)Landroid/content/ClipData$Item;")
+            item = env.call_object_method(clip, get_item, 0)
 
-            get_text = env.GetMethodID(env.GetObjectClass(item), "getText", "()Ljava/lang/CharSequence;")
-            text = env.CallObjectMethod(item, get_text)
+            get_text = env.get_method_id(env.get_object_class(item), "getText", "()Ljava/lang/CharSequence;")
+            text = env.call_object_method(item, get_text)
 
-            result = env.GetStringUTFChars(text, nil).to_s
+            result = env.get_string_utf_chars(text, nil).to_s
 
-            env.DeleteLocalRef(clipboard)
-            env.DeleteLocalRef(clip)
-            env.DeleteLocalRef(item)
+            env.delete_local_ref(clipboard)
+            env.delete_local_ref(clip)
+            env.delete_local_ref(item)
 
             return result
           end
-          env.DeleteLocalRef(clipboard)
+          env.delete_local_ref(clipboard)
         end
         nil
       {% elsif flag?(:native_ios) %}
@@ -89,12 +89,12 @@ module Native::Clipboard
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
-        clipboard = env.CallObjectMethod(activity, env.GetMethodID(env.GetObjectClass(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.NewStringUTF("clipboard"))
+        clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
 
         if clipboard
-          has_text = env.GetMethodID(env.GetObjectClass(clipboard), "hasPrimaryClip", "()Z")
-          result = env.CallBooleanMethod(clipboard, has_text)
-          env.DeleteLocalRef(clipboard)
+          has_text = env.get_method_id(env.get_object_class(clipboard), "hasPrimaryClip", "()Z")
+          result = env.call_boolean_method(clipboard, has_text)
+          env.delete_local_ref(clipboard)
           result
         else
           false

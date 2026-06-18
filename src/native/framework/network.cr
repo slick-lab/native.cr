@@ -146,38 +146,38 @@ module Native::Network
     end
 
     private def execute_android_sync(request : Request, env : Void*, activity : Void*) : Response
-      url_string = env.NewStringUTF(request.url)
-      method_string = env.NewStringUTF(request.method.to_s)
+      url_string = env.new_string_utf(request.url)
+      method_string = env.new_string_utf(request.method.to_s)
 
-      headers_keys = env.NewObjectArray(request.headers.size, env.FindClass("java/lang/String"), nil)
-      headers_values = env.NewObjectArray(request.headers.size, env.FindClass("java/lang/String"), nil)
+      headers_keys = env.new_object_array(request.headers.size, env.find_class("java/lang/String"), nil)
+      headers_values = env.new_object_array(request.headers.size, env.find_class("java/lang/String"), nil)
 
       request.headers.each_with_index do |(key, value), i|
-        env.SetObjectArrayElement(headers_keys, i, env.NewStringUTF(key))
-        env.SetObjectArrayElement(headers_values, i, env.NewStringUTF(value))
+        env.set_object_array_element(headers_keys, i, env.new_string_utf(key))
+        env.set_object_array_element(headers_values, i, env.new_string_utf(value))
       end
 
-      body_string = env.NewStringUTF(request.body)
+      body_string = env.new_string_utf(request.body)
 
-      http_client_class = env.FindClass("com/nativecr/HTTPClient")
+      http_client_class = env.find_class("com/nativecr/HTTPClient")
       if http_client_class == Pointer(Void).null
         cleanup_android(env, url_string, method_string, headers_keys, headers_values, body_string)
         return Response.new(success: false, error: "HTTPClient class not found")
       end
 
-      execute_method = env.GetStaticMethodID(http_client_class, "execute", "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;D)Ljava/lang/String;")
+      execute_method = env.get_static_method_id(http_client_class, "execute", "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;D)Ljava/lang/String;")
       if execute_method == Pointer(Void).null
         cleanup_android(env, url_string, method_string, headers_keys, headers_values, body_string)
         return Response.new(success: false, error: "execute method not found")
       end
 
-      result = env.CallStaticObjectMethod(http_client_class, execute_method, url_string, method_string, headers_keys, headers_values, body_string, request.timeout)
+      result = env.call_static_object_method(http_client_class, execute_method, url_string, method_string, headers_keys, headers_values, body_string, request.timeout)
 
       cleanup_android(env, url_string, method_string, headers_keys, headers_values, body_string)
 
       if result
-        json = env.GetStringUTFChars(result, nil).to_s
-        env.DeleteLocalRef(result)
+        json = env.get_string_utf_chars(result, nil).to_s
+        env.delete_local_ref(result)
         parse_response_json(json)
       else
         Response.new(success: false, error: "Request failed")
@@ -185,42 +185,42 @@ module Native::Network
     end
 
     private def execute_android_stream(request : Request, env : Void*, activity : Void*) : Response
-      url_string = env.NewStringUTF(request.url)
-      method_string = env.NewStringUTF(request.method.to_s)
+      url_string = env.new_string_utf(request.url)
+      method_string = env.new_string_utf(request.method.to_s)
 
-      headers_keys = env.NewObjectArray(request.headers.size, env.FindClass("java/lang/String"), nil)
-      headers_values = env.NewObjectArray(request.headers.size, env.FindClass("java/lang/String"), nil)
+      headers_keys = env.new_object_array(request.headers.size, env.find_class("java/lang/String"), nil)
+      headers_values = env.new_object_array(request.headers.size, env.find_class("java/lang/String"), nil)
 
       request.headers.each_with_index do |(key, value), i|
-        env.SetObjectArrayElement(headers_keys, i, env.NewStringUTF(key))
-        env.SetObjectArrayElement(headers_values, i, env.NewStringUTF(value))
+        env.set_object_array_element(headers_keys, i, env.new_string_utf(key))
+        env.set_object_array_element(headers_values, i, env.new_string_utf(value))
       end
 
-      http_client_class = env.FindClass("com/nativecr/HTTPClient")
+      http_client_class = env.find_class("com/nativecr/HTTPClient")
       if http_client_class == Pointer(Void).null
         cleanup_android(env, url_string, method_string, headers_keys, headers_values)
         return Response.new(success: false, error: "HTTPClient class not found")
       end
 
-      callback_class = env.FindClass("com/nativecr/StreamCallback")
+      callback_class = env.find_class("com/nativecr/StreamCallback")
       if callback_class == Pointer(Void).null
         cleanup_android(env, url_string, method_string, headers_keys, headers_values)
         return Response.new(success: false, error: "StreamCallback class not found")
       end
 
-      callback_obj = env.NewObject(callback_class, env.GetMethodID(callback_class, "<init>", "()V"))
+      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "()V"))
 
-      stream_method = env.GetStaticMethodID(http_client_class, "executeStream", "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Lcom/nativecr/StreamCallback;D)V")
+      stream_method = env.get_static_method_id(http_client_class, "executeStream", "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Lcom/nativecr/StreamCallback;D)V")
       if stream_method == Pointer(Void).null
         cleanup_android(env, url_string, method_string, headers_keys, headers_values)
-        env.DeleteLocalRef(callback_obj)
+        env.delete_local_ref(callback_obj)
         return Response.new(success: false, error: "executeStream method not found")
       end
 
-      env.CallStaticVoidMethod(http_client_class, stream_method, url_string, method_string, headers_keys, headers_values, callback_obj, request.timeout)
+      env.call_static_void_method(http_client_class, stream_method, url_string, method_string, headers_keys, headers_values, callback_obj, request.timeout)
 
       cleanup_android(env, url_string, method_string, headers_keys, headers_values)
-      env.DeleteLocalRef(callback_obj)
+      env.delete_local_ref(callback_obj)
 
       Response.new(success: true, status_code: 200)
     end
@@ -315,11 +315,11 @@ module Native::Network
     end
 
     private def cleanup_android(env : Void*, url : Void*, method : Void*, keys : Void*, values : Void*, body : Void*? = nil)
-      env.DeleteLocalRef(url)
-      env.DeleteLocalRef(method)
-      env.DeleteLocalRef(keys)
-      env.DeleteLocalRef(values)
-      env.DeleteLocalRef(body) if body
+      env.delete_local_ref(url)
+      env.delete_local_ref(method)
+      env.delete_local_ref(keys)
+      env.delete_local_ref(values)
+      env.delete_local_ref(body) if body
     end
 
     private def parse_response_json(json : String) : Response
@@ -430,19 +430,19 @@ module Native::Network
       activity = Native::Android::JNI.activity
       return unless env && activity
 
-      ws_class = env.FindClass("com/nativecr/WebSocketClient")
+      ws_class = env.find_class("com/nativecr/WebSocketClient")
       if ws_class == Pointer(Void).null
         @on_error.try &.call("WebSocket class not found")
         return
       end
 
-      connect_method = env.GetStaticMethodID(ws_class, "connect", "(Landroid/app/Activity;Ljava/lang/String;)J")
+      connect_method = env.get_static_method_id(ws_class, "connect", "(Landroid/app/Activity;Ljava/lang/String;)J")
       if connect_method == Pointer(Void).null
         @on_error.try &.call("connect method not found")
         return
       end
 
-      env.CallStaticLongMethod(ws_class, connect_method, activity, env.NewStringUTF(@url))
+      env.call_static_long_method(ws_class, connect_method, activity, env.new_string_utf(@url))
     end
 
     private def connect_ios : Void

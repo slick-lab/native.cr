@@ -18,22 +18,22 @@ module Native::UI
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        view_class = env.FindClass("android/widget/TextView")
-        constructor = env.GetMethodID(view_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.NewObject(view_class, constructor, activity).to_i64
+        view_class = env.find_class("android/widget/TextView")
+        constructor = env.get_method_id(view_class, "<init>", "(Landroid/content/Context;)V")
+        @native = env.new_object(view_class, constructor, activity).to_i64
 
         if !text.empty?
-          setText(text)
+          self.text = text
         end
-        setTextSize(@text_size)
+        self.text_size = @text_size
         applyGravity
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_label
         @native = ptr.to_i64
         if !text.empty?
-          setText(text)
+          self.text = text
         end
-        setTextSize(@text_size)
+        self.text_size = @text_size
       {% end %}
     end
 
@@ -42,9 +42,9 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        jtext = env.NewStringUTF(value)
-        set_text = env.GetMethodID(env.GetObjectClass(@native), "setText", "(Ljava/lang/CharSequence;)V")
-        env.CallVoidMethod(@native, set_text, jtext)
+        jtext = env.new_string_utf(value)
+        set_text = env.get_method_id(env.get_object_class(@native), "setText", "(Ljava/lang/CharSequence;)V")
+        env.call_void_method(@native, set_text, jtext)
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_text(@native, value.to_utf8)
       {% end %}
@@ -59,8 +59,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_size = env.GetMethodID(env.GetObjectClass(@native), "setTextSize", "(F)V")
-        env.CallVoidMethod(@native, set_size, value.to_f32)
+        set_size = env.get_method_id(env.get_object_class(@native), "setTextSize", "(F)V")
+        env.call_void_method(@native, set_size, value.to_f32)
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_text_size(@native, value)
       {% end %}
@@ -76,8 +76,8 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
-        set_color = env.GetMethodID(env.GetObjectClass(@native), "setTextColor", "(I)V")
-        env.CallVoidMethod(@native, set_color, color)
+        set_color = env.get_method_id(env.get_object_class(@native), "setTextColor", "(I)V")
+        env.call_void_method(@native, set_color, color)
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_text_color(@native, value.r, value.g, value.b)
       {% end %}
@@ -126,8 +126,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_max = env.GetMethodID(env.GetObjectClass(@native), "setMaxLines", "(I)V")
-        env.CallVoidMethod(@native, set_max, value)
+        set_max = env.get_method_id(env.get_object_class(@native), "setMaxLines", "(I)V")
+        env.call_void_method(@native, set_max, value)
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_max_lines(@native, value)
       {% end %}
@@ -142,9 +142,9 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_ellipsize = env.GetMethodID(env.GetObjectClass(@native), "setEllipsize", "(Landroid/text/TextUtils$TruncateAt;)V")
-        value = env.GetStaticObjectField(env.FindClass("android/text/TextUtils$TruncateAt"), env.GetStaticFieldID(env.FindClass("android/text/TextUtils$TruncateAt"), "END", "Landroid/text/TextUtils$TruncateAt;"))
-        env.CallVoidMethod(@native, set_ellipsize, value)
+        set_ellipsize = env.get_method_id(env.get_object_class(@native), "setEllipsize", "(Landroid/text/TextUtils$TruncateAt;)V")
+        value = env.get_static_object_field(env.find_class("android/text/TextUtils$TruncateAt"), env.get_static_field_id(env.find_class("android/text/TextUtils$TruncateAt"), "END", "Landroid/text/TextUtils$TruncateAt;"))
+        env.call_void_method(@native, set_ellipsize, value)
       {% end %}
     end
 
@@ -154,8 +154,8 @@ module Native::UI
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
-      set_gravity = env.GetMethodID(env.GetObjectClass(@native), "setGravity", "(I)V")
-      env.CallVoidMethod(@native, set_gravity, @gravity)
+      set_gravity = env.get_method_id(env.get_object_class(@native), "setGravity", "(I)V")
+      env.call_void_method(@native, set_gravity, @gravity)
     end
   end
 end

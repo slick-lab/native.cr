@@ -37,12 +37,12 @@ module Native::Dialog
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        toast_class = env.FindClass("android/widget/Toast")
-        make_text = env.GetStaticMethodID(toast_class, "makeText", "(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;")
-        toast = env.CallStaticObjectMethod(toast_class, make_text, activity, env.NewStringUTF(@text), @duration.value)
+        toast_class = env.find_class("android/widget/Toast")
+        make_text = env.get_static_method_id(toast_class, "makeText", "(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;")
+        toast = env.call_static_object_method(toast_class, make_text, activity, env.new_string_utf(@text), @duration.value)
 
-        show_method = env.GetMethodID(toast_class, "show", "()V")
-        env.CallVoidMethod(toast, show_method)
+        show_method = env.get_method_id(toast_class, "show", "()V")
+        env.call_void_method(toast, show_method)
       {% elsif flag?(:native_ios) %}
         LibIOS.show_toast(@text.to_utf8, @duration == Length::Long ? 3.5 : 2.0)
       {% end %}

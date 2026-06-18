@@ -33,9 +33,9 @@ module Native::Animation
         env = Native::Android::JNI.env
         return unless env
 
-        animator_class = env.FindClass("android/animation/ValueAnimator")
-        of_float = env.GetStaticMethodID(animator_class, "ofFloat", "(FF)Landroid/animation/ValueAnimator;")
-        @animator_ptr = env.CallStaticObjectMethod(animator_class, of_float, start_value.to_f32, end_value.to_f32).to_i64
+        animator_class = env.find_class("android/animation/ValueAnimator")
+        of_float = env.get_static_method_id(animator_class, "ofFloat", "(FF)Landroid/animation/ValueAnimator;")
+        @animator_ptr = env.call_static_object_method(animator_class, of_float, start_value.to_f32, end_value.to_f32).to_i64
 
         setupListeners
       {% elsif flag?(:native_ios) %}
@@ -49,8 +49,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        set_duration = env.GetMethodID(env.GetObjectClass(@animator_ptr), "setDuration", "(J)Landroid/animation/ValueAnimator;")
-        env.CallObjectMethod(@animator_ptr, set_duration, value.to_i64)
+        set_duration = env.get_method_id(env.get_object_class(@animator_ptr), "setDuration", "(J)Landroid/animation/ValueAnimator;")
+        env.call_object_method(@animator_ptr, set_duration, value.to_i64)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_duration(@animator_ptr, value)
       {% end %}
@@ -68,26 +68,26 @@ module Native::Animation
 
         interpolator_class = case value
                              when Interpolator::Linear
-                               env.FindClass("android/view/animation/LinearInterpolator")
+                               env.find_class("android/view/animation/LinearInterpolator")
                              when Interpolator::Accelerate
-                               env.FindClass("android/view/animation/AccelerateInterpolator")
+                               env.find_class("android/view/animation/AccelerateInterpolator")
                              when Interpolator::Decelerate
-                               env.FindClass("android/view/animation/DecelerateInterpolator")
+                               env.find_class("android/view/animation/DecelerateInterpolator")
                              when Interpolator::AccelerateDecelerate
-                               env.FindClass("android/view/animation/AccelerateDecelerateInterpolator")
+                               env.find_class("android/view/animation/AccelerateDecelerateInterpolator")
                              when Interpolator::Bounce
-                               env.FindClass("android/view/animation/BounceInterpolator")
+                               env.find_class("android/view/animation/BounceInterpolator")
                              when Interpolator::Overshoot
-                               env.FindClass("android/view/animation/OvershootInterpolator")
+                               env.find_class("android/view/animation/OvershootInterpolator")
                              when Interpolator::Anticipate
-                               env.FindClass("android/view/animation/AnticipateInterpolator")
+                               env.find_class("android/view/animation/AnticipateInterpolator")
                              when Interpolator::AnticipateOvershoot
-                               env.FindClass("android/view/animation/AnticipateOvershootInterpolator")
+                               env.find_class("android/view/animation/AnticipateOvershootInterpolator")
                              end
 
-        interpolator_obj = env.NewObject(interpolator_class, env.GetMethodID(interpolator_class, "<init>", "()V"))
-        set_interpolator = env.GetMethodID(env.GetObjectClass(@animator_ptr), "setInterpolator", "(Landroid/animation/TimeInterpolator;)V")
-        env.CallVoidMethod(@animator_ptr, set_interpolator, interpolator_obj)
+        interpolator_obj = env.new_object(interpolator_class, env.get_method_id(interpolator_class, "<init>", "()V"))
+        set_interpolator = env.get_method_id(env.get_object_class(@animator_ptr), "setInterpolator", "(Landroid/animation/TimeInterpolator;)V")
+        env.call_void_method(@animator_ptr, set_interpolator, interpolator_obj)
       {% end %}
     end
 
@@ -100,8 +100,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        set_repeat = env.GetMethodID(env.GetObjectClass(@animator_ptr), "setRepeatCount", "(I)V")
-        env.CallVoidMethod(@animator_ptr, set_repeat, value)
+        set_repeat = env.get_method_id(env.get_object_class(@animator_ptr), "setRepeatCount", "(I)V")
+        env.call_void_method(@animator_ptr, set_repeat, value)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_repeat_count(@animator_ptr, value)
       {% end %}
@@ -116,8 +116,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        set_mode = env.GetMethodID(env.GetObjectClass(@animator_ptr), "setRepeatMode", "(I)V")
-        env.CallVoidMethod(@animator_ptr, set_mode, value)
+        set_mode = env.get_method_id(env.get_object_class(@animator_ptr), "setRepeatMode", "(I)V")
+        env.call_void_method(@animator_ptr, set_mode, value)
       {% end %}
     end
 
@@ -129,8 +129,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        start_method = env.GetMethodID(env.GetObjectClass(@animator_ptr), "start", "()V")
-        env.CallVoidMethod(@animator_ptr, start_method)
+        start_method = env.get_method_id(env.get_object_class(@animator_ptr), "start", "()V")
+        env.call_void_method(@animator_ptr, start_method)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_start(@animator_ptr)
       {% end %}
@@ -140,8 +140,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        cancel_method = env.GetMethodID(env.GetObjectClass(@animator_ptr), "cancel", "()V")
-        env.CallVoidMethod(@animator_ptr, cancel_method)
+        cancel_method = env.get_method_id(env.get_object_class(@animator_ptr), "cancel", "()V")
+        env.call_void_method(@animator_ptr, cancel_method)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_cancel(@animator_ptr)
       {% end %}
@@ -151,8 +151,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        end_method = env.GetMethodID(env.GetObjectClass(@animator_ptr), "end", "()V")
-        env.CallVoidMethod(@animator_ptr, end_method)
+        end_method = env.get_method_id(env.get_object_class(@animator_ptr), "end", "()V")
+        env.call_void_method(@animator_ptr, end_method)
       {% end %}
     end
 
@@ -160,8 +160,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return false unless env && @animator_ptr != 0
-        is_running = env.GetMethodID(env.GetObjectClass(@animator_ptr), "isRunning", "()Z")
-        env.CallBooleanMethod(@animator_ptr, is_running)
+        is_running = env.get_method_id(env.get_object_class(@animator_ptr), "isRunning", "()Z")
+        env.call_boolean_method(@animator_ptr, is_running)
       {% else %}
         false
       {% end %}
@@ -190,18 +190,18 @@ module Native::Animation
       env = Native::Android::JNI.env
       return unless env && @animator_ptr != 0
 
-      callback_class = env.FindClass("com/nativecr/AnimatorCallback")
+      callback_class = env.find_class("com/nativecr/AnimatorCallback")
       if callback_class == Pointer(Void).null
         return
       end
 
-      callback_obj = env.NewObject(callback_class, env.GetMethodID(callback_class, "<init>", "(J)V"), Pointer(Void).address.to_i64)
+      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
 
-      add_listener = env.GetMethodID(env.GetObjectClass(@animator_ptr), "addUpdateListener", "(Landroid/animation/ValueAnimator$AnimatorUpdateListener;)V")
-      env.CallVoidMethod(@animator_ptr, add_listener, callback_obj)
+      add_listener = env.get_method_id(env.get_object_class(@animator_ptr), "addUpdateListener", "(Landroid/animation/ValueAnimator$AnimatorUpdateListener;)V")
+      env.call_void_method(@animator_ptr, add_listener, callback_obj)
 
-      add_listener = env.GetMethodID(env.GetObjectClass(@animator_ptr), "addListener", "(Landroid/animation/Animator$AnimatorListener;)V")
-      env.CallVoidMethod(@animator_ptr, add_listener, callback_obj)
+      add_listener = env.get_method_id(env.get_object_class(@animator_ptr), "addListener", "(Landroid/animation/Animator$AnimatorListener;)V")
+      env.call_void_method(@animator_ptr, add_listener, callback_obj)
     end
 
     def handleUpdate(value : Float32)
@@ -234,9 +234,9 @@ module Native::Animation
         env = Native::Android::JNI.env
         return unless env && target.native_ptr != 0
 
-        animator_class = env.FindClass("android/animation/ObjectAnimator")
-        of_float = env.GetStaticMethodID(animator_class, "ofFloat", "(Ljava/lang/Object;Ljava/lang/String;FF)Landroid/animation/ObjectAnimator;")
-        @animator_ptr = env.CallStaticObjectMethod(animator_class, of_float, target.native_ptr, env.NewStringUTF(property_name), start_value.to_f32, end_value.to_f32).to_i64
+        animator_class = env.find_class("android/animation/ObjectAnimator")
+        of_float = env.get_static_method_id(animator_class, "ofFloat", "(Ljava/lang/Object;Ljava/lang/String;FF)Landroid/animation/ObjectAnimator;")
+        @animator_ptr = env.call_static_object_method(animator_class, of_float, target.native_ptr, env.new_string_utf(property_name), start_value.to_f32, end_value.to_f32).to_i64
 
         setupListeners
       {% end %}
@@ -252,8 +252,8 @@ module Native::Animation
         env = Native::Android::JNI.env
         return unless env
 
-        set_class = env.FindClass("android/animation/AnimatorSet")
-        @animator_ptr = env.NewObject(set_class, env.GetMethodID(set_class, "<init>", "()V")).to_i64
+        set_class = env.find_class("android/animation/AnimatorSet")
+        @animator_ptr = env.new_object(set_class, env.get_method_id(set_class, "<init>", "()V")).to_i64
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_animator_set
         @animator_ptr = ptr.to_i64
@@ -265,8 +265,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0 && animator.animator_ptr != 0
-        play = env.GetMethodID(env.GetObjectClass(@animator_ptr), "play", "(Landroid/animation/Animator;)Landroid/animation/AnimatorSet$Builder;")
-        env.CallObjectMethod(@animator_ptr, play, animator.animator_ptr)
+        play = env.get_method_id(env.get_object_class(@animator_ptr), "play", "(Landroid/animation/Animator;)Landroid/animation/AnimatorSet$Builder;")
+        env.call_object_method(@animator_ptr, play, animator.animator_ptr)
       {% end %}
     end
 
@@ -276,13 +276,13 @@ module Native::Animation
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
 
-        animator_array = env.NewObjectArray(animators.size, env.FindClass("android/animation/Animator"), nil)
+        animator_array = env.new_object_array(animators.size, env.find_class("android/animation/Animator"), nil)
         animators.each_with_index do |anim, i|
-          env.SetObjectArrayElement(animator_array, i, anim.animator_ptr)
+          env.set_object_array_element(animator_array, i, anim.animator_ptr)
         end
 
-        play_seq = env.GetMethodID(env.GetObjectClass(@animator_ptr), "playSequentially", "([Landroid/animation/Animator;)V")
-        env.CallVoidMethod(@animator_ptr, play_seq, animator_array)
+        play_seq = env.get_method_id(env.get_object_class(@animator_ptr), "playSequentially", "([Landroid/animation/Animator;)V")
+        env.call_void_method(@animator_ptr, play_seq, animator_array)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_play_sequentially(@animator_ptr)
       {% end %}
@@ -292,8 +292,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        start_method = env.GetMethodID(env.GetObjectClass(@animator_ptr), "start", "()V")
-        env.CallVoidMethod(@animator_ptr, start_method)
+        start_method = env.get_method_id(env.get_object_class(@animator_ptr), "start", "()V")
+        env.call_void_method(@animator_ptr, start_method)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_start(@animator_ptr)
       {% end %}
@@ -303,8 +303,8 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        cancel_method = env.GetMethodID(env.GetObjectClass(@animator_ptr), "cancel", "()V")
-        env.CallVoidMethod(@animator_ptr, cancel_method)
+        cancel_method = env.get_method_id(env.get_object_class(@animator_ptr), "cancel", "()V")
+        env.call_void_method(@animator_ptr, cancel_method)
       {% end %}
     end
 
