@@ -1,0 +1,48 @@
+# .github/workflows/native-arm64.yml
+name: Build CLI for ARM64
+
+on:
+  push:
+    # Run on pushes to the main branch
+    branches: [ main, master ]
+  pull_request:
+    # Run on pull requests to the main branch
+    branches: [ main, master ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        target: [aarch64-linux-gnu]
+    steps:
+      # 1. Check out  repository code
+      - uses: actions/checkout@v4
+
+      # 2. Install the latest Crystal compiler for ARM64
+      - name: Install Crystal (ARM64)
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      # 3. Install Shards (Crystal's dependency manager)
+      - name: Install Shards
+        run: |
+          # shards is usually included with the crystal action, but this ensures it's available.
+          # If not included, you could use the same install-crystal action or a separate step.
+          # For simplicity, we assume the 'install-crystal' action provides 'shards'.
+          shards --version
+
+      - name: Build CLI (Release)
+        run: |
+          shards install
+          crystal build src/native.cr --release --static --target aarch64-linux-gnu
+
+      # 5. (Optional) Upload the built binary as a workflow artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-cli-linux-arm64
+          path: native.cr # The binary name from the 'crystal build' command
