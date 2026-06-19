@@ -34,8 +34,6 @@ Fixes #(issue)
 
 Describe the tests you ran to verify your changes.
 
-## Screenshots (if appropriate)
-
 ## Additional Context
 
 Add any other context about the pull request here.

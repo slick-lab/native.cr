@@ -1,4 +1,5 @@
 # src/native/cli/android.cr
+require "system"
 
 module Native::CLI
   class AndroidGenerator
@@ -35,6 +36,7 @@ module Native::CLI
       create_gradle_properties(android_dir)
       create_gradle_wrapper(android_dir)
       create_gitignore(android_dir)
+      download_gradle_jar(android_dir)
 
       puts "[native.cr] Android project generated at #{android_dir}"
       puts "[native.cr] Build APK: cd #{android_dir} && ./gradlew assembleDebug"
@@ -169,6 +171,21 @@ module Native::CLI
         zipStorePath=wrapper/dists
       PROPERTIES
       )
+      File.write("#{android_dir}/gradlew", <<-'SCRIPT'
+       #!/bin/sh
+       APP_HOME=$(cd "$(dirname "$0")" && pwd)
+       CLASSPATH="$APP_HOME/gradle/wrapper/gradle.jar"
+       exec java -cp "CLASSPATH" org.gradle.wrapple.GradleWrapperMain "$@"
+       SCRIPT
+      )
+      File.chmod("#{android_dir}/gradlew", 0o755,)
+      File.write("#{android_dir}/gradlew.bat", <<-'BAT'
+       @echo off
+       set APP_HOME=%~dp0
+       set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
+       java -cp "%CLASSPATH" org.gradle.wrapper.GradleWrappermain %*
+       BAT
+      )
     end
 
     private def create_gitignore(android_dir : String)
@@ -181,6 +198,19 @@ module Native::CLI
         .DS_Store
       GITIGNORE
       )
+    end
+
+    private def download_gradle_jar(android_dir : String)
+      jar_dir = "#{android_dir}/gradle/wrapper"
+      jar_path = "#{jar_dir}/gradle-wrapper.jar"
+
+      Dir.mkdir_p(jar_dir)
+      version = Native::VERSION
+      url = "https://github.com/slick-lab/native.cr/releases/download/#{version}/gradle-wrapper.jar"
+      system("curl -L -o #{jar_path} #{url}")
+      unless File.exists?(jar_path) && File.size(jar_path) > 0
+        puts "could not download graddle-wrapper.jar builds will fail without this"
+      end
     end
   end
 end

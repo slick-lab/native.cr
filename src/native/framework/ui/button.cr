@@ -110,14 +110,14 @@ module Native::UI
     def on_click(&block : -> Nil)
       @on_click = block
       {% if flag?(:native_android) %}
-      setupClickListeners
+        setupClickListeners
       {% end %}
     end
 
     def on_long_click(&block : -> Nil)
       @on_long_click = block
       {% if flag?(:native_android) %}
-      setupClickListeners
+        setupClickListeners
       {% end %}
     end
 
@@ -147,7 +147,7 @@ module Native::UI
 
     private def setupClickListeners
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0

@@ -173,7 +173,7 @@ module Native::UI
 
     private def setupWebView
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
@@ -185,7 +185,7 @@ module Native::UI
 
     private def setupWebViewClient
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0
@@ -203,7 +203,7 @@ module Native::UI
 
     private def setupWebChromeClient
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0

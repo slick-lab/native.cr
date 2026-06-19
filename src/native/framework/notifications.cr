@@ -98,7 +98,7 @@ module Native::Notifications
 
     def self.create_channel(channel : NotificationChannel) : Nil
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
 
       env = Native::Android::JNI.env

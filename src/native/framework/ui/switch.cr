@@ -99,7 +99,7 @@ module Native::UI
 
     private def setupCheckedListener
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0

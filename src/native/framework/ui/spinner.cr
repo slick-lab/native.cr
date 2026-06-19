@@ -125,7 +125,7 @@ module Native::UI
 
     private def setupSpinnerListener
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0

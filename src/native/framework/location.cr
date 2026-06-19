@@ -165,7 +165,7 @@ module Native::Location
 
     private def setupCallbacks
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env
