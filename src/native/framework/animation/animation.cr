@@ -185,7 +185,7 @@ module Native::Animation
 
     private def setupListeners
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @animator_ptr != 0

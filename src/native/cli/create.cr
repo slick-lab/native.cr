@@ -223,7 +223,6 @@ module Native::CLI
         dependencies:
           native:
             github: slick-lab/native.cr
-            version: ~> 0.1.0
 
         crystal: ">= #{version}"
 

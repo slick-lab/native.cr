@@ -204,7 +204,7 @@ module Native::Media
 
     private def setupCallbacks
       {% unless flag?(:native_android) %}
-      return
+        return
       {% end %}
       env = Native::Android::JNI.env
       return unless env && @native != 0

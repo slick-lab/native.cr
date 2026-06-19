@@ -131,8 +131,8 @@ module Native::CLI
         puts "[native.cr] Run 'shards install' first to download libnative_cr_android.jar"
         exit(1)
       end
-
-      toolchain = "#{ndk}/toolchains/llvm/prebuilt/linux-x86_64"
+      op = os
+      toolchain = "#{ndk}/toolchains/llvm/prebuilt/#{op}"
       clang = "#{toolchain}/bin/aarch64-linux-android24-clang"
 
       unless File.exists?(clang)
@@ -260,6 +260,24 @@ module Native::CLI
         return path if Dir.exists?(path) && Dir.glob("#{path}/*.xcodeproj").any?
       end
       nil
+    end
+
+    private def os : String
+      host_os = `uname -s`.chomp.downcase
+      host_arch = `uname -m`.chomp.downcase
+      os_name = case host_os
+                when "darwin"            then "darwin"
+                when "linux"             then "linux"
+                when /mingw|msys|cygwin/ then "windows"
+                else                          "linux"
+                end
+      os_arch = case host_arch
+                when /x86_64/        then "x86_64"
+                when /aarch64|arm64/ then "aarch64"
+                else                      "x86_64"
+                end
+
+      "#{os_name}-#{os_arch}"
     end
   end
 end
