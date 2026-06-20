@@ -1,336 +1,491 @@
 # UI Components
 
-native.cr comes with a full set of ready-to-use UI widgets. Every widget lives in the `Native::UI` namespace (also accessible as just `UI::` inside your app class).
+native.cr's UI system is a thin Crystal wrapper around Android's native View system and iOS's UIKit. Every widget is a Crystal class in the `Native::UI` namespace. You compose them into a tree and assign the root to `@root`.
 
 ---
 
-## Common properties
+## How the UI tree works
 
-Almost every widget shares these properties:
+```
+@root (LinearLayout — vertical)
+├── TextView      "Welcome"
+├── ImageView     logo.png
+└── LinearLayout  (horizontal row)
+    ├── Button    "Cancel"
+    └── Button    "OK"
+```
+
+Only `@root` is rendered. Everything else must be a descendant of `@root` via `addView`.
+
+---
+
+## Colours — `Native::Math::Color`
+
+```crystal
+Native::Math::Color.white
+Native::Math::Color.black
+Native::Math::Color.red
+Native::Math::Color.blue
+Native::Math::Color.green
+Native::Math::Color.gray(128)          # grey by brightness (0–255)
+Native::Math::Color.from_hex(0x007AFF) # hex, no alpha
+Native::Math::Color.from_rgba(255, 0, 0, 255)  # R, G, B, A (0–255)
+```
+
+---
+
+## Base view — `Native::UI::View`
+
+All widgets inherit from `Native::UI::View`. These properties are available on every widget:
 
 | Property | Type | Description |
 |---|---|---|
-| `width` | `Int32` | Width in points |
-| `height` | `Int32` | Height in points |
-| `background_color` | `Color` | Background fill |
-| `corner_radius` | `CornerRadius` | Rounded corners |
-| `visible` | `Bool` | Show or hide |
-| `alpha` | `Float32` | Transparency (0.0–1.0) |
-
----
-
-## Colors
-
-```crystal
-Color.white
-Color.black
-Color.red
-Color.from_hex(0x007AFF)        # hex colour (no alpha)
-Color.from_rgba(255, 0, 0, 255) # R, G, B, Alpha (0-255)
-```
-
-## Corner radius
+| `x=` / `x` | `Int32` | Horizontal offset (points) |
+| `y=` / `y` | `Int32` | Vertical offset (points) |
+| `width=` / `width` | `Int32` | Width in points |
+| `height=` / `height` | `Int32` | Height in points |
+| `visible=` / `visible?` | `Bool` | Show or hide |
+| `enabled=` / `enabled?` | `Bool` | Enable or disable interaction |
+| `background_color=` | `Native::Math::Color` | Background fill |
+| `tag=` / `tag` | `String?` | Arbitrary label for lookup |
+| `native_ptr` | `Int64` | Raw platform pointer (advanced) |
 
 ```crystal
-CornerRadius.all(12)            # all 4 corners = 12pt
-CornerRadius.new(8, 8, 0, 0)   # top-left, top-right, bottom-right, bottom-left
+view = Native::UI::View.new
+view.width = 200
+view.height = 100
+view.background_color = Native::Math::Color.from_hex(0xEEEEEE)
+view.visible = false     # hide it
+view.enabled = false     # grey it out (won't receive taps)
 ```
 
 ---
 
-## Text (`UI::Text` / `UI::TextView`)
+## TextView — text label
 
-Displays a line (or paragraph) of text.
+`Native::UI::TextView` displays one or more lines of text.
 
 ```crystal
-label = UI::Text.new
-label.text = "Hello!"
-label.text_size = 24           # font size in points
-label.color = Color.from_hex(0x333333)
-label.bold = true
-label.italic = false
-label.alignment = TextAlignment::Center  # Left, Center, Right
-label.max_lines = 2            # wrap after 2 lines (0 = unlimited)
+label = Native::UI::TextView.new            # empty
+label = Native::UI::TextView.new("Hello!")  # with initial text
+
+label.text      = "Tap count: 0"
+label.text_size = 24            # font size in points
+label.text_color = Native::Math::Color.from_hex(0x333333)
+label.max_lines = 2             # wrap and truncate after 2 lines (0 = unlimited)
+label.ellipsize_end             # add "…" at the end when text overflows
+
+# Alignment shortcuts
+label.center             # horizontally + vertically centred
+label.center_horizontal  # horizontally centred only
+label.center_vertical    # vertically centred only
+label.left               # left aligned
+label.right              # right aligned
 ```
 
 ---
 
-## Button (`UI::Button`)
+## Button — tappable button
 
-A tappable button.
+`Native::UI::Button` is a tappable button.
 
 ```crystal
-btn = UI::Button.new
-btn.text = "Click Me"
-btn.text_size = 18
-btn.text_color = Color.white
-btn.background_color = Color.from_hex(0x007AFF)
-btn.width = 200
-btn.height = 50
-btn.corner_radius = CornerRadius.all(25)
-btn.disabled = false
+btn = Native::UI::Button.new           # empty label
+btn = Native::UI::Button.new("Save")  # with label
 
-# Respond to taps
-btn.on_click = -> { puts "tapped!" }
+btn.text        = "Tap Me"
+btn.text_size   = 18
+btn.text_color  = Native::Math::Color.white
+btn.background_color = Native::Math::Color.from_hex(0x007AFF)
+btn.width       = 200
+btn.height      = 50
+btn.all_caps    = false   # Android: prevent automatic UPPERCASE
 
-# Block syntax (inside a class method)
+# Callbacks — both block and proc syntax work
 btn.on_click { do_something }
+btn.on_long_click { show_context_menu }
 ```
+
+> **Note:** Use `{ }` block syntax for `on_click`. You can also assign a proc:
+> `btn.on_click = -> { do_something }`
 
 ---
 
-## Image (`UI::Image` / `UI::ImageView`)
+## ImageView — image display
 
-Displays an image from a file or bytes.
+`Native::UI::ImageView` displays an image from a file, from raw bytes, or from an app resource.
 
 ```crystal
-img = UI::Image.new
-img.width = 300
+img = Native::UI::ImageView.new
+img.width  = 300
 img.height = 200
-img.corner_radius = CornerRadius.all(12)
-img.background_color = Color.from_hex(0xEEEEEE)  # placeholder colour
+img.background_color = Native::Math::Color.gray(230)  # placeholder while loading
 
-# Load from asset file
-img.load("photo.jpg")
+# Load from a file path
+img.setImagePath("assets/photo.jpg")
 
-# Scale modes
-img.scale_mode = Native::Image::ScaleMode::AspectFit    # fit inside bounds
-img.scale_mode = Native::Image::ScaleMode::AspectFill   # fill bounds, may crop
-img.scale_mode = Native::Image::ScaleMode::FitXY        # stretch
+# Load from raw bytes (e.g. downloaded or captured)
+img.setImageData(jpeg_bytes)
+
+# Load from an Android resource ID
+img.setImageResource(R::drawable::icon)
+
+# Scale behaviour
+img.scale_type = Native::UI::ImageView::ScaleType::FitCenter    # letterbox (default)
+img.scale_type = Native::UI::ImageView::ScaleType::CenterCrop   # fill and crop
+img.scale_type = Native::UI::ImageView::ScaleType::FitXY        # stretch to fill
+img.scale_type = Native::UI::ImageView::ScaleType::Center       # no scaling, centred
+img.scale_type = Native::UI::ImageView::ScaleType::FitStart     # fit, align top/left
+img.scale_type = Native::UI::ImageView::ScaleType::FitEnd       # fit, align bottom/right
+img.scale_type = Native::UI::ImageView::ScaleType::CenterInside # shrink to fit, never enlarge
+
+img.alpha = 0.5_f32   # transparency (0.0 invisible – 1.0 opaque)
 ```
 
 ---
 
-## Layouts
+## LinearLayout — rows and columns
 
-Layouts arrange children in a row or column.
-
-### Column (`UI::Column`)
-
-Stacks children **vertically**.
+`Native::UI::LinearLayout` is the primary layout container. It stacks children either vertically (a column) or horizontally (a row).
 
 ```crystal
-col = UI::Column.new
-col.spacing = 16               # gap between children
-col.alignment = Alignment::Center  # Center, Start (left), End (right)
-col.padding = Padding.all(24)      # space around the edges
+# Vertical column (default)
+col = Native::UI::LinearLayout.new
+col.orientation = Native::UI::LinearLayout::Orientation::Vertical
 
-col.add_child(label)
-col.add_child(button)
-col.add_child(image)
+# Horizontal row
+row = Native::UI::LinearLayout.new(Native::UI::LinearLayout::Orientation::Horizontal)
 
-@root = col
+# Add children
+col.addView(label)
+col.addView(button)
+col.addView(image, 300, 200)    # add with explicit width × height
+
+# Remove children
+col.removeView(label)
+col.removeAllViews
+
+# Inspect children
+col.childCount        # => Int32
+col.getChildAt(0)     # => View?
+
+# Alignment (gravity)
+col.gravity = Native::UI::LinearLayout::Gravity::Center
+col.gravity = Native::UI::LinearLayout::Gravity::CenterHorizontal
+col.gravity = Native::UI::LinearLayout::Gravity::Top
+col.gravity = Native::UI::LinearLayout::Gravity::Bottom
+
+# Padding around edges (points)
+col.set_padding(left: 16, top: 24, right: 16, bottom: 24)
+
+# Proportional sizing with weights (like flexGrow in CSS)
+col.weight_sum = 1.0_f32
+col.addView(header, weight: 0.2_f32)   # takes 20% of height
+col.addView(content, weight: 0.8_f32)  # takes 80% of height
 ```
 
-### Row (`UI::Row` / `UI::LinearLayout`)
+### Gravity values
 
-Arranges children **horizontally**.
+| Value | Effect |
+|---|---|
+| `Top` | Children stick to the top |
+| `Bottom` | Children stick to the bottom |
+| `Left` | Children stick to the left |
+| `Right` | Children stick to the right |
+| `Center` | Centred both ways |
+| `CenterHorizontal` | Centred horizontally |
+| `CenterVertical` | Centred vertically |
+| `Fill` | Stretch to fill available space |
+
+---
+
+## ScrollView — scrollable container
+
+`Native::UI::ScrollView` wraps a single child and makes it scrollable.
 
 ```crystal
-row = UI::LinearLayout.new
-row.orientation = Native::UI::LinearLayout::Orientation::Horizontal
-row.addView(icon)
-row.addView(label)
-```
+# Vertical scroll (default)
+scroll = Native::UI::ScrollView.new
 
-### Scroll (`UI::ScrollView`)
+# Horizontal scroll
+hscroll = Native::UI::ScrollView.new(Native::UI::ScrollView::ScrollDirection::Horizontal)
 
-Wraps any layout and makes it scrollable.
+# Add one child (typically a layout)
+scroll.addView(tall_layout)
+scroll.removeView(tall_layout)
 
-```crystal
-scroll = UI::ScrollView.new
-scroll.add_child(very_tall_column)
+# Scroll programmatically
+scroll.scroll_to(0, 300)                 # jump to x=0, y=300 (no animation)
+scroll.scroll_to(0, 300, animated: true) # smooth scroll
+scroll.scroll_to_bottom                  # jump to end
+scroll.scroll_to_top                     # jump to start
 
-@root = scroll
+# Current scroll position
+puts scroll.scroll_x    # horizontal offset (Int32)
+puts scroll.scroll_y    # vertical offset   (Int32)
+puts scroll.max_scroll_y
+
+# Scroll events
+scroll.on_scroll_changed { |x, y| puts "Scrolled to #{x}, #{y}" }
+scroll.on_scroll_state_changed { |scrolling| puts "Scrolling: #{scrolling}" }
 ```
 
 ---
 
-## Input fields (`UI::EditText`)
+## EditText — text input
 
-A text input the user can type into.
+`Native::UI::EditText` is a single or multi-line text field.
 
 ```crystal
-input = UI::EditText.new
-input.hint = "Enter your name…"   # placeholder text
-input.text = ""
-input.text_size = 16
-input.width = 300
-input.height = 48
+input = Native::UI::EditText.new
+input = Native::UI::EditText.new("initial text")
 
-# Get the current value
+input.hint       = "Enter your name…"   # placeholder text
+input.hint_color = Native::Math::Color.gray(180)
+input.text_size  = 16
+input.text_color = Native::Math::Color.black
+input.max_length = 50   # maximum characters
+
+# Read the current value (always reads from the native control)
 puts input.text
 
-# React to changes as the user types
-input.on_text_change { |text| puts "User typed: #{text}" }
+# Keyboard types — call these methods to switch input type
+input.email        # email address keyboard
+input.number       # numeric keypad
+input.phone        # phone number keyboard
+input.password     # password field (characters hidden)
+input.multiline    # multi-line text area
+
+# React to typing
+input.on_text_changed { |text| validate(text) }
 ```
 
 ---
 
-## Checkbox (`UI::Checkbox`)
+## RecyclerView — efficient scrolling list
 
-A toggle checkbox.
+`Native::UI::RecyclerView` is a high-performance scrolling list. It recycles views as the user scrolls, so it handles thousands of items smoothly.
+
+### Using SimpleAdapter (easiest)
 
 ```crystal
-cb = UI::Checkbox.new
-cb.text = "I agree to the terms"
+items = ["Apple", "Banana", "Cherry", "Date", "Elderberry"]
+
+adapter = Native::UI::SimpleAdapter.new(items)
+
+adapter.on_bind do |text_view, text, index|
+  text_view.text_size = 16
+  text_view.text_color = Native::Math::Color.black
+  # text_view is already pre-filled with text
+end
+
+list = Native::UI::RecyclerView.new
+list.adapter = adapter
+list.width  = 400
+list.height = 600
+
+# Tap callbacks
+list.on_item_click { |index| puts "Tapped index #{index}" }
+list.on_item_long_click { |index| show_delete_option(index) }
+
+# After changing the data, call one of these:
+adapter = Native::UI::SimpleAdapter.new(updated_items)
+list.adapter = adapter
+list.notify_data_changed                # refresh all rows
+list.notify_item_inserted(items.size - 1)  # animate insertion
+list.notify_item_removed(0)                 # animate removal
+
+# Scroll
+list.scroll_to_position(10)
+list.scroll_to_position(10, smooth: true)
+list.scroll_to_top
+```
+
+### Using a custom adapter (full control)
+
+```crystal
+class ContactAdapter < Native::UI::RecyclerViewAdapter
+  def initialize(@contacts : Array(Contact))
+  end
+
+  def item_count : Int32
+    @contacts.size
+  end
+
+  def create_view(env : Void*, position : Int32) : Int64
+    view = Native::UI::LinearLayout.new
+    view.orientation = Native::UI::LinearLayout::Orientation::Horizontal
+    view.set_padding(12, 8, 12, 8)
+    view.native_ptr
+  end
+
+  def bind_view(env : Void*, view : Int64, position : Int32) : Void
+    contact = @contacts[position]
+    # populate the view with contact data
+  end
+end
+```
+
+### Layout managers
+
+```crystal
+list.layout_manager = Native::UI::RecyclerView::LayoutManager::Linear        # single column (default)
+list.layout_manager = Native::UI::RecyclerView::LayoutManager::Grid          # 2-column grid
+list.layout_manager = Native::UI::RecyclerView::LayoutManager::StaggeredGrid # Pinterest-style
+```
+
+---
+
+## Checkbox
+
+```crystal
+cb = Native::UI::Checkbox.new
+cb.text    = "I agree to the terms"
 cb.checked = false
-cb.on_change { |checked| puts "Checked: #{checked}" }
+
+# Block callback when toggled
+cb.on_change { |checked| puts "Agreed: #{checked}" }
 ```
 
 ---
 
-## Switch (`UI::Switch`)
-
-An iOS-style toggle switch.
+## Switch (toggle)
 
 ```crystal
-sw = UI::Switch.new
-sw.on = true
-sw.on_change { |is_on| puts "Switch is now: #{is_on}" }
+sw = Native::UI::Switch.new
+sw.on_change { |is_on| save_setting(is_on) }
 ```
 
 ---
 
-## Progress bar (`UI::ProgressBar`)
-
-Shows progress from 0 to 100.
+## ProgressBar
 
 ```crystal
-bar = UI::ProgressBar.new
-bar.width = 280
-bar.progress = 65   # 65%
+bar = Native::UI::ProgressBar.new
+bar.width    = 280
+bar.progress = 65   # 0 to 100
 ```
 
 ---
 
-## Seek bar / Slider (`UI::SeekBar`)
-
-A draggable slider.
+## SeekBar (slider)
 
 ```crystal
-slider = UI::SeekBar.new
-slider.width = 280
-slider.max = 100
+slider = Native::UI::SeekBar.new
+slider.width    = 280
+slider.max      = 100
 slider.progress = 50
-slider.on_progress_change { |value| puts "Value: #{value}" }
+slider.on_progress_change { |value| set_volume(value) }
 ```
 
 ---
 
-## Spinner / Dropdown (`UI::Spinner`)
-
-A dropdown picker.
+## RadioButton
 
 ```crystal
-spinner = UI::Spinner.new
-spinner.items = ["Apple", "Banana", "Cherry"]
-spinner.selected_index = 0
-spinner.on_item_selected { |index, text| puts "Picked: #{text}" }
+rb = Native::UI::RadioButton.new
+rb.text    = "Option A"
+rb.checked = false
+rb.on_change { |checked| handle_selection(checked) }
 ```
 
 ---
 
-## Radio buttons (`UI::RadioButton`)
+## Spinner (dropdown picker)
 
 ```crystal
-radio = UI::RadioButton.new
-radio.text = "Option A"
-radio.checked = false
-radio.on_change { |checked| puts "Radio: #{checked}" }
+sp = Native::UI::Spinner.new
+sp.items          = ["Small", "Medium", "Large"]
+sp.selected_index = 1     # pre-select "Medium"
+sp.on_item_selected { |index, text| puts "Picked: #{text}" }
 ```
 
 ---
 
-## List (`UI::RecyclerView`)
-
-Efficiently displays a scrollable list of items. Good for long lists.
+## CardView — elevated card
 
 ```crystal
-list = UI::RecyclerView.new
-list.items = ["Item 1", "Item 2", "Item 3"]
-list.on_item_click { |index, text| puts "Tapped: #{text}" }
+card = Native::UI::CardView.new
+card.width       = 340
+card.height      = 120
+card.elevation   = 4
+card.set_padding(16, 16, 16, 16)
+
+content = Native::UI::TextView.new("Card content here")
+card.addView(content)
 ```
 
 ---
 
-## Web view (`UI::WebView`)
-
-Embeds a full web browser inside your app.
+## WebView — embedded browser
 
 ```crystal
-web = UI::WebView.new
-web.width = 400
+web = Native::UI::WebView.new
+web.width  = 400
 web.height = 600
 web.load_url("https://example.com")
 
 # Or load raw HTML
-web.load_html("<h1>Hello from HTML!</h1>")
-```
-
----
-
-## Card (`UI::CardView`)
-
-A container with a shadow/elevation, useful for cards.
-
-```crystal
-card = UI::CardView.new
-card.corner_radius = CornerRadius.all(12)
-card.elevation = 4
-card.padding = Padding.all(16)
-card.add_child(content_view)
-```
-
----
-
-## Icon (`UI::Icon`)
-
-Displays a vector icon from the built-in icon set.
-
-```crystal
-icon = UI::Icon.new
-icon.name = "heart"
-icon.size = 32
-icon.color = Color.red
+web.load_html("<h1>Hello from Crystal!</h1><p>Rendered in a WebView.</p>")
 ```
 
 ---
 
 ## Putting it all together
 
-A typical `setup` method builds a layout tree and assigns it to `@root`:
+A real `setup` method for a login screen:
 
 ```crystal
 def setup
   set_background_color(255, 255, 255)
 
-  title = UI::Text.new
-  title.text = "My App"
+  title = Native::UI::TextView.new("Sign In")
   title.text_size = 28
-  title.bold = true
+  title.center_horizontal
 
-  subtitle = UI::Text.new
-  subtitle.text = "Tap the button below"
-  subtitle.text_size = 16
-  subtitle.color = Color.from_hex(0x888888)
+  @email_input = Native::UI::EditText.new
+  @email_input.hint = "Email address"
+  @email_input.email
+  @email_input.width = 320
 
-  action_btn = UI::Button.new
-  action_btn.text = "Go"
-  action_btn.width = 160
-  action_btn.height = 48
-  action_btn.background_color = Color.from_hex(0x34C759)
-  action_btn.text_color = Color.white
-  action_btn.corner_radius = CornerRadius.all(24)
-  action_btn.on_click { do_action }
+  @pass_input = Native::UI::EditText.new
+  @pass_input.hint = "Password"
+  @pass_input.password
+  @pass_input.width = 320
 
-  col = UI::Column.new
-  col.spacing = 20
-  col.alignment = Alignment::Center
-  col.add_child(title)
-  col.add_child(subtitle)
-  col.add_child(action_btn)
+  @error_label = Native::UI::TextView.new
+  @error_label.text_color = Native::Math::Color.red
+  @error_label.visible = false
 
-  @root = col
+  sign_in_btn = Native::UI::Button.new("Sign In")
+  sign_in_btn.width = 320
+  sign_in_btn.height = 52
+  sign_in_btn.background_color = Native::Math::Color.from_hex(0x007AFF)
+  sign_in_btn.text_color = Native::Math::Color.white
+  sign_in_btn.on_click { sign_in }
+
+  layout = Native::UI::LinearLayout.new
+  layout.orientation = Native::UI::LinearLayout::Orientation::Vertical
+  layout.gravity = Native::UI::LinearLayout::Gravity::Center
+  layout.set_padding(24, 40, 24, 24)
+  layout.addView(title)
+  layout.addView(@email_input)
+  layout.addView(@pass_input)
+  layout.addView(@error_label)
+  layout.addView(sign_in_btn)
+
+  @root = layout
+end
+
+def sign_in
+  email = @email_input.text
+  pass  = @pass_input.text
+
+  if email.empty? || pass.empty?
+    @error_label.text    = "Please fill in all fields."
+    @error_label.visible = true
+  else
+    authenticate(email, pass)
+  end
 end
 ```
