@@ -1,132 +1,173 @@
 # Networking
 
-native.cr provides an HTTP client and WebSocket support that work on Android, iOS, and desktop.
+native.cr provides an HTTP client and a WebSocket client that work on Android, iOS, and the desktop development build. All classes live in the `Native::Network` namespace.
 
 ---
 
-## Quick HTTP requests
+## One-liner HTTP requests
 
-The simplest way to make requests is through the `Native::Network::HTTP` module:
+The `Native::Network::HTTP` module has convenience methods for simple cases:
 
 ```crystal
 # GET
-response = Native::Network::HTTP.get("https://api.example.com/posts")
+response = Native::Network::HTTP.get("https://api.example.com/users")
 
 # POST
 response = Native::Network::HTTP.post(
-  "https://api.example.com/posts",
-  body: "{\"title\":\"Hello\"}"
+  "https://api.example.com/users",
+  body: "{\"name\":\"Alice\"}"
 )
 
 # PUT
-response = Native::Network::HTTP.put("https://api.example.com/posts/1", body: "...")
+response = Native::Network::HTTP.put(
+  "https://api.example.com/users/1",
+  body: "{\"name\":\"Alice Updated\"}"
+)
 
 # DELETE
-response = Native::Network::HTTP.delete("https://api.example.com/posts/1")
+response = Native::Network::HTTP.delete("https://api.example.com/users/1")
 ```
 
-### Checking the response
+### Reading the response
 
 ```crystal
-if response.ok?
-  puts response.body          # raw string body
-  data = response.json        # parsed JSON (returns JSON::Any)
-  puts data["title"].as_s
-elsif response.client_error?
-  puts "Bad request: #{response.status_code}"
-elsif response.server_error?
-  puts "Server error: #{response.status_code}"
+if response.success
+  puts response.status_code   # e.g. 200
+  puts response.body          # raw response string
+
+  # Parse JSON automatically
+  if data = response.json
+    puts data["name"].as_s
+  end
+else
+  puts "Request failed: #{response.error}"
 end
 
-puts response.success         # true if the request itself succeeded (no network error)
-puts response.error           # error message if success == false
+# Status code helpers
+response.ok?           # true for 200–299
+response.client_error? # true for 400–499
+response.server_error? # true for 500–599
 ```
 
-| Method | Returns | Description |
+### The `Response` struct at a glance
+
+| Field / Method | Type | Description |
 |---|---|---|
-| `ok?` | `Bool` | Status 200–299 |
-| `client_error?` | `Bool` | Status 400–499 |
-| `server_error?` | `Bool` | Status 500–599 |
-| `status_code` | `Int32` | Raw HTTP status code |
+| `success` | `Bool` | `true` if the request completed without a network error |
+| `status_code` | `Int32` | HTTP status (200, 404, 500…) |
 | `body` | `String` | Response body as text |
-| `json` | `JSON::Any?` | Parsed JSON (nil if body is not JSON) |
+| `headers` | `Hash(String, String)` | Response headers |
+| `error` | `String?` | Error message when `success` is `false` |
+| `ok?` | `Bool` | `status_code` in 200–299 |
+| `client_error?` | `Bool` | `status_code` in 400–499 |
+| `server_error?` | `Bool` | `status_code` in 500–599 |
+| `json` | `JSON::Any?` | Parsed JSON, or `nil` if the body is not valid JSON |
 
 ---
 
 ## HTTPClient — reusable client with a base URL
 
-When all your requests go to the same server, use `HTTPClient` with a base URL:
+When all your requests go to the same server, create an `HTTPClient` with a base URL. Paths are then relative to that base.
 
 ```crystal
 client = Native::Network::HTTPClient.new("https://api.example.com")
 
-# Now paths are relative to the base URL
-response = client.get("/users")
-response = client.post("/users", body: user_json)
-response = client.put("/users/1", body: updated_json)
-response = client.delete("/users/1")
+# All paths are relative to the base URL
+users    = client.get("/users")
+profile  = client.get("/users/me")
+created  = client.post("/users", body: new_user_json)
+updated  = client.put("/users/1", body: update_json)
+deleted  = client.delete("/users/1")
 ```
 
-### Adding headers
+### Adding request headers
+
+Pass a `Hash(String, String)` as the `headers:` argument:
 
 ```crystal
-response = client.get("/profile", headers: {
-  "Authorization" => "Bearer my-token",
-  "Accept-Language" => "en"
-})
+auth_headers = {
+  "Authorization" => "Bearer #{@token}",
+  "Accept-Language" => "en-US",
+}
+
+profile = client.get("/profile", headers: auth_headers)
 ```
 
 ### Building a custom request
 
-For more control, create a `Request` struct:
+For full control, use `Native::Network::Request`:
 
 ```crystal
-request = Native::Network::Request.new
-request.method = Native::Network::Method::POST
-request.url = "https://api.example.com/upload"
-request.add_header("Authorization", "Bearer my-token")
-request.json = { name: "Alice" }.to_json  # sets body + Content-Type header
-request.timeout = 60.0                    # seconds (default is 30)
+req = Native::Network::Request.new
+req.method  = Native::Network::Method::POST
+req.url     = "https://api.example.com/upload"
+req.timeout = 60.0                               # seconds (default: 30)
 
-response = client.request(request)
+# Set body + Content-Type: application/json in one call
+req.json = { name: "Alice", age: 30 }.to_json
+
+# Or set form-encoded body
+req.form = { "username" => "alice", "password" => "secret" }
+
+# Add individual headers
+req.add_header("X-Custom-Header", "my-value")
+
+response = client.request(req)
 ```
 
-Setting `request.json=` automatically adds the `Content-Type: application/json` header.
+### HTTP methods
 
-For form data:
-
-```crystal
-request.form = { "username" => "alice", "password" => "secret" }
+```
+Native::Network::Method::GET
+Native::Network::Method::POST
+Native::Network::Method::PUT
+Native::Network::Method::DELETE
+Native::Network::Method::PATCH
+Native::Network::Method::HEAD
 ```
 
 ---
 
 ## Streaming responses
 
-Use streaming when you want to process the response as it arrives, e.g. for Server-Sent Events or large downloads:
+Use streaming to process the response as it arrives — ideal for Server-Sent Events, large file downloads, or AI streaming APIs.
 
 ```crystal
 client = Native::Network::HTTPClient.new("https://api.example.com")
 
-client.get("/stream") do |chunk|
+# The block receives each chunk as Bytes
+client.get("/events") do |chunk|
   text = String.new(chunk)
-  puts "Received chunk: #{text}"
+  puts "Chunk: #{text}"
 end
+```
+
+On a `Request` object:
+
+```crystal
+req = Native::Network::Request.new
+req.method = Native::Network::Method::GET
+req.url    = "https://stream.example.com/live"
+req.on_chunk do |bytes|
+  process_chunk(bytes)
+end
+
+client.request(req)
 ```
 
 ---
 
 ## WebSockets
 
-WebSockets let you keep an open, two-way connection to a server.
+`Native::Network::WebSocket` keeps a persistent two-way connection open with a server.
 
 ```crystal
 ws = Native::Network::WebSocket.new("wss://echo.websocket.org")
 
-# Set up event handlers BEFORE calling connect
+# Register handlers BEFORE calling connect
 ws.on_open do
   puts "Connected!"
-  ws.send("Hello server")
+  ws.send("Hello, server!")
 end
 
 ws.on_message do |text|
@@ -134,54 +175,144 @@ ws.on_message do |text|
 end
 
 ws.on_chunk do |bytes|
-  puts "Received binary data: #{bytes.size} bytes"
+  puts "Binary frame: #{bytes.size} bytes"
 end
 
-ws.on_error do |error|
-  puts "Error: #{error}"
+ws.on_error do |message|
+  puts "WebSocket error: #{message}"
 end
 
 ws.on_close do |code, reason|
-  puts "Closed: #{code} #{reason}"
+  puts "Closed — code: #{code}, reason: #{reason}"
 end
 
-# Now connect
+# Open the connection
 ws.connect
 ```
 
 ### Sending data
 
 ```crystal
-ws.send("Hello")                    # send text
-ws.send_binary(Bytes[1, 2, 3])     # send binary data
-ws.close                            # disconnect
+ws.send("Hello!")                          # send a text frame
+ws.send_binary(Bytes[0x01, 0x02, 0x03])   # send a binary frame
+ws.close                                   # close the connection
 ```
 
 ---
 
-## A real-world example — fetching and displaying a list
+## Running requests in the background
+
+HTTP requests block the calling fiber. To keep the UI responsive, run them in a background fiber and update the UI when done:
 
 ```crystal
-class PostsApp < Native::App
-  def setup
-    @list = UI::RecyclerView.new
+def load_feed
+  spawn do
+    response = Native::Network::HTTP.get("https://api.example.com/feed")
 
-    Native::Network::HTTP.get("https://jsonplaceholder.typicode.com/posts") do |response|
-      if response.ok?
-        posts = response.json.as_a
-        @list.items = posts.map { |p| p["title"].as_s }
-      end
+    if response.ok?
+      posts = response.json.try(&.as_a) || [] of JSON::Any
+
+      # Back on the main thread — update UI
+      @list_view.adapter = Native::UI::SimpleAdapter.new(
+        posts.map { |p| p["title"].as_s }
+      )
+    else
+      @status_label.text = "Failed to load feed"
     end
-
-    @root = @list
   end
 end
 ```
 
-> **Tip:** HTTP requests are blocking by default. For a smooth UI, run them in a background fiber:
-> ```crystal
-> spawn do
->   response = Native::Network::HTTP.get(url)
->   # update UI on main thread
-> end
-> ```
+---
+
+## Real-world example — authenticated JSON API
+
+```crystal
+class ApiClient
+  BASE = "https://api.example.com"
+
+  def initialize(@token : String)
+    @client = Native::Network::HTTPClient.new(BASE)
+    @headers = { "Authorization" => "Bearer #{@token}" }
+  end
+
+  def get_profile : JSON::Any?
+    r = @client.get("/profile", headers: @headers)
+    r.ok? ? r.json : nil
+  end
+
+  def create_post(title : String, body : String) : Bool
+    payload = { title: title, body: body }.to_json
+    r = @client.post("/posts", body: payload, headers: @headers.merge({
+      "Content-Type" => "application/json"
+    }))
+    r.ok?
+  end
+
+  def delete_post(id : Int32) : Bool
+    r = @client.delete("/posts/#{id}", headers: @headers)
+    r.ok?
+  end
+end
+```
+
+---
+
+## Real-world example — live chat with WebSocket
+
+```crystal
+class ChatApp < Native::App
+  def setup
+    @messages = [] of String
+
+    @list = Native::UI::RecyclerView.new
+
+    @input = Native::UI::EditText.new
+    @input.hint = "Type a message…"
+
+    send_btn = Native::UI::Button.new("Send")
+    send_btn.on_click { send_message }
+
+    input_row = Native::UI::LinearLayout.new(
+      Native::UI::LinearLayout::Orientation::Horizontal
+    )
+    input_row.addView(@input)
+    input_row.addView(send_btn)
+
+    root = Native::UI::LinearLayout.new
+    root.orientation = Native::UI::LinearLayout::Orientation::Vertical
+    root.addView(@list)
+    root.addView(input_row)
+    @root = root
+
+    connect_websocket
+  end
+
+  def connect_websocket
+    @ws = Native::Network::WebSocket.new("wss://chat.example.com/ws")
+
+    @ws.on_open { puts "Connected to chat" }
+
+    @ws.on_message do |text|
+      @messages << text
+      @list.adapter = Native::UI::SimpleAdapter.new(@messages)
+      @list.scroll_to_position(@messages.size - 1, smooth: true)
+    end
+
+    @ws.on_error { |err| puts "Chat error: #{err}" }
+
+    @ws.connect
+  end
+
+  def send_message
+    text = @input.text.strip
+    return if text.empty?
+    @ws.send(text)
+    @input.text = ""
+  end
+
+  def on_destroy
+    @ws.close
+  end
+end
+```

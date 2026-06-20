@@ -1,94 +1,109 @@
 # App Lifecycle
 
-Every native.cr app is built around a single class that inherits from `Native::App`. This class is the heart of your application.
+Every native.cr app is built around a single class that inherits from `Native::App`. This guide explains how your app starts, runs, pauses, and shuts down — and how to preserve state across hot reloads.
 
 ---
 
-## Creating your app class
+## The minimal app
 
 ```crystal
 require "native"
 
 class MyApp < Native::App
   def setup
-    # your UI setup goes here
-  end
-
-  def draw
-    @root.draw(renderer)
+    label = Native::UI::TextView.new
+    label.text = "Hello, world!"
+    label.text_size = 28
+    @root = label
   end
 end
 
 Native::App.start(MyApp)
 ```
 
-`Native::App.start(MyApp)` creates an instance of your class, restores any saved state, and calls `setup`.
+That is a complete, working app. `setup` is the **only** method you are required to implement.
 
 ---
 
-## Required methods
-
-### `setup : Nil`
-
-Called **once** when the app first launches. This is where you:
-- Create UI components
-- Load saved data
-- Set up callbacks
-- Set the background color
+## How `Native::App.start` works
 
 ```crystal
-def setup
-  set_background_color(255, 255, 255)  # white background (R, G, B)
+Native::App.start(MyApp)
+```
 
-  @label = UI::Text.new
-  @label.text = "Welcome!"
+This does the following steps, in order:
 
-  @root = @label
+1. Creates a new instance of your class
+2. Registers it as the current app (`Native::App.current`)
+3. Restores any saved state (from a previous hot reload)
+4. Calls your `setup` method
+5. Starts the event loop (`run`)
+
+The event loop calls `on_pause`, `on_resume`, `on_destroy`, and the touch callbacks as the user interacts with the device.
+
+---
+
+## `setup` — the one required method
+
+```crystal
+def setup : Nil
+  # Build your UI here.
+  # Set the background colour.
+  # Load saved preferences.
+  # Wire up callbacks.
 end
 ```
 
-### `draw : Nil`
+`setup` is called **once** when the app first launches (or after a hot reload). Heavy work like building the layout tree belongs here, not in callbacks.
 
-Called **every frame** (roughly 60 times per second). You must call `@root.draw(renderer)` here to paint your UI.
+### Setting the background colour
 
 ```crystal
-def draw
-  @root.draw(renderer)
-end
+set_background_color(255, 255, 255)    # white  (R, G, B, each 0–255)
+set_background_color(30, 30, 35)       # dark background
+set_background_color(240, 240, 245)    # light grey
+```
+
+### Assigning the root view
+
+Your `setup` method should assign the top-level layout or view to `@root`. The framework uses `@root` to know what to display.
+
+```crystal
+@root = my_layout
 ```
 
 ---
 
-## Optional lifecycle callbacks
+## Lifecycle callbacks
 
-Override any of these to react to events:
+Override any of these to react to system events. They are all no-ops by default:
 
 ```crystal
-# Called when the user touches the screen (finger goes down)
+# Called when a finger touches the screen
 def on_touch_began(x : Float32, y : Float32) : Nil
 end
 
-# Called when the user moves their finger
+# Called when a finger slides across the screen
 def on_touch_moved(x : Float32, y : Float32) : Nil
 end
 
-# Called when the user lifts their finger
+# Called when a finger lifts from the screen
 def on_touch_ended(x : Float32, y : Float32) : Nil
 end
 
-# Called when a key is pressed (useful on desktop/emulator)
+# Called when a hardware key is pressed (useful in emulators or on devices with keyboards)
 def on_key_pressed(key : Int32) : Nil
 end
 
-# Called when a key is released
+# Called when a hardware key is released
 def on_key_released(key : Int32) : Nil
 end
 
-# Called when the app goes into the background (user switches away)
+# Called when the user switches to another app (app goes to background)
 def on_pause : Nil
 end
 
-# Called when the app comes back to the foreground
+# Called when the user comes back to your app
 def on_resume : Nil
 end
 
@@ -97,23 +112,34 @@ def on_destroy : Nil
 end
 ```
 
-### Example — pause and resume the camera
+### Example — pause the camera when backgrounded
 
 ```crystal
 def on_pause
-  @camera.close if @camera
+  @camera.stop_preview
 end
 
 def on_resume
-  @camera.open if @camera && !@camera.is_open?
+  @camera.start_preview(@preview_view)
+end
+```
+
+### Example — save a high score when destroyed
+
+```crystal
+def on_destroy
+  prefs = Native::Storage::Preferences.new("game")
+  prefs.set("high_score", @high_score)
 end
 ```
 
 ---
 
-## State preservation (hot reload)
+## Hot reload and state preservation
 
-When you use fast reload (`native.cr reload`), the app restarts but your instance variables are lost — unless you mark them with `@[Preserve]`.
+When you run `native.cr reload main.cr`, the app is rebuilt and `setup` is called again. Any instance variable that was not marked `@[Preserve]` is reset to its initial value.
+
+To keep a value across reloads, annotate it with `@[Preserve]`:
 
 ```crystal
 class MyApp < Native::App
@@ -122,50 +148,153 @@ class MyApp < Native::App
 
   @[Preserve]
   property player_name : String = ""
+
+  @[Preserve]
+  property items : Array(String) = [] of String
 end
 ```
 
-State is serialised to JSON between reloads and restored automatically. Any field marked `@[Preserve]` must be a JSON-serialisable type (`Int32`, `String`, `Bool`, `Float64`, `Array`, `Hash`, etc.).
+`@[Preserve]` works with any JSON-serialisable type:
+- `Int32`, `Int64`, `Float32`, `Float64`
+- `String`, `Bool`
+- `Array(T)` and `Hash(String, T)` where `T` is also serialisable
+
+### How it works under the hood
+
+When a reload is triggered, the framework:
+1. Sends `SIGUSR1` to your process, which calls `state_to_json` and writes it to a temp file
+2. Terminates the old process
+3. Launches the new process, which calls `load_saved_state` → `state_from_json` before `setup`
 
 ---
 
-## Saving and loading state manually
+## Customising state serialisation
 
-You can override `state_to_json` and `state_from_json` if you want fine-grained control:
+If you need fine control, override these two methods:
 
 ```crystal
 def state_to_json : String
-  { score: @score, name: @player_name }.to_json
+  {
+    score:  @score,
+    name:   @player_name,
+    level:  @current_level,
+  }.to_json
 end
 
 def state_from_json(json : String) : Nil
   data = JSON.parse(json)
-  @score = data["score"].as_i
-  @player_name = data["name"].as_s
+  @score         = data["score"].as_i
+  @player_name   = data["name"].as_s
+  @current_level = data["level"].as_i
 rescue
-  # ignore malformed state
+  # Ignore malformed or missing state — safe to skip
 end
 ```
 
 ---
 
-## Background colour
-
-Set the screen background colour in `setup` (or any time):
+## Accessing the running app from anywhere
 
 ```crystal
-set_background_color(240, 240, 245)       # light grey (R, G, B, each 0-255)
-set_background_color(30, 30, 35)          # dark theme
+app = Native::App.current   # returns your app instance as Native::App
+```
+
+If you need to call a method specific to your subclass:
+
+```crystal
+if app = Native::App.current.as?(MyApp)
+  app.show_notification("Hello!")
+end
 ```
 
 ---
 
-## Accessing the running app instance
+## The `run` loop
 
-From anywhere in your code you can get the current app:
+You do not normally need to touch `run`. It is the internal event loop:
 
 ```crystal
-app = Native::App.current
+def run : Nil
+  loop do
+    sleep 0.016.seconds   # ~60 fps heartbeat
+  end
+end
 ```
 
-This is useful when a callback in a child component needs to call a method on the app.
+The native engine calls your touch callbacks and lifecycle hooks through a separate JNI/Objective-C bridge, independently of this loop. Override `run` only if you need a fully custom game loop — and if you do, call `super` or implement the same sleep/yield pattern to avoid 100% CPU usage.
+
+---
+
+## Full lifecycle example
+
+```crystal
+require "native"
+
+class TodoApp < Native::App
+  @[Preserve]
+  property todos : Array(String) = [] of String
+
+  @prefs = Native::Storage::Preferences.new("todo_app")
+
+  def setup
+    set_background_color(250, 250, 252)
+
+    # Restore todos from persistent storage (survives full app restarts)
+    saved = @prefs.get_string("todos", default: "")
+    @todos = saved.split("\n").reject(&.empty?) if saved.size > 0
+
+    build_ui
+  end
+
+  def build_ui
+    @list_view = Native::UI::LinearLayout.new
+    @list_view.orientation = Native::UI::LinearLayout::Orientation::Vertical
+    refresh_list
+
+    scroll = Native::UI::ScrollView.new
+    scroll.addView(@list_view)
+
+    @input = Native::UI::EditText.new
+    @input.hint = "Add a todo…"
+    @input.width = 280
+
+    add_btn = Native::UI::Button.new("Add")
+    add_btn.on_click { add_todo }
+
+    row = Native::UI::LinearLayout.new(Native::UI::LinearLayout::Orientation::Horizontal)
+    row.addView(@input)
+    row.addView(add_btn)
+
+    root = Native::UI::LinearLayout.new
+    root.orientation = Native::UI::LinearLayout::Orientation::Vertical
+    root.set_padding(16, 16, 16, 16)
+    root.addView(row)
+    root.addView(scroll)
+    @root = root
+  end
+
+  def add_todo
+    text = @input.text.strip
+    return if text.empty?
+    @todos << text
+    @input.text = ""
+    @prefs.set("todos", @todos.join("\n"))
+    refresh_list
+  end
+
+  def refresh_list
+    @list_view.removeAllViews
+    @todos.each do |todo|
+      item = Native::UI::TextView.new(todo)
+      item.text_size = 16
+      @list_view.addView(item)
+    end
+  end
+
+  def on_pause
+    @prefs.set("todos", @todos.join("\n"))
+  end
+end
+
+Native::App.start(TodoApp)
+```

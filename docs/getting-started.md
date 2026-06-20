@@ -1,31 +1,32 @@
 # Getting Started
 
-This guide walks you through installing native.cr, creating your first project, and running it.
+This guide walks you through installing native.cr, creating your first project, and running it on a real device or emulator.
 
 ---
 
 ## Prerequisites
 
-Before you start, make sure you have:
+You need the following tools installed before you begin:
 
-- **Crystal 1.20+** — the programming language. Install from https://crystal-lang.org/install/
-- **Android SDK** (for Android builds) or **Xcode** (for iOS builds)
-- A Crystal package manager called **Shards** (it comes bundled with Crystal)
+| Tool | Required for | Install |
+|---|---|---|
+| Crystal 1.20+ | Everything | https://crystal-lang.org/install/ |
+| Android NDK r25+ | Android builds | https://developer.android.com/ndk |
+| Xcode 14+ | iOS builds (macOS only) | Mac App Store |
+
+Crystal comes bundled with **Shards** (the package manager). You do not need to install it separately.
 
 ---
 
 ## Install the native.cr CLI
 
-The CLI tool is what lets you create, build, and reload your app.
-
 ```bash
-# Clone and build the CLI
 git clone https://github.com/slick-lab/native.cr
 cd native.cr
 make install
 ```
 
-Check that it works:
+Verify the install:
 
 ```bash
 native.cr --version
@@ -36,13 +37,11 @@ native.cr --version
 
 ## Check your toolchain
 
-Run the doctor command — it tells you what is installed and what is missing:
-
 ```bash
 native.cr doctor
 ```
 
-Fix any issues it reports before continuing.
+This prints a checklist of everything native.cr needs. Fix any ✗ items before continuing.
 
 ---
 
@@ -53,96 +52,117 @@ native.cr create MyApp
 cd MyApp
 ```
 
-This creates a folder like this:
+Your new project looks like this:
 
 ```
 MyApp/
-├── shard.yml         ← project config and dependencies
-├── main.cr           ← your app entry point
-└── assets/           ← images, fonts, sounds go here
+├── shard.yml     ← project name, version, and dependencies
+├── main.cr       ← your app entry point
+└── assets/       ← put images, fonts, and sounds here
 ```
 
 ---
 
-## Write your app
+## Open `main.cr`
 
-Open `main.cr`. You will see a starter app. Replace it or extend it — your app is a Crystal class that inherits from `Native::App`:
+The file already contains a starter app. Here is a minimal working example — a counter that increments on every tap:
 
 ```crystal
 require "native"
 
 class MyApp < Native::App
+  @[Preserve]             # keeps @count alive across hot reloads
+  property count : Int32 = 0
+
   def setup
-    label = UI::Text.new
-    label.text = "Hello, world!"
-    label.text_size = 32
+    set_background_color(240, 240, 245)
 
-    @root = label
-  end
+    @label = Native::UI::TextView.new("Taps: 0")
+    @label.text_size = 28
 
-  def draw
-    @root.draw(renderer)
+    btn = Native::UI::Button.new("Tap Me")
+    btn.width  = 180
+    btn.height = 52
+    btn.background_color = Native::Math::Color.from_hex(0x007AFF)
+    btn.text_color = Native::Math::Color.white
+    btn.on_click {
+      @count += 1
+      @label.text = "Taps: #{@count}"
+    }
+
+    layout = Native::UI::LinearLayout.new
+    layout.orientation = Native::UI::LinearLayout::Orientation::Vertical
+    layout.gravity = Native::UI::LinearLayout::Gravity::Center
+    layout.addView(@label)
+    layout.addView(btn)
+
+    @root = layout
   end
 end
 
 Native::App.start(MyApp)
 ```
 
-Every app needs at least:
-- A `setup` method — runs once when the app starts. Build your UI here.
-- A `draw` method — called every frame. Call `@root.draw(renderer)` here.
+The only method you **must** implement is `setup`. That is where you build your UI and set `@root`.
 
 ---
 
-## Build and run
+## Build and install
 
 ### Android
 
 ```bash
+# Compile and produce an APK
 native.cr build --android
-```
 
-This compiles your Crystal code into a native Android library and packages it as an APK.
-
-To install directly on a connected device:
-
-```bash
+# Install the APK directly on a connected Android device
 native.cr android install
 ```
+
+Make sure your device has **USB Debugging** enabled in Developer Options.
 
 ### iOS
 
 ```bash
+# Compile and wrap in an Xcode project
 native.cr build --ios
 ```
 
-This compiles your Crystal code and wraps it in an Xcode project you can run on a simulator or device.
+Open the generated Xcode project and run it on a simulator or device using the play button.
 
 ---
 
-## Fast reload (development)
+## Hot reload during development
 
-Instead of doing a full build every time you change something, you can use hot reload:
+Full rebuilds are slow. Use hot reload to update the running app instantly as you save:
 
 ```bash
 native.cr reload main.cr
 ```
 
-This watches your file for changes and updates the running app without restarting it. State marked with `@[Preserve]` is restored automatically across reloads.
+The CLI watches `main.cr` for changes. When it detects a save it:
+1. Serialises any `@[Preserve]` state
+2. Recompiles
+3. Restarts the app and restores the saved state
+
+Your `@count` stays at 42 across a reload because of `@[Preserve]`.
 
 ---
 
-## Add a dependency
+## Add dependencies
 
-Edit `shard.yml` and add to the `dependencies:` section:
+Edit `shard.yml`:
 
 ```yaml
 dependencies:
   native:
     github: slick-lab/native.cr
+  # add more shards here
+  my_lib:
+    github: some-user/my_lib
 ```
 
-Then run:
+Install:
 
 ```bash
 shards install
@@ -150,8 +170,37 @@ shards install
 
 ---
 
+## Project layout conventions
+
+```
+MyApp/
+├── main.cr           ← app entry point
+├── shard.yml         ← dependencies
+├── assets/
+│   ├── images/       ← .png, .jpg
+│   ├── sounds/       ← .wav, .mp3
+│   └── fonts/        ← .ttf, .otf
+└── src/              ← optional: split your code into multiple files
+    ├── screens/
+    └── components/
+```
+
+Require additional files from `main.cr`:
+
+```crystal
+require "native"
+require "./src/screens/home_screen"
+require "./src/screens/settings_screen"
+```
+
+---
+
 ## What's next?
 
-- Learn about the [App Lifecycle](./app-lifecycle.md) — how your app starts, pauses, and stops
-- Explore [UI Components](./ui-components.md) — all the widgets you can use
-- Read about [Networking](./networking.md) to make HTTP requests
+| Guide | What to read next |
+|---|---|
+| [App Lifecycle](./app-lifecycle.md) | How `setup`, callbacks, and `@[Preserve]` work |
+| [UI Components](./ui-components.md) | Every widget with full examples |
+| [Networking](./networking.md) | HTTP requests and WebSockets |
+| [Storage](./storage.md) | Saving data that persists between launches |
+| [Permissions](./permissions.md) | Asking for camera, location, etc. |
