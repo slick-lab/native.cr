@@ -38,7 +38,7 @@ jobs:
       - name: Build CLI (Release)
         run: |
           shards install
-          crystal build src/native.cr --release --static --target aarch64-linux-gnu
+          crystal build src/native.cr -o native.cr --release --static --target aarch64-linux-gnu
 
       # 5. (Optional) Upload the built binary as a workflow artifact
       - name: Upload Artifact
