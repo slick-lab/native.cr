@@ -1,0 +1,36 @@
+# .github/workflows/native-darwin-arm64.yml
+name: Build CLI for macOS ARM64
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install the latest Crystal compiler 
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Install Shards
+        run: shards --version
+
+      # Build for ARM64 Apple Silicon
+      - name: Build CLI (Release)
+        run: |
+          shards install
+          crystal build src/native.cr --release --target aarch64-apple-darwin
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-cli-darwin-arm64
+          path: native.cr
