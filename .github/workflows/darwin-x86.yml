@@ -1,0 +1,36 @@
+
+name: Build CLI for macOS x86_64
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Uses Intel-based macOS runner
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Install Shards
+        run: shards --version
+
+      # Build for Intel x86_64 
+      - name: Build CLI (Release)
+        run: |
+          shards install
+          crystal build src/native.cr --release --target x86_64-apple-darwin
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-cli-darwin-x86_64
+          path: native.cr
