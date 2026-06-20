@@ -10,6 +10,7 @@ dist/
 *.dylib
 *.dSYM/
 *.o
+gradle-8.0/
 
 # Crystal
 .shards/

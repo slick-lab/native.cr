@@ -121,6 +121,8 @@ module Native::CLI
                     android:name=".MainActivity"
                     android:configChanges="orientation|keyboardHidden|screenSize"
                     android:exported="true">
+                    
+                    <meta-data android:name="android.app.lib_name" android:value="native_cr" />
 
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
@@ -166,25 +168,29 @@ module Native::CLI
       File.write("#{android_dir}/gradle/wrapper/gradle-wrapper.properties", <<-PROPERTIES
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
-        distributionUrl=https\\\\://services.gradle.org/distributions/gradle-8.0-bin.zip
+        distributionUrl=https\\://services.gradle.org/distributions/gradle-8.1.1-bin.zip
         zipStoreBase=GRADLE_USER_HOME
         zipStorePath=wrapper/dists
       PROPERTIES
       )
+      
+      # Fixed CLASSPATH string interpolation and class name spelling
       File.write("#{android_dir}/gradlew", <<-'SCRIPT'
-       #!/bin/sh
-       APP_HOME=$(cd "$(dirname "$0")" && pwd)
-       CLASSPATH="$APP_HOME/gradle/wrapper/gradle.jar"
-       exec java -cp "CLASSPATH" org.gradle.wrapple.GradleWrapperMain "$@"
-       SCRIPT
+        #!/bin/sh
+        APP_HOME=$(cd "$(dirname "$0")" && pwd)
+        CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+        exec java -cp "$CLASSPATH" org.gradle.wrapper.GradleWrapperMain "$@"
+        SCRIPT
       )
-      File.chmod("#{android_dir}/gradlew", 0o755,)
+      File.chmod("#{android_dir}/gradlew", 0o755)
+      
+      # Fixed missing percentage symbols and class name casing
       File.write("#{android_dir}/gradlew.bat", <<-'BAT'
-       @echo off
-       set APP_HOME=%~dp0
-       set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
-       java -cp "%CLASSPATH" org.gradle.wrapper.GradleWrappermain %*
-       BAT
+        @echo off
+        set APP_HOME=%~dp0
+        set CLASSPATH=%APP_HOME%gradle\wrapper\gradle-wrapper.jar
+        java -cp "%CLASSPATH%" org.gradle.wrapper.GradleWrapperMain %*
+        BAT
       )
     end
 
@@ -209,7 +215,7 @@ module Native::CLI
       url = "https://github.com/slick-lab/native.cr/releases/download/#{version}/gradle-wrapper.jar"
       system("curl -L -o #{jar_path} #{url}")
       unless File.exists?(jar_path) && File.size(jar_path) > 0
-        puts "could not download graddle-wrapper.jar builds will fail without this"
+        puts "could not download gradle-wrapper.jar builds will fail without this"
       end
     end
   end
