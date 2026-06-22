@@ -58,7 +58,7 @@ module Native::CLI
                 mavenCentral()
             }
             dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.0'
+                classpath 'com.android.tools.build:gradle:9.1.0'
             }
         }
 
@@ -83,15 +83,15 @@ module Native::CLI
         }
 
         android {
-            namespace '#{@package_name}'
-            compileSdk 34
+            namespace = '#{@package_name}'
+            compileSdk = 34
 
             defaultConfig {
-                applicationId '#{@package_name}'
-                minSdk 24
-                targetSdk 34
-                versionCode 1
-                versionName '1.0'
+                applicationId ='#{@package_name}'
+                minSdk = 24
+                targetSdk = 34
+                versionCode = 1
+                versionName = '1.0'
             }
 
             sourceSets {
@@ -106,31 +106,31 @@ module Native::CLI
 
     private def create_android_manifest(main_dir : String)
       File.write("#{main_dir}/AndroidManifest.xml", <<-XML
-        <?xml version="1.0" encoding="utf-8"?>
-        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="#{@package_name}">
+       <?xml version="1.0" encoding="utf-8"?>
+       <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        package="#{@package_name}">
 
-            <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="34" />
+      <application
+        android:label="test"
+        android:hasCode="true"
+        android:allowBackup="false">
 
-            <application
-                android:label="#{@project_name}"
-                android:hasCode="true"
-                android:allowBackup="false">
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:exported="true">
 
-                <activity
-                    android:name=".MainActivity"
-                    android:configChanges="orientation|keyboardHidden|screenSize"
-                    android:exported="true">
-                    
-                    <meta-data android:name="android.app.lib_name" android:value="native_cr" />
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="native_cr" />
 
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
-            </application>
-        </manifest>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+      </application>
+      </manifest>
       XML
       )
     end
@@ -173,7 +173,7 @@ module Native::CLI
         zipStorePath=wrapper/dists
       PROPERTIES
       )
-      
+
       # Fixed CLASSPATH string interpolation and class name spelling
       File.write("#{android_dir}/gradlew", <<-'SCRIPT'
         #!/bin/sh
@@ -183,7 +183,7 @@ module Native::CLI
         SCRIPT
       )
       File.chmod("#{android_dir}/gradlew", 0o755)
-      
+
       # Fixed missing percentage symbols and class name casing
       File.write("#{android_dir}/gradlew.bat", <<-'BAT'
         @echo off
