@@ -33,7 +33,7 @@ require "./native/framework/navigation/*"
 {% end %}
 
 module Native
-  VERSION = "0.1.3"
+  VERSION = "0.1.5"
 
   def self.run
     args = ARGV
@@ -58,6 +58,8 @@ module Native
       Native::CLI::ReloadCommand.new(args[1..-1]).run
     when "doctor"
       Native::CLI::DoctorCommand.new(args[1..-1]).run
+    when "sign"
+      Native::CLI::SignCommand.new(args[1..-1]).run
     else
       puts "Unknown command: #{args[0]}"
     end

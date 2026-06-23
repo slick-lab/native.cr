@@ -111,7 +111,7 @@ module Native::CLI
         "--ks-pass", "pass:#{@storepass}",
         "--key-pass", "pass:#{@keypass}",
         "--out", @output,
-        @apk
+        @apk,
       ]
 
       puts "[native.cr] Running: #{cmd.join(" ")}"
