@@ -6,18 +6,14 @@ CC = $(TOOLCHAIN)/bin/aarch64-linux-android24-clang
 JAVAC = javac
 JAR = jar
 
-GLUE_DIR = $(NDK_PATH)/sources/android/native_app_glue
-GLUE_SRC = $(GLUE_DIR)/android_native_app_glue.c
-
 ANDROID_JAR = $(SDK_PATH)/platforms/android-34/android.jar
 
-# Target path relative to /home/zendrx/projects/native.cr/src/native/engine/android
 LIBS_DIR = ../../../../../libs
 DEP_JARS = $(LIBS_DIR)/androidx-core.jar:$(LIBS_DIR)/androidx-recyclerview.jar:$(LIBS_DIR)/androidx-biometric.jar:$(LIBS_DIR)/androidx-appcompat.jar:$(LIBS_DIR)/google-billing.jar:$(LIBS_DIR)/androidx-fragment.jar
 CLASSPATH = $(ANDROID_JAR):$(DEP_JARS)
 
-CFLAGS = -fPIC -O2 -I$(GLUE_DIR)
-LDFLAGS = -shared -landroid -llog -ljnigraphics
+CFLAGS = -fPIC -O2
+LDFLAGS = -shared -landroid -llog -pthread
 
 TARGET_SO = libnative_cr_engine.so
 TARGET_JAR = libnative_cr_android.jar
