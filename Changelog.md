@@ -2,6 +2,19 @@
 
 All notable changes to native.cr will be documented in this file.
 
+## [0.1.5] - 2026-06-26
+
+### Fixed 
+- `native.c` in android framework 
+- `cli/android.cr` renamed correct library name in xml generation that prevented libraries from loading during app launch
+
+### Added
+
+- sign cli 
+  added the sign cli to sign apk files using apksigner
+
+
+
 ## [0.1.0] - 2026-06-02
 
 ### Added

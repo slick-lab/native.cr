@@ -122,7 +122,7 @@ module Native::CLI
 
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="native_cr" />
+                android:value="user_app" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -144,7 +144,7 @@ module Native::CLI
 
         public class MainActivity extends NativeActivity {
             static {
-                System.loadLibrary("native_cr");
+                System.loadLibrary("user_app");
             }
 
             @Override

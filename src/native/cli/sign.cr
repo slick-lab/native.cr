@@ -140,7 +140,7 @@ module Native::CLI
         # Try to find the latest build-tools version
         build_tools_dir = "#{sdk_path}/build-tools"
         if Dir.exists?(build_tools_dir)
-          versions = Dir.glob("#{build_tools_dir}/*").sort_by { |d| File.basename(d) }.reverse
+          versions = Dir.glob("#{build_tools_dir}/*").sort_by { |d| File.basename(d) }.reverse!
           versions.each do |version_dir|
             apksigner = "#{version_dir}/apksigner"
             return apksigner if File.exists?(apksigner)
