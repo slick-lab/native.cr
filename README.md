@@ -6,7 +6,7 @@
 # native.cr
 
 [![Crystal](https://img.shields.io/badge/Crystal-1.20%2B-000000?logo=crystal&logoColor=white)](https://crystal-lang.org/)
-[![Version](https://img.shields.io/badge/version-0.1.3-blueviolet)](https://github.com/slick-lab/native.cr/releases)
+[![Version](https://img.shields.io/badge/version-0.1.5-blueviolet)](https://github.com/slick-lab/native.cr/releases)
 [![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 [![iOS](https://img.shields.io/badge/iOS-11%2B-000000?logo=apple&logoColor=white)](https://developer.apple.com/)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
