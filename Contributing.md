@@ -115,7 +115,7 @@ class MyComponent < UI::View
   property title : String = ""
 
   def draw(renderer : Void*) : Nil
-    {{ if flag?(:android) }}
+    {{ if flag?(:native_android) }}
       draw_android(renderer)
     {{ else }}
       draw_ios(renderer)
@@ -179,9 +179,9 @@ module Native
       def draw(renderer : Void*) : Nil
         return unless @visible
 
-        {{ if flag?(:android) }}
+        {{ if flag?(:native_android) }}
           # Android drawing code
-        {{ elsif flag?(:ios) }}
+        {{ elsif flag?(:native_ios) }}
           # iOS drawing code
         {{ end }}
       end
@@ -238,6 +238,3 @@ Questions?
 ---
 
 Again, thank you. This project exists because you care enough to help.
-
-```
-```

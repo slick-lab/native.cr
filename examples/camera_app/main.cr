@@ -5,7 +5,7 @@ require "native"
 class CameraApp < Native::App
   @photo_view : UI::Image?
   @capture_button : UI::Button?
-  @status_label : UI::Text?
+  @status_label : UI::TextView?
   @camera : Native::Camera::Camera?
 
   def setup
@@ -16,12 +16,12 @@ class CameraApp < Native::App
   end
 
   def create_ui
-    @status_label = UI::Text.new
+    @status_label = UI::TextView.new
     @status_label.not_nil!.text = "Camera ready"
     @status_label.not_nil!.text_size = 14
     @status_label.not_nil!.color = Color.from_hex(0xAAAAAA)
 
-    @photo_view = UI::Image.new
+    @photo_view = UI::ImageView.new
     @photo_view.not_nil!.width = 300
     @photo_view.not_nil!.height = 300
     @photo_view.not_nil!.scale_mode = Native::Image::ScaleMode::AspectFit
