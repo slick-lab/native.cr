@@ -7,12 +7,12 @@ class BasicApp < Native::App
   def setup
     set_background_color(240, 240, 245)
 
-    @label = UI::Text.new
+    @label = UI::TextView.new
     @label.text = "Hello, native.cr!"
     @label.text_size = 28
     @label.color = Color.from_hex(0x333333)
 
-    @counter = UI::Text.new
+    @counter = UI::TextView.new
     @counter.text = "Tap count: 0"
     @counter.text_size = 18
     @counter.color = Color.from_hex(0x666666)

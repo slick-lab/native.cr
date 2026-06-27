@@ -110,12 +110,12 @@ module Native::CLI
        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         package="#{@package_name}">
 
-      <application
-        android:label="test"
-        android:hasCode="true"
-        android:allowBackup="false">
+        <application
+          android:label="test"
+          android:hasCode="true"
+          android:allowBackup="false">
 
-        <activity
+          <activity
             android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true">
@@ -128,8 +128,8 @@ module Native::CLI
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-      </application>
+          </activity>
+        </application>
       </manifest>
       XML
       )
@@ -168,7 +168,7 @@ module Native::CLI
       File.write("#{android_dir}/gradle/wrapper/gradle-wrapper.properties", <<-PROPERTIES
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
-        distributionUrl=https\\://services.gradle.org/distributions/gradle-9.1.0-bin.zip
+        distributionUrl=https\\://services.gradle.org/distributions/gradle-9.3.1-bin.zip
         zipStoreBase=GRADLE_USER_HOME
         zipStorePath=wrapper/dists
       PROPERTIES
@@ -212,7 +212,7 @@ module Native::CLI
 
       Dir.mkdir_p(jar_dir)
       version = Native::VERSION
-      url = "https://github.com/slick-lab/native.cr/releases/download/#{version}/gradle-wrapper.jar"
+      url = "https://github.com/slick-lab/native.cr/releases/download/v#{version}/gradle-wrapper.jar"
       system("curl -L -o #{jar_path} #{url}")
       unless File.exists?(jar_path) && File.size(jar_path) > 0
         puts "could not download gradle-wrapper.jar builds will fail without this"

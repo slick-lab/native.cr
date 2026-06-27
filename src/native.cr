@@ -33,7 +33,7 @@ require "./native/framework/navigation/*"
 {% end %}
 
 module Native
-  VERSION = "0.1.5"
+  VERSION = "0.1.6"
 
   def self.run
     args = ARGV
