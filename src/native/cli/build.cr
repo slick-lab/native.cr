@@ -159,7 +159,7 @@ module Native::CLI
 
       puts "[native.cr] Linking final library..."
       final_so = "#{@output}/lib/arm64-v8a/libuser_app.so"
-      link_cmd = "#{clang} -shared -fPIC -o #{final_so} #{user_o} #{lib_dir_out}/libnative_cr_engine.so"
+      link_cmd = "#{clang} -shared -fPIC -Wl,-soname,libuser_app.so -o #{final_so} #{user_o} -L#{lib_dir_out}-lnative_cr_engine"
       link_output = `#{link_cmd} 2>&1`
 
       unless $?.success?
