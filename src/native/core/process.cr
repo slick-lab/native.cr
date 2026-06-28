@@ -8,7 +8,7 @@ require "system"
 module Native::Core
   module Process
     class ProcessError < Exception
-    end
+    end 
 
     class CompileError < Exception
     end
@@ -186,8 +186,8 @@ module Native::Core
         bootstrap = File.join(File.dirname(@config.build_output), "desktop_bootstrap.cr")
 
         File.write(bootstrap, <<-CR
-          require "#{File.expand_path(@config.entry_point)}"
-          require "native/engine/desktop/show"
+          require "../#{@config.entry_point}"
+          require "../lib/native/src/native/engine/desktop/show"
         CR
         )
 
