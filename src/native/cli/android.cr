@@ -144,6 +144,7 @@ module Native::CLI
 
         public class MainActivity extends NativeActivity {
             static {
+              System.loadLibrary("native_cr_engine");
                 System.loadLibrary("user_app");
             }
 
