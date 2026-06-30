@@ -4,6 +4,10 @@ version: 0.1.6
 authors:
   - Slick Lab <dev@native.cr>
 
+dependencies:
+  crsfml:
+    github: oprypin/crsfml
+
 targets:
   native:
     main: src/native.cr

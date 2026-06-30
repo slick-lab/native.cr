@@ -188,6 +188,8 @@ module Native::Core
         File.write(bootstrap, <<-CR
           require "../#{@config.entry_point}"
           require "native/desktop"
+
+          Native::DesktopRunner.run()
         CR
         )
 

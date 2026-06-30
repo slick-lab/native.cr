@@ -15,6 +15,7 @@
 [![Discord](https://img.shields.io/badge/Discord-Chat-5865F2?logo=discord&logoColor=white)](https://discord.gg/nativecr)
 [![Shards](https://img.shields.io/badge/shards-compatible-informational)](https://shards.info/)
 [![GitHub Stars](https://img.shields.io/github/stars/slick-lab/native.cr?style=flat&color=f59e0b)](https://github.com/slick-lab/native.cr/stargazers)
+[![Lines of Code](https://img.shields.io/badge/LOC-12.2k-red)](https://github.com/slick-lab/telegem)
 
 **Write real native Android and iOS apps in Crystal — one codebase, compiled to true native code, no JavaScript runtime.**
 
