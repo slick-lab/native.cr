@@ -1,5 +1,3 @@
-# src/native/framework/math.cr
-
 module Native
   module Math
     PI         =  3.141592653589793
@@ -459,7 +457,8 @@ module Native
         g = (@g * 255).round.to_i
         b = (@b * 255).round.to_i
         a = (@a * 255).round.to_i
-        (r.to_u32 << 24) | (g.to_u32 << 16) | (b.to_u32 << 8) | a.to_u32
+        # ARGB format to match from_hex
+        (a.to_u32 << 24) | (r.to_u32 << 16) | (g.to_u32 << 8) | b.to_u32
       end
     end
   end
