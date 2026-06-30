@@ -1,4 +1,3 @@
-# src/native/cli/android.cr
 require "system"
 
 module Native::CLI
@@ -58,7 +57,7 @@ module Native::CLI
                 mavenCentral()
             }
             dependencies {
-                classpath 'com.android.tools.build:gradle:9.1.0'
+                classpath 'com.android.tools.build:gradle:8.1.0'
             }
         }
 
@@ -169,7 +168,7 @@ module Native::CLI
       File.write("#{android_dir}/gradle/wrapper/gradle-wrapper.properties", <<-PROPERTIES
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
-        distributionUrl=https\\://services.gradle.org/distributions/gradle-9.3.1-bin.zip
+        distributionUrl=https\\://services.gradle.org/distributions/gradle-8.1.1-bin.zip
         zipStoreBase=GRADLE_USER_HOME
         zipStorePath=wrapper/dists
       PROPERTIES
