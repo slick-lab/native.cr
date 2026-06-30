@@ -111,7 +111,7 @@ module Native::CLI
         package="#{@package_name}">
 
         <application
-          android:label="test"
+          android:label="#{@package_name}"
           android:hasCode="true"
           android:allowBackup="false">
 
@@ -122,7 +122,7 @@ module Native::CLI
 
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="user_app" />
+                android:value="native_app" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -144,8 +144,7 @@ module Native::CLI
 
         public class MainActivity extends NativeActivity {
             static {
-              System.loadLibrary("native_cr_engine");
-                System.loadLibrary("user_app");
+                System.loadLibrary("native_app");
             }
 
             @Override

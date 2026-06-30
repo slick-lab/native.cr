@@ -44,7 +44,7 @@ On Android every widget is a real Android SDK `View` created and controlled thro
 
 ```mermaid
 graph LR
-    A["Your Crystal code\nmain.cr"] -->|crystal build --android| B["ARM64 binary\n+ libnative_cr_engine.so\n+ libnative_cr_android.jar"]
+    A["Your Crystal code\nmain.cr"] -->|crystal build --android| B["libnative_app.so\n+ libnative_cr_android.jar"]
     A -->|crystal build --ios| E["ARM64 binary\n+ UIKit FFI bridge"]
     B --> C["APK / AAB\nReal Android Views\nvia JNI bindings"]
     E --> D["IPA\nReal UIKit views\nvia FFI bindings"]
@@ -58,7 +58,7 @@ graph LR
 
 Crystal's compiler cross-compiles your code to ARM64.
 
-**On Android**, the compiled binary links against `libnative_cr_engine.so` (a thin C entry point) and `libnative_cr_android.jar` (precompiled Java helper classes). Every widget your Crystal code creates — `TextView`, `Button`, `LinearLayout` — is a real Android SDK `View` object instantiated through **JNI bindings**. The framework calls into the Android SDK directly; no custom renderer is involved. The result links into a standard APK.
+**On Android**, the compiled binary is linked with `native_engine.o` into a single `libnative_app.so` shared library, along with `libnative_cr_android.jar` (precompiled Java helper classes). Every widget your Crystal code creates — `TextView`, `Button`, `LinearLayout` — is a real Android SDK `View` object instantiated through **JNI bindings**. The framework calls into the Android SDK directly; no custom renderer is involved. The result links into a standard APK.
 
 **On iOS**, the binary exposes a set of C-callable entry points (`crystal_init`, `crystal_start`, `crystal_touch_began`, etc.) that are called by a thin Swift/Objective-C host. Every widget maps to a real **UIKit view** via FFI (`LibIOS.*` calls). The host wraps it all into a standard `.xcodeproj` that you open in Xcode and submit to the App Store.
 
