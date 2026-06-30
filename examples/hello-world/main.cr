@@ -3,10 +3,9 @@ require "native"
 include Native
 
 class HelloApp < Native::App
-
 	def setup : Nil
-		@text = UI::TextView.new("hello world")
-		@root = @label
+		@label = UI::TextView.new("hello world")
+		@label.text_size = 24
 	end
 end
 
