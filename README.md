@@ -32,7 +32,7 @@
 | **UI layer** | Real native views via JNI / UIKit FFI | Native bridged | Custom renderer (Skia / Impeller) |
 | **Hot reload** | ✓ with state | ✓ | ✓ |
 | **Type safety** | Compile-time | Optional (TS) | Compile-time |
-| **Memory model** | No GC pauses | GC | GC |
+| **Memory model** | Minimal GC pauses | GC | GC |
 | **Binary size** | Small | Large (JS bundle) | Medium |
 
 Crystal gives you **Ruby-like syntax** with **C-like speed**. You write expressive, readable code and the compiler turns it into a native ARM64 binary. No interpreter, no JIT warmup, no garbage-collection pauses mid-animation.
