@@ -131,6 +131,19 @@ module Native::CLI
         puts "[native.cr] Run 'shards install' first to download libnative_cr_android.jar"
         exit(1)
       end
+
+      unless File.exists?("#{lib_dir}/libgc.a")
+        puts "[native.cr] Error: BDW GC library not found."
+        puts "[native.cr] Run 'shards install' first to download libgc.a"
+        exit(1)
+      end
+
+      unless File.exists?("#{lib_dir}/libpcre.a")
+        puts "[native.cr] Error: libpcre.a library not found."
+        puts "[native.cr] Run 'shards install' first to download libpcre.a"
+        exit(1)
+      end
+
       op = os
       toolchain = "#{ndk}/toolchains/llvm/prebuilt/#{op}"
       clang = "#{toolchain}/bin/aarch64-linux-android24-clang"
@@ -145,7 +158,7 @@ module Native::CLI
 
       puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
-      cmd = "crystal build #{@entry_point} -Dnative_android --target aarch64-linux-android --cross-compile -o #{user_o}"
+      cmd = "crystal build #{@entry_point} -Dwithout_zlib -Dwithout_openssl -Dwithout_dl -Dwithout-pthread -Dnative_android --target aarch64-linux-android --cross-compile -o #{user_o}"
       cmd += " --release" if @release
       output = `#{cmd} 2>&1`
 
@@ -157,7 +170,7 @@ module Native::CLI
 
       puts "[native.cr] Linking final library..."
       final_so = "#{@output}/lib/arm64-v8a/libnative_app.so"
-      link_cmd = "#{clang} -shared -fPIC -Wl,-soname,libnative_app.so -o #{final_so} #{user_o} #{lib_dir}/native_engine.o -landroid -llog"
+      link_cmd = "#{clang} -shared -fPIC -Wl,-soname,libnative_app.so -o #{final_so} #{user_o} #{lib_dir}/native_engine.o #{lib_dir}/libgc.a #{lib_dir}/libpcre.a -latomic -ldl -landroid -llog"
       link_output = `#{link_cmd} 2>&1`
 
       unless $?.success?
