@@ -83,6 +83,11 @@ if [ "$OS" = "darwin" ]; then
   curl -L -o lib/native/libgc.a \
   "https://github.com/slick-lab/native.cr/releases/download/v0.1.6/libgc.a"
 
+
+curl -L -o lib/native/libpcre.a \
+  "https://github.com/slick-lab/native.cr/releases/download/v0.1.6/libpcre.a"
+
+
   echo "[native.cr] iOS libraries downloaded"
 fi
 
