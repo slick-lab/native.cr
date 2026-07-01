@@ -17,6 +17,7 @@ module Native
       @@current = app
       app.load_saved_state
       app.setup
+      app.run
     end
 
     def initialize

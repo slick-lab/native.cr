@@ -18,7 +18,7 @@ require "crsfml"
 module Native
   class DesktopRunner
     WIDTH  = 1024
-    HEIGHT = 768
+    HEIGHT =  768
     TITLE  = "native.cr preview"
 
     @app : App

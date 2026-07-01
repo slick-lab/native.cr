@@ -8,7 +8,7 @@ require "system"
 module Native::Core
   module Process
     class ProcessError < Exception
-    end 
+    end
 
     class CompileError < Exception
     end

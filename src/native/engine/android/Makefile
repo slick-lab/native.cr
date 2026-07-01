@@ -12,18 +12,17 @@ LIBS_DIR = ../../../../../libs
 DEP_JARS = $(LIBS_DIR)/androidx-core.jar:$(LIBS_DIR)/androidx-recyclerview.jar:$(LIBS_DIR)/androidx-biometric.jar:$(LIBS_DIR)/androidx-appcompat.jar:$(LIBS_DIR)/google-billing.jar:$(LIBS_DIR)/androidx-fragment.jar
 CLASSPATH = $(ANDROID_JAR):$(DEP_JARS)
 
-CFLAGS = -fPIC -O2
-LDFLAGS = -shared -landroid -llog -pthread
+CFLAGS = -fPIC -O2 -c
 
-TARGET_SO = libnative_cr_engine.so
+TARGET_O = native_engine.o
 TARGET_JAR = libnative_cr_android.jar
 SOURCES = native.c $(GLUE_SRC)
 JAVA_SOURCES = $(wildcard java/com/nativecr/*.java)
 
-all: $(TARGET_SO) $(TARGET_JAR)
+all: $(TARGET_O) $(TARGET_JAR)
 
-$(TARGET_SO): $(SOURCES)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+$(TARGET_O): $(SOURCES)
+	$(CC) $(CFLAGS) -o $@ $<
 
 $(TARGET_JAR): $(JAVA_SOURCES)
 	mkdir -p build/classes
@@ -31,7 +30,7 @@ $(TARGET_JAR): $(JAVA_SOURCES)
 	$(JAR) cf $@ -C build/classes .
 
 clean:
-	rm -f $(TARGET_SO) $(TARGET_JAR)
+	rm -f $(TARGET_O) $(TARGET_JAR)
 	rm -rf build
 
 .PHONY: all clean

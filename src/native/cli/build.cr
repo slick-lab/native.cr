@@ -120,9 +120,9 @@ module Native::CLI
 
       lib_dir = "lib/native"
 
-      unless File.exists?("#{lib_dir}/libnative_cr_engine.so")
-        puts "[native.cr] Error: Prebuilt engine library not found."
-        puts "[native.cr] Run 'shards install' first to download libnative_cr_engine.so"
+      unless File.exists?("#{lib_dir}/native_engine.o")
+        puts "[native.cr] Error: Prebuilt engine object not found."
+        puts "[native.cr] Run 'shards install' first to download native_engine.o"
         exit(1)
       end
 
@@ -143,8 +143,6 @@ module Native::CLI
       lib_dir_out = "#{@output}/lib/arm64-v8a"
       Dir.mkdir_p(lib_dir_out)
 
-      FileUtils.cp("#{lib_dir}/libnative_cr_engine.so", lib_dir_out)
-
       puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
       cmd = "crystal build #{@entry_point} -Dnative_android --target aarch64-linux-android --cross-compile -o #{user_o}"
@@ -158,8 +156,8 @@ module Native::CLI
       end
 
       puts "[native.cr] Linking final library..."
-      final_so = "#{@output}/lib/arm64-v8a/libuser_app.so"
-      link_cmd = "#{clang} -shared -fPIC -Wl,-soname,libuser_app.so -o #{final_so} #{user_o} -L#{lib_dir_out}-lnative_cr_engine"
+      final_so = "#{@output}/lib/arm64-v8a/libnative_app.so"
+      link_cmd = "#{clang} -shared -fPIC -Wl,-soname,libnative_app.so -o #{final_so} #{user_o} #{lib_dir}/native_engine.o -landroid -llog"
       link_output = `#{link_cmd} 2>&1`
 
       unless $?.success?
@@ -173,8 +171,7 @@ module Native::CLI
       Dir.mkdir_p(jni_dir)
       Dir.mkdir_p(libs_dir)
 
-      FileUtils.cp(final_so, "#{jni_dir}/libuser_app.so")
-      FileUtils.cp("#{lib_dir_out}/libnative_cr_engine.so", jni_dir)
+      FileUtils.cp(final_so, "#{jni_dir}/libnative_app.so")
       FileUtils.cp("#{lib_dir}/libnative_cr_android.jar", libs_dir)
 
       apk_path = Native::CLI::Apk.build(android_project, @release)

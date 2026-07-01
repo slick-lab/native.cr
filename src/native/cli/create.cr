@@ -1,5 +1,3 @@
-# src/native/cli/create.cr
-
 require "./android"
 require "./ios"
 
@@ -98,22 +96,9 @@ module Native::CLI
       puts ""
       puts "Next steps:"
       puts "  cd #{@path}"
+      puts "  shards install"
       puts "  native.cr build #{@platform == "both" ? "android" : @platform}"
       puts ""
-
-      if @platform == "android" || @platform == "both"
-        puts "Android:"
-        puts "  cd #{@path}/android && ./gradlew assembleDebug"
-        puts "  APK: #{@path}/android/app/build/outputs/apk/debug/"
-        puts ""
-      end
-
-      if @platform == "ios" || @platform == "both"
-        puts "iOS:"
-        puts "  open #{@path}/ios/#{@project_name}.xcodeproj"
-        puts "  Build with Xcode"
-        puts ""
-      end
     end
 
     private def create_main_cr
@@ -128,34 +113,37 @@ module Native::CLI
       File.write("#{@path}/src/main.cr", <<-CR
         require "native"
 
-        include Native
-
         class MyApp < Native::App
-          @[Preserve]
-          property count : Int32 = 0
-
           def setup : Nil
-            @label = Text.new
-            @label.text = "Tap: 0"
-            @label.text_size = 24
+            label = Native::UI::TextView.new("Hello from native.cr!")
+            label.text_size = 24
+            label.center
 
-            button = Button.new
-            button.text = "Tap Me"
-            button.width = 120
-            button.height = 44
-            button.on_click = ->{ increment }
-
-            column = Column.new
-            column.spacing = 20
-            column.add_child(@label)
-            column.add_child(button)
-
-            @root = column
+            # Set up your UI here — create views, set callbacks, etc.
+            # Example: add a button with a click handler
+            #
+            #   button = Native::UI::Button.new("Tap Me")
+            #   button.width = 200
+            #   button.height = 60
+            #   button.on_click { puts "Tapped!" }
+            #
+            # Available UI components:
+            #   Native::UI::TextView, Button, EditText, ImageView
+            #   CheckBox, RadioButton, Switch, Spinner, ScrollView
+            #   LinearLayout, CardView, RecyclerView, WebView
+            #
+            # Access native platform APIs:
+            #   Native::Platform.screen_width
+            #   Native::Network.get("https://api.example.com")
+            #   Native::Storage::Preferences.new("my_prefs")
           end
 
-          def increment : Nil
-            @count += 1
-            @label.text = "Tap: \#{@count}"
+          def on_touch_began(x : Float32, y : Float32) : Nil
+            # Handle touch input
+          end
+
+          def on_key_pressed(key : Int32) : Nil
+            # Handle keyboard input
           end
         end
 
@@ -168,41 +156,39 @@ module Native::CLI
       File.write("#{@path}/src/main.cr", <<-CR
         require "native"
 
-        include Native
-
         class MyGame < Native::App
           include Native::GameLoop::GameLoopDSL
 
-          @player_x : Float64 = 0.0
-          @player_y : Float64 = 0.0
-          @player_size : Int32 = 50
+          @player_x : Float64 = 100.0
+          @player_y : Float64 = 100.0
           @score : Int32 = 0
 
           def setup : Nil
-            set_background_color(50, 50, 80)
             game_loop(target_fps: 60, mode: Native::GameLoop::LoopMode::Adaptive)
           end
 
           def game_start : Nil
-            Native::Dialog.toast("Game Started!")
+            puts "Game started!"
           end
 
           def game_update(delta_time : Float64) : Nil
+            # Update game logic each frame
           end
 
           def game_fixed_update(delta_time : Float64) : Nil
+            # Fixed-timestep physics goes here
           end
 
           def game_render(alpha : Float64) : Nil
-            draw_rect(renderer, @player_x.to_i, @player_y.to_i, @player_size, @player_size, 255, 100, 100, 255)
-            draw_text(renderer, "Score: \#{@score}", 20, 60, 24, 255, 255, 255)
+            # Rendering is handled by the framework on mobile.
+            # Use the Native::Math module for vectors, rects, etc.
           end
 
           def on_touch_began(x : Float32, y : Float32) : Nil
-            @player_x = x.to_f64 - @player_size // 2
-            @player_y = y.to_f64 - @player_size // 2
+            @player_x = x.to_f64
+            @player_y = y.to_f64
             @score += 1
-            Native::Platform::HapticFeedback.light
+            puts "Score: \#{@score}"
           end
         end
 
