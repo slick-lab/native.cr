@@ -3,8 +3,7 @@
 module Native
   abstract class App
     @@current : App?
-    @@registered_subclass : App.class
-
+    @@registered_subclass : App.class = Native::App
     def self.current : App
       @@current.not_nil!
     end
