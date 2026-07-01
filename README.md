@@ -15,6 +15,7 @@
 [![Discord](https://img.shields.io/badge/Discord-Chat-5865F2?logo=discord&logoColor=white)](https://discord.gg/nativecr)
 [![Shards](https://img.shields.io/badge/shards-compatible-informational)](https://shards.info/)
 [![GitHub Stars](https://img.shields.io/github/stars/slick-lab/native.cr?style=flat&color=f59e0b)](https://github.com/slick-lab/native.cr/stargazers)
+[![Lines of Code](https://img.shields.io/badge/LOC-12.2k-black)](https://github.com/slick-lab/native.cr)
 
 **Write real native Android and iOS apps in Crystal — one codebase, compiled to true native code, no JavaScript runtime.**
 
@@ -123,18 +124,6 @@ native.cr reload main.cr
 
 ## App lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> Created: Native::App.start(MyApp)
-    Created --> Setup: new instance + restore state
-    Setup --> Running: setup() complete → @root rendered
-    Running --> Paused: on_pause() — app backgrounded
-    Paused --> Running: on_resume() — app foregrounded
-    Running --> Destroyed: on_destroy() — process ending
-    Destroyed --> [*]
-
-    Running --> Running: touch events\nkey events
-```
 
 Your app class implements lifecycle hooks:
 
