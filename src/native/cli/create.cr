@@ -147,7 +147,7 @@ module Native::CLI
           end
         end
 
-        Native::App.start(MyApp)
+        Native::App.registered_subclass = MyApp
       CR
       )
     end
@@ -192,7 +192,7 @@ module Native::CLI
           end
         end
 
-        Native::App.start(MyGame)
+        Native::App.registered_subclass = MyGame
       CR
       )
     end

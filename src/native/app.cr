@@ -3,6 +3,7 @@
 module Native
   abstract class App
     @@current : App?
+    @@registered_subclass : App.class?
 
     def self.current : App
       @@current.not_nil!
@@ -12,12 +13,43 @@ module Native
       @@current = app
     end
 
+    # The app subclass registered by the user for Android builds.
+    # Set this in your main.cr instead of calling App.start directly:
+    #
+    #   class MyApp < Native::App
+    #     def setup; end
+    #   end
+    #   Native::App.registered_subclass = MyApp
+    #
+    # On desktop you can continue to call Native::App.start(MyApp) as before.
+    def self.registered_subclass : App.class?
+      @@registered_subclass
+    end
+
+    def self.registered_subclass=(klass : App.class)
+      @@registered_subclass = klass
+    end
+
     def self.start(app_class : App.class)
       app = app_class.new
       @@current = app
       app.load_saved_state
       app.setup
       app.run
+    end
+
+    # Used by the Android bridge (crystal_android_main) to start the
+    # user's app when the entry-point main.cr doesn't run.
+    def self.start_registered : Nil
+      if subclass = @@registered_subclass
+        start(subclass)
+      elsif app = @@current
+        app.load_saved_state
+        app.setup
+        app.run
+      else
+        raise "No app registered. Set Native::App.registered_subclass = MyApp in your entry point."
+      end
     end
 
     def initialize
