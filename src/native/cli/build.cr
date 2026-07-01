@@ -95,6 +95,11 @@ module Native::CLI
     # of -D without_gc. The host Crystal installation's libgc.a is built for
     # x86_64 and is incompatible with the aarch64-linux-android target.
     # This stub provides the GC symbols as no-ops so linking succeeds.
+    #
+    # CRITICAL: Boehm GC zeroes allocated memory, which Crystal relies on
+    # for object initialization. The stub MUST use calloc (not malloc) to
+    # match this behaviour, otherwise unset pointers contain garbage and
+    # the runtime crashes with SIGSEGV.
     private def ensure_gc_stub_android(toolchain : String) : String
       gc_dir = "#{@output}/gc-android-arm64"
       stub_a = "#{gc_dir}/libgc.a"
@@ -114,14 +119,25 @@ module Native::CLI
       File.write(gc_stub_c, <<~C
         #include <stdlib.h>
         #include <stddef.h>
+        #include <string.h>
         typedef void (*GC_finalization_proc)(void *, void *);
         typedef int GC_bool;
+
+        static void *gc_alloc(size_t size) {
+            void *p = calloc(1, size);
+            return p;
+        }
+
         void GC_init(void) {}
-        void *GC_malloc(size_t size) { return malloc(size); }
-        void *GC_malloc_atomic(size_t size) { return malloc(size); }
-        void *GC_malloc_uncollectable(size_t size) { return malloc(size); }
+        void *GC_malloc(size_t size) { return gc_alloc(size); }
+        void *GC_malloc_atomic(size_t size) { return gc_alloc(size); }
+        void *GC_malloc_uncollectable(size_t size) { return gc_alloc(size); }
         void GC_free(void *ptr) { free(ptr); }
-        void *GC_realloc(void *ptr, size_t size) { return realloc(ptr, size); }
+        void *GC_realloc(void *ptr, size_t size) {
+            void *p = realloc(ptr, size);
+            if (p && ptr != p) memset(p, 0, size);
+            return p;
+        }
         void GC_gcollect(void) {}
         void GC_enable(void) {}
         void GC_disable(void) {}
