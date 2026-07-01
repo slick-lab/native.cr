@@ -111,25 +111,25 @@ module Native::CLI
         package="#{@package_name}">
 
         <application
-          android:label="#{@package_name}"
-          android:hasCode="true"
-          android:allowBackup="false">
+            android:label="#{@project_name}"
+            android:hasCode="true"
+            android:allowBackup="false">
 
-          <activity
-            android:name=".MainActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:exported="true">
+            <activity
+                android:name=".MainActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"
+                android:exported="true">
+  
+                <meta-data
+                    android:name="android.app.lib_name"
+                    android:value="native_app" />
 
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="native_app" />
-
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-          </activity>
-        </application>
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+            </activity>
+       </application>
       </manifest>
       XML
       )

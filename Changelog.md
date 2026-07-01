@@ -7,6 +7,8 @@ All notable changes to native.cr will be documented in this file.
 ### fixes
 - improved xml gradle parser error
 - fixed gradle instal error
+- changed build cli to link .o(object file) to a static binary 
+- improved create cli to match framework api
 
 
 ## [0.1.5] - 2026-06-26
