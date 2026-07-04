@@ -92,14 +92,11 @@ class CameraApp < Native::App
     end
   end
 
-  def draw
-    @root.draw(renderer)
-  end
 end
 
 # Request permission before starting
 if Native::Permissions.request_camera
-  Native::App.start(CameraApp)
+  Native::App.registered_subclass = CameraApp
 else
   puts "Camera permission required to run this example"
 end
