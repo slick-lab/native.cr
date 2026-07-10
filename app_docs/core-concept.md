@@ -33,7 +33,7 @@ The framework creates an instance of your app class and calls `setup` when the a
 
 ---
 
-## The Root View
+## The Root View [deprecated not needed!]
 
 The `@root` property defines what appears on screen. It must be assigned a view object in your `setup` method.
 
@@ -53,8 +53,6 @@ def setup
 
   layout.addView(Native::UI::TextView.new("Title"))
   layout.addView(Native::UI::Button.new("Action"))
-
-  @root = layout
 end
 ```
 
@@ -93,7 +91,7 @@ def setup
 
   container.addView(Native::UI::TextView.new("Footer"))
 
-  @root = container
+
 end
 ```
 
@@ -333,5 +331,5 @@ native.cr organizes functionality into modules:
 Now that you understand the fundamentals:
 
 - [UI Components](ui-components.md) — Explore available widgets
-- [Layouts and Styling](layouts-and-styling.md) — Position and style views
-- [Tutorial: First App](tutorial-first-app.md) — Build something real
+- [Layouts and Styling](layout.md) — Position and style views
+- [Tutorial: First App](tutorial.md) — Build something real

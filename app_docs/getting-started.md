@@ -354,5 +354,5 @@ cd ios && pod install && cd ..
 Now that your environment is ready:
 
 - [Core Concepts](core-concepts.md) — Understand how native.cr works
-- [Tutorial: First App](tutorial-first-app.md) — Build a complete app
-- [Project Structure](project-structure.md) — Learn the file organization
+- [Tutorial: First App](tutorial.md) — Build a complete app
+

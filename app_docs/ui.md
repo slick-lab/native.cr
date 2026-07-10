@@ -383,6 +383,6 @@ end
 
 ## Next Steps
 
-- [Layouts and Styling](layouts-and-styling.md) — Positioning and theming
+- [Layouts and Styling](layout.md) — Positioning and theming
 - [Lists](lists.md) — RecyclerView in depth
 - [Navigation](navigation.md) — Multi-screen apps

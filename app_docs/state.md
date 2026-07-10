@@ -427,4 +427,4 @@ end
 
 - [Data and Networking](data-and-networking.md) — Fetching and caching data
 - [Navigation](navigation.md) — Navigation-aware state
-- [Tutorial: Data App](tutorial-data-app.md) — Full state management example
+- [Tutorial: Data App](tutorial.md) — Full state management example

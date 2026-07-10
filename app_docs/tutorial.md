@@ -397,11 +397,11 @@ Build and run:
 
 ```bash
 # Android
-crystal main.cr build android
+crystal build android
 adb install -r build/android/app.apk
 
 # Or with hot reload for development
-crystal main.cr dev
+crystal reload 
 ```
 
 ---
@@ -430,6 +430,6 @@ Improve the app:
 Learn more:
 
 - [UI Components](ui-components.md) — All available widgets
-- [Layouts and Styling](layouts-and-styling.md) — Positioning and theming
+- [Layouts and Styling](layout.md) — Positioning and theming
 - [Navigation](navigation.md) — Multiple screens
-- [State Management](state-management.md) — Advanced patterns
+- [State Management](state.md) — Advanced patterns

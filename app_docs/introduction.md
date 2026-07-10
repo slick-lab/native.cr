@@ -135,4 +135,4 @@ Ready to start building? Continue with:
 
 - [Getting Started](getting-started.md) — Set up your environment
 - [Core Concepts](core-concepts.md) — Understand the fundamentals
-- [Tutorial: First App](tutorial-first-app.md) — Build your first app
+- [Tutorial: First App](tutorial.md) — Build your first app

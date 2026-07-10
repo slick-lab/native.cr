@@ -421,5 +421,5 @@ Run with hot reload to quickly iterate on UI design.
 
 ## Next Steps
 
-- [Testing Strategies](testing-strategies.md) — Comprehensive testing guide
+- [Testing Strategies](testing.md) — Comprehensive testing guide
 - [Publishing](publishing.md) — Prepare for release

@@ -45,7 +45,7 @@ MYAPP_RELEASE_KEY_PASSWORD=********
 Or use native.cr CLI:
 
 ```bash
-crystal main.cr sign android --keystore release.keystore --alias myapp
+crystal sign <path/to/apk> --keystore release.keystore --alias myapp -o <output.apk>
 ```
 
 ### iOS Signing
@@ -68,24 +68,9 @@ For manual signing:
 ### Android Release Build
 
 ```bash
-crystal main.cr build android --release
+crystal  build android --release
 ```
 
-Or with signing:
-
-```bash
-crystal main.cr build android --release --sign
-```
-
-Output: `build/android/app-release.apk`
-
-For Google Play, build an AAB:
-
-```bash
-crystal main.cr build android --release --bundle
-```
-
-Output: `build/android/app-release.aab`
 
 ### iOS Release Build
 
@@ -366,4 +351,4 @@ track_event("screen_view", { "screen" => "settings" })
 ## Next Steps
 
 - [Testing Strategies](testing-strategies.md) — Ensure quality before release
-- [Platform-Specifics](platform-specifics.md) — Handle platform differences
+- [Platform-Specifics](platform.md) — Handle platform differences

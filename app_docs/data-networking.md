@@ -469,5 +469,5 @@ end
 
 ## Next Steps
 
-- [State Management](state-management.md) — Integrate API data with state
-- [Tutorial: Data App](tutorial-data-app.md) — Build an app with API integration
+- [State Management](state.md) — Integrate API data with state
+- [Tutorial: Data App](tutorial.md) — Build an app with API integration
