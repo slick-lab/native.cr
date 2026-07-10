@@ -52,4 +52,4 @@ class CounterApp < Native::App
   end
 end
 
-Native::App.start(CounterApp)
+Native::App.registered_subclass = CounterApp

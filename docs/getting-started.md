@@ -105,7 +105,7 @@ class MyApp < Native::App
   end
 end
 
-Native::App.start(MyApp)
+Native::App.registered_subclas = MyApp
 ```
 
 **Walkthrough:**
