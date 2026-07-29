@@ -236,7 +236,6 @@ graph TD
 | Desktop (dev) | — | x86\_64 / ARM64 | SDL + OpenGL (dev only) | ✅ Dev only |
 | Windows | — | — | — | 🗺 Roadmap |
 | Linux | — | — | — | 🗺 Roadmap |
-| WebAssembly | — | — | — | 🗺 Roadmap |
 
 Platform-specific branches use Crystal's compile-time flags:
 
@@ -335,6 +334,8 @@ mindmap
 git clone https://github.com/slick-lab/native.cr
 cd native.cr
 make install
+
+or install cli from github release.
 ```
 
 ### Step 2 — verify your toolchain
@@ -492,7 +493,6 @@ Full history → [Changelog.md](Changelog.md)
 - [ ] Hot reload on physical devices (currently emulator/simulator)
 - [ ] Windows desktop support
 - [ ] Linux desktop support
-- [ ] WebAssembly target
 
 ---
 
@@ -538,4 +538,4 @@ Types: `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](License) for details.
