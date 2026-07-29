@@ -4,8 +4,6 @@
 
 A Crystal framework for building native Android and iOS apps using the Android/iOS platform APIs directly via JNI and native bridges.
 
-> **Note:** `git pull` could not be run — this directory is not a git repository, so there were no fresh changes to fetch. This reference is generated from the current source tree.
-
 ---
 
 ## Table of Contents
