@@ -2,7 +2,6 @@
 
 @[Link("android")]
 @[Link("log")]
-@[Link("native_cr_engine")]
 lib LibAndroid
   fun __android_log_print(prio : Int32, tag : UInt8*, fmt : UInt8*, ...) : Int32
   fun get_activity : Void*
