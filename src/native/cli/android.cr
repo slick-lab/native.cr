@@ -100,6 +100,14 @@ module Native::CLI
                 }
             }
         }
+
+        dependencies {
+            // Required by NotificationHelper / NotificationCompat (local notifications).
+            implementation 'androidx.core:core:1.12.0'
+
+            // To enable FCM remote push, uncomment and add google-services.json:
+            // implementation 'com.google.firebase:firebase-messaging:23.4.0'
+        }
       GRADLE
       )
     end
@@ -110,26 +118,64 @@ module Native::CLI
        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         package="#{@package_name}">
 
+        <!-- Camera / microphone / location are requested at runtime -->
+        <!-- POST_NOTIFICATIONS is required on Android 13+ (API 33+) -->
+        <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+        <!-- SCHEDULE_EXACT_ALARM lets NotificationHelper deliver on time in Doze mode -->
+        <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+        <!-- RECEIVE_BOOT_COMPLETED restores scheduled alarms after a reboot -->
+        <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
         <application
-          android:label="test"
-          android:hasCode="true"
-          android:allowBackup="false">
+            android:label="#{@project_name}"
+            android:hasCode="true"
+            android:allowBackup="false">
 
-          <activity
-            android:name=".MainActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:exported="true">
+            <activity
+                android:name=".MainActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"
+                android:exported="true">
 
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="user_app" />
+                <meta-data
+                    android:name="android.app.lib_name"
+                    android:value="native_app" />
 
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-          </activity>
-        </application>
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+            </activity>
+
+            <!--
+              NotificationReceiver handles two intents:
+                - NOTIFICATION_TAPPED  : bridges tap events back to Crystal
+                - SCHEDULE_NOTIFY      : fires scheduled/alarm notifications
+            -->
+            <receiver
+                android:name="com.nativecr.NotificationReceiver"
+                android:exported="false">
+                <intent-filter>
+                    <action android:name="com.nativecr.NOTIFICATION_TAPPED" />
+                    <action android:name="com.nativecr.SCHEDULE_NOTIFY" />
+                    <action android:name="android.intent.action.BOOT_COMPLETED" />
+                </intent-filter>
+            </receiver>
+
+            <!--
+              FCM remote push: add this block only after adding google-services.json
+              and the Firebase Messaging dependency to app/build.gradle.
+              See docs/push-notifications.md for full setup steps.
+
+            <service
+                android:name="com.nativecr.FcmService"
+                android:exported="false">
+              <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+              </intent-filter>
+            </service>
+            -->
+
+       </application>
       </manifest>
       XML
       )
@@ -144,8 +190,7 @@ module Native::CLI
 
         public class MainActivity extends NativeActivity {
             static {
-              System.loadLibrary("native_cr_engine");
-                System.loadLibrary("user_app");
+                System.loadLibrary("native_app");
             }
 
             @Override

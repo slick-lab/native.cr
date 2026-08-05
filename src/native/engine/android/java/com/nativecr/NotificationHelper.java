@@ -2,6 +2,7 @@
 
 package com.nativecr;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -18,79 +19,164 @@ import java.util.Map;
 public class NotificationHelper {
     private static Context appContext;
     private static NotificationManager notificationManager;
-    private static Map<String, String> channelMap = new HashMap<>();
+    private static final Map<String, String> channelMap = new HashMap<>();
 
     public static void init(Context context) {
         appContext = context.getApplicationContext();
-        notificationManager = (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager = (NotificationManager)
+            appContext.getSystemService(Context.NOTIFICATION_SERVICE);
     }
 
-    public static void createChannel(String id, String name, String description, int importance, boolean showBadge, boolean vibration, boolean soundEnabled, String soundUri) {
+    public static void createChannel(String id, String name, String description,
+                                     int importance, boolean showBadge,
+                                     boolean vibration, boolean soundEnabled,
+                                     String soundUri) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(id, name, importance);
-            channel.setDescription(description);
+            if (description != null) channel.setDescription(description);
             channel.setShowBadge(showBadge);
             channel.enableVibration(vibration);
             channel.enableLights(true);
             channel.setLightColor(Color.BLUE);
-            if (soundEnabled && soundUri != null) {
-                channel.setSound(android.net.Uri.parse(soundUri), Notification.AUDIO_ATTRIBUTES_DEFAULT);
+            if (soundEnabled && soundUri != null && !soundUri.isEmpty()) {
+                channel.setSound(android.net.Uri.parse(soundUri),
+                    Notification.AUDIO_ATTRIBUTES_DEFAULT);
             }
             notificationManager.createNotificationChannel(channel);
         }
+        channelMap.put(id, name);
     }
 
-    public static void showNotification(int id, String channelId, String title, String body, String subtitle,
-                                        String largeIcon, String smallIcon, int badgeNumber, int priority,
-                                        boolean autoCancel, String sound, boolean vibration, int color,
-                                        String payload, boolean hasActions, String actionIds) {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(appContext, channelId)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setSubText(subtitle)
-                .setPriority(priority)
-                .setAutoCancel(autoCancel)
-                .setNumber(badgeNumber)
-                .setColor(color);
+    public static void showNotification(int id, String channelId, String title,
+                                        String body, String subtitle,
+                                        String largeIcon, String smallIcon,
+                                        int badgeNumber, int priority,
+                                        boolean autoCancel, String sound,
+                                        boolean vibration, int color,
+                                        String payload, boolean hasActions,
+                                        String actionIds) {
+        if (appContext == null) return;
 
-        if (smallIcon != null) {
-            int iconRes = appContext.getResources().getIdentifier(smallIcon, "drawable", appContext.getPackageName());
-            if (iconRes != 0) {
-                builder.setSmallIcon(iconRes);
-            }
+        // Resolve small icon resource — fall back to app icon if not found.
+        int iconRes = 0;
+        if (smallIcon != null && !smallIcon.isEmpty()) {
+            iconRes = appContext.getResources().getIdentifier(
+                smallIcon, "drawable", appContext.getPackageName());
         }
+        if (iconRes == 0) {
+            iconRes = appContext.getApplicationInfo().icon;
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(appContext, channelId)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(priority)
+            .setAutoCancel(autoCancel)
+            .setSmallIcon(iconRes);
+
+        if (subtitle != null && !subtitle.isEmpty()) builder.setSubText(subtitle);
+        if (badgeNumber > 0) builder.setNumber(badgeNumber);
+        if (color != 0) builder.setColor(color);
 
         if (vibration) {
             builder.setVibrate(new long[]{0, 250, 100, 250});
         }
 
-        if (sound != null && !sound.isEmpty() && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+        // Sound (pre-Oreo only; channels handle sound on Oreo+).
+        if (sound != null && !sound.isEmpty()
+                && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             builder.setDefaults(Notification.DEFAULT_SOUND);
         }
 
-        Intent intent = new Intent(appContext, NotificationReceiver.class);
-        intent.putExtra("payload", payload);
-        intent.putExtra("notification_id", id);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(appContext, id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // Tap intent → NotificationReceiver which bridges back to Crystal.
+        Intent tapIntent = new Intent(appContext, NotificationReceiver.class);
+        tapIntent.setAction(NotificationReceiver.ACTION_NOTIFICATION_TAPPED);
+        tapIntent.putExtra("payload", payload != null ? payload : "{}");
+        tapIntent.putExtra("notification_id", id);
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            appContext, id, tapIntent, flags);
         builder.setContentIntent(pendingIntent);
 
-        NotificationManagerCompat.from(appContext).notify(id, builder.build());
+        try {
+            NotificationManagerCompat.from(appContext).notify(id, builder.build());
+        } catch (SecurityException e) {
+            // POST_NOTIFICATIONS permission not granted (Android 13+).
+        }
     }
 
-    public static void scheduleNotification(int id, long timestamp, String channelId, String title, String body, String payload, boolean repeatDaily) {
-        // Implementation for scheduled notifications using AlarmManager
-        // For simplicity, omitted in this version
+    public static void scheduleNotification(int id, long timestampMs,
+                                             String channelId, String title,
+                                             String body, String payload,
+                                             boolean repeatDaily) {
+        if (appContext == null) return;
+
+        Intent intent = new Intent(appContext, NotificationReceiver.class);
+        intent.setAction(NotificationReceiver.ACTION_SCHEDULE_NOTIFY);
+        intent.putExtra("notification_id", id);
+        intent.putExtra("channel_id", channelId != null ? channelId : "default");
+        intent.putExtra("title", title != null ? title : "");
+        intent.putExtra("body", body != null ? body : "");
+        intent.putExtra("payload", payload != null ? payload : "{}");
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            appContext, id, intent, flags);
+
+        AlarmManager alarmManager =
+            (AlarmManager) appContext.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        if (repeatDaily) {
+            alarmManager.setRepeating(
+                AlarmManager.RTC_WAKEUP,
+                timestampMs,
+                AlarmManager.INTERVAL_DAY,
+                pendingIntent);
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, timestampMs, pendingIntent);
+            } else {
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP, timestampMs, pendingIntent);
+            }
+        }
     }
 
     public static void cancelNotification(int id) {
-        notificationManager.cancel(id);
+        if (notificationManager != null) notificationManager.cancel(id);
+        // Also cancel any scheduled alarm for this id.
+        if (appContext != null) {
+            Intent intent = new Intent(appContext, NotificationReceiver.class);
+            intent.setAction(NotificationReceiver.ACTION_SCHEDULE_NOTIFY);
+            intent.putExtra("notification_id", id);
+            int flags = PendingIntent.FLAG_NO_CREATE;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+            PendingIntent pending = PendingIntent.getBroadcast(
+                appContext, id, intent, flags);
+            if (pending != null) {
+                AlarmManager am = (AlarmManager)
+                    appContext.getSystemService(Context.ALARM_SERVICE);
+                if (am != null) am.cancel(pending);
+                pending.cancel();
+            }
+        }
     }
 
     public static void cancelAllNotifications() {
-        notificationManager.cancelAll();
+        if (notificationManager != null) notificationManager.cancelAll();
     }
 
     public static void setBadgeNumber(int count) {
-        // wikk Implemente  for badge count (requires launcher specific code) soon
     }
 }

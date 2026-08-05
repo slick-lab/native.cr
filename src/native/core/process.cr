@@ -40,11 +40,13 @@ module Native::Core
 
         @paths.each do |path|
           Dir.glob("#{path}/**/*.cr") do |file|
-            current_mtime = File.info(file).modification_time
-
-            if @last_mtimes[file]? != current_mtime
-              changed_files << file
-              @last_mtimes[file] = current_mtime
+            begin
+              current_mtime = File.info(file).modification_time
+              if @last_mtimes[file]? != current_mtime
+                changed_files << file
+                @last_mtimes[file] = current_mtime
+              end
+            rescue
             end
           end
         end
@@ -55,8 +57,12 @@ module Native::Core
 
       private def scan_and_register
         @paths.each do |path|
+          next unless Dir.exists?(path)
           Dir.glob("#{path}/**/*.cr") do |file|
-            @last_mtimes[file] = File.info(file).modification_time
+            begin
+              @last_mtimes[file] = File.info(file).modification_time
+            rescue
+            end
           end
         end
       end
@@ -64,8 +70,12 @@ module Native::Core
 
     class Manager
       getter config : Config
-      @current_process : ::Process?
-      @state : JSON::Serializable?
+
+      # Current running process — written only from the main fiber, read
+      # by the monitor fiber. The generation counter lets the monitor fiber
+      # know if a restart happened while it was blocked on proc.wait.
+      @current_process : ::Process? = nil
+      @generation : Int32 = 0
 
       def initialize(@config : Config = Config.new)
         Dir.mkdir_p(File.dirname(@config.build_output))
@@ -83,12 +93,11 @@ module Native::Core
 
       def start
         puts "[native.cr] Starting desktop preview"
-        puts "[native.cr] Using #{ENV["CRYSTAL_WORKERS"] || "1"} CPU cores"
+        puts "[native.cr] Using #{ENV["CRYSTAL_WORKERS"]? || "1"} CPU cores"
         puts "[native.cr] Cache directory: .native_cache/compiler"
         puts ""
 
         begin
-          load_saved_state
           build_and_run_desktop
         rescue e
           puts "[native.cr] Error during startup: #{e.message}"
@@ -118,25 +127,36 @@ module Native::Core
         fast_restart_desktop
       end
 
+      # Stop the currently running preview process.
+      # Sends SIGTERM (which triggers state-save in the app), waits for
+      # the process to exit, then clears the reference.
       def stop
-        if proc = @current_process
-          return if proc.terminated?
+        proc = @current_process
+        @current_process = nil   # clear first so the monitor fiber does nothing
+        return unless proc
 
-          begin
+        begin
+          unless proc.terminated?
             proc.terminate
-            proc.wait
-          rescue e
-            puts "[native.cr] Error stopping process: #{e.message}"
+            # Give the process up to 1 s to save state and exit cleanly.
+            deadline = Time.monotonic + 1.second
+            while Time.monotonic < deadline && !proc.terminated?
+              sleep 0.05.seconds
+            end
+            # If still alive, force-kill.
+            proc.terminate unless proc.terminated?
           end
+          proc.wait rescue nil
+        rescue e
+          puts "[native.cr] Warning stopping process: #{e.message}"
         end
-
-        @current_process = nil
       end
 
       private def fast_restart_desktop
         puts "[native.cr] Fast restart..."
         begin
-          capture_state_desktop
+          # Terminate the old process so it saves state (SIGTERM handler
+          # in App calls save_state before exiting).
           stop
           build_and_run_desktop
         rescue e
@@ -144,35 +164,9 @@ module Native::Core
         end
       end
 
-      private def capture_state_desktop
-        if proc = @current_process
-          if !proc.terminated?
-            proc.terminate
-            sleep 0.2.seconds
-          end
-        end
-      end
-
-      private def load_saved_state
-        if File.exists?(@config.state_file)
-          begin
-            json = File.read(@config.state_file)
-            if json && json.size > 0
-              puts "[native.cr] Loaded saved state"
-            end
-          rescue e
-            puts "[native.cr] Warning: Could not load state file: #{e.message}"
-          end
-        end
-      end
-
       private def build_and_run_desktop
-        begin
-          compile_desktop
-          run_desktop
-        rescue e
-          puts "[native.cr] Error in build_and_run_desktop: #{e.message}"
-        end
+        compile_desktop
+        run_desktop
       end
 
       private def compile_desktop
@@ -183,15 +177,32 @@ module Native::Core
           raise CompileError.new("Entry point not found: #{@config.entry_point}")
         end
 
+        Dir.mkdir_p(File.dirname(@config.build_output))
         bootstrap = File.join(File.dirname(@config.build_output), "desktop_bootstrap.cr")
 
+        # Two valid layouts:
+        #   (a) Running inside native.cr repo itself — engine is at src/native/engine/show.cr
+        #   (b) Running inside a user project with native.cr as a shard —
+        #       engine is at lib/native/src/native/engine/show.cr
+        engine_path = if File.exists?("lib/native/src/native/engine/show.cr")
+                        "../lib/native/src/native/engine/show"
+                      elsif File.exists?("src/native/engine/show.cr")
+                        "../src/native/engine/show"
+                      else
+                        # Fallback: let the user's require "native" handle it
+                        nil
+                      end
+
+        engine_require = engine_path ? %Q(require "#{engine_path}"\n) : ""
+
         File.write(bootstrap, <<-CR
-          require "#{File.expand_path(@config.entry_point)}"
-          require "native/engine/desktop/show"
+          require "../#{@config.entry_point}"
+          #{engine_require}
         CR
         )
 
-        cmd = "crystal build #{bootstrap} -o #{@config.build_output}_desktop --error-trace"
+        binary = "#{@config.build_output}_desktop"
+        cmd = "crystal build #{bootstrap} -o #{binary} --error-trace"
         cmd += " --release" if @config.release
 
         begin
@@ -199,47 +210,46 @@ module Native::Core
           output = `#{cmd} 2>&1`
           elapsed = (Time.utc - start_time).total_seconds
 
-          if $?.success?
-            puts "[native.cr] Desktop build successful (%.2fs)" % elapsed
-          else
-            puts "[native.cr] Desktop build failed:"
+          unless $?.success?
+            puts "[native.cr] Desktop build failed (#{elapsed.round(2)}s):"
             puts output
             raise CompileError.new("Desktop build failed")
           end
-        rescue e
-          puts "[native.cr] Error during desktop compilation: #{e.message}"
-          raise CompileError.new("Desktop compilation error: #{e.message}")
+
+          puts "[native.cr] Desktop build successful (%.2fs)" % elapsed
         ensure
           File.delete(bootstrap) if File.exists?(bootstrap)
         end
       end
 
       private def run_desktop
-        begin
-          @current_process = ::Process.new(
-            "#{@config.build_output}_desktop",
-            shell: true
-          )
+        binary = "#{@config.build_output}_desktop"
+        unless File.exists?(binary)
+          raise ProcessError.new("Binary not found: #{binary}")
+        end
 
-          if proc = @current_process
-            puts "[native.cr] Desktop preview running (PID: #{proc.pid})"
+        # Pass the state file path so the app can save/restore state across
+        # reloads. SIGTERM (sent by stop()) triggers save_state in App.
+        state_file = File.expand_path(@config.state_file)
+        env = {"NATIVE_CR_STATE_FILE" => state_file}
 
-            spawn do
-              begin
-                proc.wait
-                puts "[native.cr] Desktop preview exited"
-              rescue e
-                puts "[native.cr] Error waiting for desktop process: #{e.message}"
-              ensure
-                @current_process = nil
-              end
+        proc = ::Process.new(binary, env: env, shell: false)
+        @current_process = proc
+        this_gen = @generation += 1
+        puts "[native.cr] Desktop preview running (PID: #{proc.pid})"
+
+        spawn do
+          begin
+            proc.wait
+          rescue
+          ensure
+            # Only nil the reference if we're still the current generation
+            # (i.e. no restart happened while we were waiting).
+            if @generation == this_gen
+              @current_process = nil
+              puts "[native.cr] Desktop preview exited"
             end
-          else
-            raise ProcessError.new("Failed to start desktop preview")
           end
-        rescue e
-          puts "[native.cr] Error starting desktop preview: #{e.message}"
-          raise ProcessError.new("Failed to start desktop process: #{e.message}")
         end
       end
     end

@@ -139,6 +139,8 @@ module Native::Permissions
       when PermissionType::Contacts                               then "android.permission.READ_CONTACTS"
       when PermissionType::Calendar                               then "android.permission.READ_CALENDAR"
       when PermissionType::Bluetooth                              then "android.permission.BLUETOOTH"
+      # Android 13+ (API 33) requires POST_NOTIFICATIONS as a runtime permission.
+      when PermissionType::Notifications                          then "android.permission.POST_NOTIFICATIONS"
       else                                                             ""
       end
     end
