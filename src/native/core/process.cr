@@ -132,7 +132,7 @@ module Native::Core
       # the process to exit, then clears the reference.
       def stop
         proc = @current_process
-        @current_process = nil   # clear first so the monitor fiber does nothing
+        @current_process = nil # clear first so the monitor fiber does nothing
         return unless proc
 
         begin

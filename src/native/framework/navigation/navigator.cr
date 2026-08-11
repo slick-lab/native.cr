@@ -37,7 +37,7 @@ module Native::Navigation
     # Push *screen* on top of the stack and display it.
     # The previously visible screen receives `on_disappear`.
     def push(screen : Screen) : Nil
-      if (prev = @stack.last?)
+      if prev = @stack.last?
         prev.on_disappear
       end
 
@@ -64,7 +64,7 @@ module Native::Navigation
 
     # Replace the top screen with *screen* (no new stack entry).
     def replace(screen : Screen) : Nil
-      if (top = @stack.last?)
+      if top = @stack.last?
         top.on_disappear
         top.navigator = nil
         @stack.pop

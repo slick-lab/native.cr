@@ -169,9 +169,9 @@ end
 # Each method is called on a background thread; be careful with shared state.
 
 {% if flag?(:native_android) %}
-  fun Java_com_nativecr_PushManager_nativeOnTokenReady(
+   fun Java_com_nativecr_PushManager_nativeOnTokenReady(
     env : Void*, cls : Void*, token_j : Void*
-  ) : Void
+   ) : Void
     token_s = Native::Android::JNI.get_string_utf_chars(token_j)
     Native::PushNotifications.handle_token_ready(token_s)
   end
