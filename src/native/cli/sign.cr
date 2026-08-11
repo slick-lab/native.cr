@@ -10,10 +10,10 @@ module Native::CLI
     @output : String = ""
 
     def initialize(args : Array(String))
-      parse_args(args)
+      parse(args)
     end
 
-    def parse_args(args : Array(String))
+    def parse(args : Array(String))
       i = 0
       while i < args.size
         case args[i]
@@ -140,7 +140,7 @@ module Native::CLI
         # Try to find the latest build-tools version
         build_tools_dir = "#{sdk_path}/build-tools"
         if Dir.exists?(build_tools_dir)
-          versions = Dir.glob("#{build_tools_dir}/*").sort_by { |d| File.basename(d) }.reverse!
+          versions = Dir.glob("#{build_tools_dir}/*").sort_by { |dir| File.basename(dir) }.reverse!
           versions.each do |version_dir|
             apksigner = "#{version_dir}/apksigner"
             return apksigner if File.exists?(apksigner)

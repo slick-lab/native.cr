@@ -51,9 +51,44 @@ module Native
       end
     end
 
+    # Used by the Android bridge (crystal_android_main) to start the
+    # user's app when the entry-point main.cr doesn't run.
+    def self.start_registered : Nil
+      if subclass = @@registered_subclass
+        start(subclass)
+      elsif app = @@current
+        app.load_saved_state
+        app.setup
+        app.android_attach_root
+        app.run
+      else
+        raise "No app registered. Set Native::App.registered_subclass = MyApp in your entry point."
+      end
+    end
+
+    # ── instance ─────────────────────────────────────────────────────────────
+
+    # The root view that will be displayed on screen.
+    # Set this at the end of setup (or use a Navigator which sets it for you).
+    # Assigning it on Android immediately schedules setContentView on the UI
+    # thread, so you can also reassign it later to swap entire screen layouts.
+    @root : UI::View? = nil
+
     def initialize
       @renderer = Pointer(Void).null
       setup_signal_handlers
+    end
+
+    # Assign a view as the root content view.
+    # On Android this calls setContentView on the UI thread automatically.
+    def root=(view : UI::View)
+      @root = view
+      android_attach_root
+    end
+
+    # Expose the current root view (read).
+    def root : UI::View?
+      @root
     end
 
     private def setup_signal_handlers
@@ -92,7 +127,39 @@ module Native
       end
     end
 
-    # Optional callbacks (stub methods)
+    # ── Android root-view attachment ─────────────────────────────────────────
+    #
+    # Called automatically after setup (and whenever root= is assigned).
+    # Uses NativeHelper.setContentView which posts to the UI thread, so it is
+    # safe to call from the Crystal background thread.
+
+    def android_attach_root : Nil
+      {% if flag?(:native_android) %}
+        root_view = @root
+        return unless root_view && root_view.native_ptr != 0
+
+        env = Native::Android::JNI.env
+        activity = Native::Android::JNI.activity
+        return unless env && !activity.null?
+
+        # com.nativecr.NativeHelper.setContentView(Activity, View)
+        helper_class = env.find_class("com/nativecr/NativeHelper")
+        return if helper_class.null?
+
+        set_cv = env.get_static_method_id(
+          helper_class,
+          "setContentView",
+          "(Landroid/app/Activity;Landroid/view/View;)V"
+        )
+        return if set_cv.null?
+
+        view_ptr = Pointer(Void).new(root_view.native_ptr.to_u64)
+        env.call_static_void_method(helper_class, set_cv, activity, view_ptr)
+      {% end %}
+    end
+
+    # ── Optional callbacks (stub methods) ────────────────────────────────────
+
     def on_touch_began(x : Float32, y : Float32) : Nil; end
 
     def on_touch_moved(x : Float32, y : Float32) : Nil; end

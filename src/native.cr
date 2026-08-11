@@ -24,7 +24,10 @@ require "./native/framework/ui/web_view"
 require "./native/framework/animation/*"
 require "./native/framework/dialog/*"
 require "./native/framework/media/*"
-require "./native/framework/navigation/*"
+# Navigation: load Screen before Navigator (Navigator references Screen type)
+require "./native/framework/navigation/screen"
+require "./native/framework/navigation/navigator"
+require "./native/framework/navigation/toolbar"
 
 {% if flag?(:native_android) %}
   require "./native/engine/android/*"

@@ -100,6 +100,14 @@ module Native::CLI
                 }
             }
         }
+
+        dependencies {
+            // Required by NotificationHelper / NotificationCompat (local notifications).
+            implementation 'androidx.core:core:1.12.0'
+
+            // To enable FCM remote push, uncomment and add google-services.json:
+            // implementation 'com.google.firebase:firebase-messaging:23.4.0'
+        }
       GRADLE
       )
     end
@@ -110,6 +118,14 @@ module Native::CLI
        <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         package="#{@package_name}">
 
+        <!-- Camera / microphone / location are requested at runtime -->
+        <!-- POST_NOTIFICATIONS is required on Android 13+ (API 33+) -->
+        <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+        <!-- SCHEDULE_EXACT_ALARM lets NotificationHelper deliver on time in Doze mode -->
+        <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+        <!-- RECEIVE_BOOT_COMPLETED restores scheduled alarms after a reboot -->
+        <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
         <application
             android:label="#{@project_name}"
             android:hasCode="true"
@@ -119,7 +135,7 @@ module Native::CLI
                 android:name=".MainActivity"
                 android:configChanges="orientation|keyboardHidden|screenSize"
                 android:exported="true">
-  
+
                 <meta-data
                     android:name="android.app.lib_name"
                     android:value="native_app" />
