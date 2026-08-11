@@ -22,7 +22,7 @@ The Android engine provides:
 ├─────────────────────────────────────────────────────────┤
 │  bridge.cr (Crystal → JNI bridge)                      │
 ├─────────────────────────────────────────────────────────┤
-│  libnative_cr_engine.so (C engine + JNI)               │
+│  libnative_app.so (single combined library)           │
 │  libnative_cr_android.jar (Java helper classes)        │
 ├─────────────────────────────────────────────────────────┤
 │  Android Runtime (ART) + NDK                           │
@@ -37,7 +37,7 @@ The Android engine provides:
 | `native.c` | C engine entry point (`android_main`), JNI setup, event loop |
 | `bridge.cr` | Crystal entry point called from C |
 | `jni.cr` | JNI helper functions for Crystal |
-| `Makefile` | Builds `libnative_cr_engine.so` and `libnative_cr_android.jar` |
+| `Makefile` | Builds `native_engine.o` and `libnative_cr_android.jar` |
 | `java/` | Java helper classes (HTTP, audio, camera, notifications, etc.) |
 
 ## Java Helper Classes
@@ -71,11 +71,11 @@ The Android engine provides:
 ### Build Commands
 
 ```bash
-# Build both .so and .jar
+# Build both .o and .jar
 make
 
-# Build only C engine
-make libnative_cr_engine.so
+# Build only C engine object
+make native_engine.o
 
 # Build only Java JAR
 make libnative_cr_android.jar
@@ -94,7 +94,7 @@ Environment Variables
 Output Files
 
 File Description
-- libnative_cr_engine.so Shared library for ARM64 Android
+- native_engine.o Object file for ARM64 Android (linked with user code)
 - libnative_cr_android.jar Compiled Java helper classes
 
 Integration with User Projects
@@ -102,9 +102,9 @@ Integration with User Projects
 The CLI handles distribution:
 
 1. User runs shards install
-2. postinstall.sh downloads prebuilt .so and .jar from GitHub Releases
+2. postinstall.sh downloads prebuilt .o and .jar from GitHub Releases
 3. native.cr create copies templates to user's Android project
-4. native.cr build android links libraries into final APK
+4. native.cr build android compiles Crystal code and links with native_engine.o into single libnative_app.so
 
 Notes
 
@@ -112,6 +112,7 @@ Notes
 - Architecture: arm64-v8a only
 - The C engine is minimal; most Android operations use Java via JNI
 - Java classes are compiled to JAR for faster user builds
+- User code and C engine are linked into a single shared library
 
 Troubleshooting
 
@@ -127,5 +128,5 @@ When updating Java helper classes:
 
 1. Modify .java files in java/com/nativecr/
 2. Run make to regenerate libnative_cr_android.jar
-3. Upload both .so and .jar to GitHub Releases
+3. Upload both .o and .jar to GitHub Releases
 4. Users get updates via shards install

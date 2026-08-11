@@ -145,36 +145,6 @@ module Native::CLI
                     <category android:name="android.intent.category.LAUNCHER" />
                 </intent-filter>
             </activity>
-
-            <!--
-              NotificationReceiver handles two intents:
-                - NOTIFICATION_TAPPED  : bridges tap events back to Crystal
-                - SCHEDULE_NOTIFY      : fires scheduled/alarm notifications
-            -->
-            <receiver
-                android:name="com.nativecr.NotificationReceiver"
-                android:exported="false">
-                <intent-filter>
-                    <action android:name="com.nativecr.NOTIFICATION_TAPPED" />
-                    <action android:name="com.nativecr.SCHEDULE_NOTIFY" />
-                    <action android:name="android.intent.action.BOOT_COMPLETED" />
-                </intent-filter>
-            </receiver>
-
-            <!--
-              FCM remote push: add this block only after adding google-services.json
-              and the Firebase Messaging dependency to app/build.gradle.
-              See docs/push-notifications.md for full setup steps.
-
-            <service
-                android:name="com.nativecr.FcmService"
-                android:exported="false">
-              <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-              </intent-filter>
-            </service>
-            -->
-
        </application>
       </manifest>
       XML

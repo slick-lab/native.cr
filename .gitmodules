@@ -1,0 +1,3 @@
+[submodule "native.cr-assets"]
+	path = native.cr-assets
+	url = https://github.com/slick-lab/native.cr-assets

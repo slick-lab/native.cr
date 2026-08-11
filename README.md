@@ -6,7 +6,7 @@
 # native.cr
 
 [![Crystal](https://img.shields.io/badge/Crystal-1.20%2B-000000?logo=crystal&logoColor=white)](https://crystal-lang.org/)
-[![Version](https://img.shields.io/badge/version-0.1.5-blueviolet)](https://github.com/slick-lab/native.cr/releases)
+[![Version](https://img.shields.io/badge/version-0.1.6-blueviolet)](https://github.com/slick-lab/native.cr/releases)
 [![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 [![iOS](https://img.shields.io/badge/iOS-11%2B-000000?logo=apple&logoColor=white)](https://developer.apple.com/)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
@@ -15,6 +15,7 @@
 [![Discord](https://img.shields.io/badge/Discord-Chat-5865F2?logo=discord&logoColor=white)](https://discord.gg/nativecr)
 [![Shards](https://img.shields.io/badge/shards-compatible-informational)](https://shards.info/)
 [![GitHub Stars](https://img.shields.io/github/stars/slick-lab/native.cr?style=flat&color=f59e0b)](https://github.com/slick-lab/native.cr/stargazers)
+[![Lines of Code](https://img.shields.io/badge/LOC-12.2k-black)](https://github.com/slick-lab/native.cr)
 
 **Write real native Android and iOS apps in Crystal — one codebase, compiled to true native code, no JavaScript runtime.**
 
@@ -31,7 +32,7 @@
 | **UI layer** | Real native views via JNI / UIKit FFI | Native bridged | Custom renderer (Skia / Impeller) |
 | **Hot reload** | ✓ with state | ✓ | ✓ |
 | **Type safety** | Compile-time | Optional (TS) | Compile-time |
-| **Memory model** | No GC pauses | GC | GC |
+| **Memory model** | Minimal GC pauses | GC | GC |
 | **Binary size** | Small | Large (JS bundle) | Medium |
 
 Crystal gives you **Ruby-like syntax** with **C-like speed**. You write expressive, readable code and the compiler turns it into a native ARM64 binary. No interpreter, no JIT warmup, no garbage-collection pauses mid-animation.
@@ -44,7 +45,7 @@ On Android every widget is a real Android SDK `View` created and controlled thro
 
 ```mermaid
 graph LR
-    A["Your Crystal code\nmain.cr"] -->|crystal build --android| B["ARM64 binary\n+ libnative_cr_engine.so\n+ libnative_cr_android.jar"]
+    A["Your Crystal code\nmain.cr"] -->|crystal build --android| B["libnative_app.so\n+ libnative_cr_android.jar"]
     A -->|crystal build --ios| E["ARM64 binary\n+ UIKit FFI bridge"]
     B --> C["APK / AAB\nReal Android Views\nvia JNI bindings"]
     E --> D["IPA\nReal UIKit views\nvia FFI bindings"]
@@ -58,7 +59,7 @@ graph LR
 
 Crystal's compiler cross-compiles your code to ARM64.
 
-**On Android**, the compiled binary links against `libnative_cr_engine.so` (a thin C entry point) and `libnative_cr_android.jar` (precompiled Java helper classes). Every widget your Crystal code creates — `TextView`, `Button`, `LinearLayout` — is a real Android SDK `View` object instantiated through **JNI bindings**. The framework calls into the Android SDK directly; no custom renderer is involved. The result links into a standard APK.
+**On Android**, the compiled binary is linked with `native_engine.o` into a single `libnative_app.so` shared library, along with `libnative_cr_android.jar` (precompiled Java helper classes). Every widget your Crystal code creates — `TextView`, `Button`, `LinearLayout` — is a real Android SDK `View` object instantiated through **JNI bindings**. The framework calls into the Android SDK directly; no custom renderer is involved. The result links into a standard APK.
 
 **On iOS**, the binary exposes a set of C-callable entry points (`crystal_init`, `crystal_start`, `crystal_touch_began`, etc.) that are called by a thin Swift/Objective-C host. Every widget maps to a real **UIKit view** via FFI (`LibIOS.*` calls). The host wraps it all into a standard `.xcodeproj` that you open in Xcode and submit to the App Store.
 
@@ -123,18 +124,6 @@ native.cr reload main.cr
 
 ## App lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> Created: Native::App.start(MyApp)
-    Created --> Setup: new instance + restore state
-    Setup --> Running: setup() complete → @root rendered
-    Running --> Paused: on_pause() — app backgrounded
-    Paused --> Running: on_resume() — app foregrounded
-    Running --> Destroyed: on_destroy() — process ending
-    Destroyed --> [*]
-
-    Running --> Running: touch events\nkey events
-```
 
 Your app class implements lifecycle hooks:
 

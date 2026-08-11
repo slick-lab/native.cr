@@ -4,7 +4,6 @@ module Native
   abstract class App
     @@current : App?
     @@registered_subclass : App.class = Native::App
-
     def self.current : App
       @@current.not_nil!
     end
@@ -35,10 +34,21 @@ module Native
       @@current = app
       app.load_saved_state
       app.setup
-      # After setup, attach the root view to the Android Activity so the UI
-      # is visible. On other platforms this is a no-op.
-      app.android_attach_root
       app.run
+    end
+
+    # Used by the Android bridge (crystal_android_main) to start the
+    # user's app when the entry-point main.cr doesn't run.
+    def self.start_registered : Nil
+      if subclass = @@registered_subclass
+        start(subclass)
+      elsif app = @@current
+        app.load_saved_state
+        app.setup
+        app.run
+      else
+        raise "No app registered. Set Native::App.registered_subclass = MyApp in your entry point."
+      end
     end
 
     # Used by the Android bridge (crystal_android_main) to start the

@@ -55,4 +55,7 @@ ios_project/*.xcuserstate
 .env
 .env.local
 libnative_cr_android.jar
-libnative_cr_engine.so
+native_engine.o
+native.cr-linux-x86_64
+gradle-wrapper.jar
+libgc.a

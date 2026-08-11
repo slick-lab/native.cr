@@ -197,7 +197,7 @@ module Native::Core
 
         File.write(bootstrap, <<-CR
           require "../#{@config.entry_point}"
-          #{engine_require}
+          require "../lib/native/src/native/engine/desktop/show"
         CR
         )
 

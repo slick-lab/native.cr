@@ -20,7 +20,7 @@ echo "[native.cr] Detected OS: $OS, Arch: $ARCH"
 VERSION=$(curl -s https://api.github.com/repos/slick-lab/native.cr/releases/latest | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$VERSION" ]; then
-  VERSION="v0.1.2"
+  VERSION="v0.1.6"
 fi
 
 echo "[native.cr] Latest version: $VERSION"
@@ -58,11 +58,17 @@ mkdir -p lib/native
 echo ""
 echo "[native.cr] Downloading Android prebuilt libraries..."
 
-curl -L -o lib/native/libnative_cr_engine.so \
-  "https://github.com/slick-lab/native.cr/releases/download/$VERSION/libnative_cr_engine.so"
+curl -L -o lib/native/native_engine.o \
+  "https://github.com/slick-lab/native.cr/releases/download/$VERSION/native_engine.o"
 
 curl -L -o lib/native/libnative_cr_android.jar \
   "https://github.com/slick-lab/native.cr/releases/download/$VERSION/libnative_cr_android.jar"
+
+curl -L -o lib/native/libgc.a \
+  "https://github.com/slick-lab/native.cr/releases/download/v0.1.6/libgc.a"
+
+curl -L -o lib/native/libpcre.a \
+  "https://github.com/slick-lab/native.cr/releases/download/v0.1.6/libpcre.a"
 
 echo "[native.cr] Android libraries downloaded"
 
@@ -71,11 +77,16 @@ if [ "$OS" = "darwin" ]; then
   echo ""
   echo "[native.cr] Downloading iOS prebuilt libraries..."
 
-  curl -L -o lib/native/libnative_cr_engine.a \
-    "https://github.com/slick-lab/native.cr/releases/download/$VERSION/libnative_cr_engine.a"
-
   curl -L -o lib/native/libnative_cr_ios.a \
     "https://github.com/slick-lab/native.cr/releases/download/$VERSION/libnative_cr_ios.a"
+
+  curl -L -o lib/native/libgc.a \
+  "https://github.com/slick-lab/native.cr/releases/download/v0.1.6/libgc.a"
+
+
+curl -L -o lib/native/libpcre.a \
+  "https://github.com/slick-lab/native.cr/releases/download/v0.1.6/libpcre.a"
+
 
   echo "[native.cr] iOS libraries downloaded"
 fi

@@ -9,4 +9,4 @@ class HelloApp < Native::App
   end
 end
 
-Native::App.start(HelloApp)
+Native::App.registered_subclass = HelloApp

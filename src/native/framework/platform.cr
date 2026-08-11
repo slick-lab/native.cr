@@ -49,7 +49,7 @@ module Native::Platform
       model = env.call_static_object_method(settings_class, get_string, resolver, android_id)
 
       result = if model
-                 env.get_string_utf_chars(model, nil).to_s
+                 env.get_string_utf_chars(model).to_s
                else
                  "Unknown"
                end
@@ -83,7 +83,7 @@ module Native::Platform
       release = env.get_static_object_field(version_class, release_field)
 
       if release
-        result = env.get_string_utf_chars(release, nil).to_s
+        result = env.get_string_utf_chars(release).to_s
         env.delete_local_ref(release)
         result
       else
@@ -156,12 +156,13 @@ module Native::Platform
       resources = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getResources", "()Landroid/content/res/Resources;"))
       metrics = env.call_object_method(resources, env.get_method_id(env.get_object_class(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
 
-      density = env.GetFloatField(metrics, env.get_field_id(env.get_object_class(metrics), "density", "F"))
+      # densityDpi is Int32 — use get_int_field instead of the missing get_float_field
+      density_dpi = env.get_int_field(metrics, env.get_field_id(env.get_object_class(metrics), "densityDpi", "I"))
 
       env.delete_local_ref(resources)
       env.delete_local_ref(metrics)
 
-      density
+      (density_dpi / 160.0).to_f32
     elsif ios?
       LibIOS.get_screen_density
     else
@@ -291,7 +292,7 @@ module Native::Platform
           get_text = env.get_method_id(env.get_object_class(item), "getText", "()Ljava/lang/CharSequence;")
           text = env.call_object_method(item, get_text)
 
-          result = env.get_string_utf_chars(text, nil).to_s
+          result = env.get_string_utf_chars(text).to_s
 
           env.delete_local_ref(clipboard)
           env.delete_local_ref(clip)

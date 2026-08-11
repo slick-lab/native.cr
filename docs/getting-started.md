@@ -1,24 +1,23 @@
 # Getting Started
 
-This guide walks you through installing native.cr, creating your first project, and running it on a real device or emulator.
+Create your first native.cr app in minutes. This guide covers installation, creating a project, and running it.
 
 ---
 
-## Prerequisites
+## What You'll Need
 
-You need the following tools installed before you begin:
+| Tool | For | Install |
+|------|-----|---------|
+| Crystal 1.20+ | Everything | [crystal-lang.org/install](https://crystal-lang.org/install/) |
+| Android NDK r25+ | Android | [developer.android.com/ndk](https://developer.android.com/ndk) |
+| Xcode 14+ | iOS (macOS only) | Mac App Store |
+| Java 17+ | Android | [adoptium.net](https://adoptium.net/) |
 
-| Tool | Required for | Install |
-|---|---|---|
-| Crystal 1.20+ | Everything | https://crystal-lang.org/install/ |
-| Android NDK r25+ | Android builds | https://developer.android.com/ndk |
-| Xcode 14+ | iOS builds (macOS only) | Mac App Store |
-
-Crystal comes bundled with **Shards** (the package manager). You do not need to install it separately.
+Crystal includes Shards (package manager).
 
 ---
 
-## Install the native.cr CLI
+## Install the CLI
 
 ```bash
 git clone https://github.com/slick-lab/native.cr
@@ -26,52 +25,59 @@ cd native.cr
 make install
 ```
 
-Verify the install:
+Verify:
 
 ```bash
 native.cr --version
-# Native 0.1.3
+# Native 0.1.6
 ```
 
 ---
 
-## Check your toolchain
+## Check Your Setup
 
 ```bash
 native.cr doctor
 ```
 
-This prints a checklist of everything native.cr needs. Fix any ✗ items before continuing.
+You should see:
+
+```
+✓ Crystal 1.20.1
+✓ Android NDK r25c
+✓ Xcode 14.3
+✓ Java 17
+```
 
 ---
 
-## Create a new project
+## Create Your First App
 
 ```bash
 native.cr create MyApp
 cd MyApp
 ```
 
-Your new project looks like this:
+This creates:
 
 ```
 MyApp/
-├── shard.yml     ← project name, version, and dependencies
-├── main.cr       ← your app entry point
-└── assets/       ← put images, fonts, and sounds here
+├── shard.yml    ← Dependencies
+├── main.cr       ← Your app
+└── assets/       ← Images, sounds, fonts
 ```
 
 ---
 
-## Open `main.cr`
+## Understanding the Code
 
-The file already contains a starter app. Here is a minimal working example — a counter that increments on every tap:
+`main.cr` contains a counter app:
 
 ```crystal
 require "native"
 
 class MyApp < Native::App
-  @[Preserve]             # keeps @count alive across hot reloads
+  @[Preserve]
   property count : Int32 = 0
 
   def setup
@@ -81,7 +87,7 @@ class MyApp < Native::App
     @label.text_size = 28
 
     btn = Native::UI::Button.new("Tap Me")
-    btn.width  = 180
+    btn.width = 180
     btn.height = 52
     btn.background_color = Native::Math::Color.from_hex(0x007AFF)
     btn.text_color = Native::Math::Color.white
@@ -95,112 +101,84 @@ class MyApp < Native::App
     layout.gravity = Native::UI::LinearLayout::Gravity::Center
     layout.addView(@label)
     layout.addView(btn)
-
     @root = layout
   end
 end
 
-Native::App.start(MyApp)
+Native::App.registered_subclas = MyApp
 ```
 
-The only method you **must** implement is `setup`. That is where you build your UI and set `@root`.
+**Walkthrough:**
+
+1. `require "native"` — Loads the framework
+2. `class MyApp < Native::App` — Your app class
+3. `@[Preserve]` — Keeps `@count` across hot reloads
+4. `def setup` — **Required.** Build your UI here
+5. `@root = layout` — Sets what renders
 
 ---
 
-## Build and install
-
-### Android
-
-```bash
-# Compile and produce an APK
-native.cr build --android
-
-# Install the APK directly on a connected Android device
-native.cr android install
-```
-
-Make sure your device has **USB Debugging** enabled in Developer Options.
-
-### iOS
-
-```bash
-# Compile and wrap in an Xcode project
-native.cr build --ios
-```
-
-Open the generated Xcode project and run it on a simulator or device using the play button.
-
----
-
-## Hot reload during development
-
-Full rebuilds are slow. Use hot reload to update the running app instantly as you save:
+## Run with Hot Reload
 
 ```bash
 native.cr reload main.cr
 ```
 
-The CLI watches `main.cr` for changes. When it detects a save it:
-1. Serialises any `@[Preserve]` state
-2. Recompiles
-3. Restarts the app and restores the saved state
-
-Your `@count` stays at 42 across a reload because of `@[Preserve]`.
+Edit and save — the app updates in ~2 seconds. State marked with `@[Preserve]` is preserved.
 
 ---
 
-## Add dependencies
+## Build for Device
 
-Edit `shard.yml`:
-
-```yaml
-dependencies:
-  native:
-    github: slick-lab/native.cr
-  # add more shards here
-  my_lib:
-    github: some-user/my_lib
-```
-
-Install:
+### Android
 
 ```bash
-shards install
+native.cr build android
+native.cr android install
 ```
+
+### iOS
+
+```bash
+native.cr build ios
+open ios/MyApp.xcodeproj
+```
+
+Run from Xcode.
 
 ---
 
-## Project layout conventions
+## Project Structure
+
+For larger apps:
 
 ```
 MyApp/
-├── main.cr           ← app entry point
-├── shard.yml         ← dependencies
+├── main.cr
+├── shard.yml
 ├── assets/
-│   ├── images/       ← .png, .jpg
-│   ├── sounds/       ← .wav, .mp3
-│   └── fonts/        ← .ttf, .otf
-└── src/              ← optional: split your code into multiple files
+│   ├── images/
+│   ├── sounds/
+│   └── fonts/
+└── src/
     ├── screens/
     └── components/
 ```
 
-Require additional files from `main.cr`:
+Require modules:
 
 ```crystal
 require "native"
 require "./src/screens/home_screen"
-require "./src/screens/settings_screen"
 ```
 
 ---
 
-## What's next?
+## Next Steps
 
-| Guide | What to read next |
-|---|---|
-| [App Lifecycle](./app-lifecycle.md) | How `setup`, callbacks, and `@[Preserve]` work |
-| [UI Components](./ui-components.md) | Every widget with full examples |
-| [Networking](./networking.md) | HTTP requests and WebSockets |
-| [Storage](./storage.md) | Saving data that persists between launches |
-| [Permissions](./permissions.md) | Asking for camera, location, etc. |
+| Topic | Guide |
+|-------|-------|
+| Lifecycle, callbacks | [App Lifecycle](./app-lifecycle.md) |
+| All widgets | [UI Components](./ui-components.md) |
+| HTTP, WebSockets | [Networking](./networking.md) |
+| Saving data | [Storage](./storage.md) |

@@ -47,10 +47,6 @@ class BasicApp < Native::App
       set_background_color(240, 240, 245)
     end
   end
-
-  def draw
-    @root.draw(renderer)
-  end
 end
 
-Native::App.start(BasicApp)
+Native::App.registered_subclass = BasicApp
