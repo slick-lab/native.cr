@@ -2,7 +2,7 @@
 
 .PHONY: help build build-android build-ios clean test spec docs install uninstall release doctor
 
-VERSION := 0.1.0
+VERSION := 0.1.7
 CRYSTAL := crystal
 BUILD_DIR := .build
 DIST_DIR := dist
