@@ -157,10 +157,3 @@ module Native::CLI
     end
   end
 end
-
-# Add to the CLI entry point
-if ARGV.size > 0 && ARGV[0] == "sign"
-  args = ARGV[1..-1] || [] of String
-  cmd = Native::CLI::SignCommand.new(args)
-  cmd.run
-end

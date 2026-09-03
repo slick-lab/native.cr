@@ -291,9 +291,3 @@ module Native::CLI
     end
   end
 end
-
-if ARGV.size > 0 && ARGV[0] == "build"
-  args = ARGV[1..-1] || [] of String
-  cmd = Native::CLI::BuildCommand.new(args)
-  cmd.run
-end

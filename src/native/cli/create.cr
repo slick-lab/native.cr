@@ -218,9 +218,3 @@ module Native::CLI
     end
   end
 end
-
-if ARGV.size > 0 && ARGV[0] == "create"
-  args = ARGV[1..-1] || [] of String
-  cmd = Native::CLI::CreateCommand.new(args)
-  cmd.run
-end
