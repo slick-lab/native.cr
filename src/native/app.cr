@@ -39,16 +39,6 @@ module Native
 
     # Used by the Android bridge (crystal_android_main) to start the
     # user's app when the entry-point main.cr doesn't run.
-    def self.start_registered : Nil
-      if subclass = @@registered_subclass
-        start(subclass)
-      elsif app = @@current
-        app.load_saved_state
-        app.setup
-        app.run
-      else
-        raise "No app registered. Set Native::App.registered_subclass = MyApp in your entry point."
-      end
     end
 
     # Used by the Android bridge (crystal_android_main) to start the

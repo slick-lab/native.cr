@@ -1,4 +1,5 @@
 # src/native/framework/ui/text_view.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class TextView < View
@@ -14,19 +15,18 @@ module Native::UI
       @text = text
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        view_class = env.find_class("android/widget/TextView")
-        constructor = env.get_method_id(view_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.new_object(view_class, constructor, activity).to_i64
+          @native = JNIHelpers.new_widget(env, "android/widget/TextView", activity)
 
-        if !text.empty?
-          self.text = text
+          if !text.empty?
+            JNIHelpers.set_text(env, @native, text)
+          end
+          JNIHelpers.set_text_size(env, @native, @text_size)
+          apply_gravity(env)
         end
-        self.text_size = @text_size
-        applyGravity
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_label
         @native = ptr.to_i64
@@ -40,11 +40,10 @@ module Native::UI
     def text=(value : String)
       @text = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        jtext = env.new_string_utf(value)
-        set_text = env.get_method_id(env.get_object_class(@native), "setText", "(Ljava/lang/CharSequence;)V")
-        env.call_void_method(@native, set_text, jtext)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_text(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_text(@native, value.to_utf8)
       {% end %}
@@ -57,10 +56,10 @@ module Native::UI
     def text_size=(value : Int32)
       @text_size = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_size = env.get_method_id(env.get_object_class(@native), "setTextSize", "(F)V")
-        env.call_void_method(@native, set_size, value.to_f32)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_text_size(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_text_size(@native, value)
       {% end %}
@@ -73,11 +72,11 @@ module Native::UI
     def text_color=(value : Native::Math::Color)
       @text_color = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
-        set_color = env.get_method_id(env.get_object_class(@native), "setTextColor", "(I)V")
-        env.call_void_method(@native, set_color, color)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          color = argb_from_color(value)
+          JNIHelpers.set_text_color(env, @native, color)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_text_color(@native, value.r, value.g, value.b)
       {% end %}
@@ -89,7 +88,7 @@ module Native::UI
 
     def gravity=(gravity : Int32)
       @gravity = gravity
-      applyGravity
+      apply_gravity
     end
 
     def gravity : Int32
@@ -98,36 +97,36 @@ module Native::UI
 
     def center
       @gravity = 17
-      applyGravity
+      apply_gravity
     end
 
     def center_horizontal
       @gravity = 1
-      applyGravity
+      apply_gravity
     end
 
     def center_vertical
       @gravity = 16
-      applyGravity
+      apply_gravity
     end
 
     def left
       @gravity = 3
-      applyGravity
+      apply_gravity
     end
 
     def right
       @gravity = 5
-      applyGravity
+      apply_gravity
     end
 
     def max_lines=(value : Int32)
       @max_lines = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_max = env.get_method_id(env.get_object_class(@native), "setMaxLines", "(I)V")
-        env.call_void_method(@native, set_max, value)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_max_lines(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_max_lines(@native, value)
       {% end %}
@@ -140,22 +139,43 @@ module Native::UI
     def ellipsize_end
       @ellipsize = 3
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_ellipsize = env.get_method_id(env.get_object_class(@native), "setEllipsize", "(Landroid/text/TextUtils$TruncateAt;)V")
-        value = env.get_static_object_field(env.find_class("android/text/TextUtils$TruncateAt"), env.get_static_field_id(env.find_class("android/text/TextUtils$TruncateAt"), "END", "Landroid/text/TextUtils$TruncateAt;"))
-        env.call_void_method(@native, set_ellipsize, value)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+
+          # Get TruncateAt.END static field
+          end_ref = JNIHelpers.call_static_object(env, "android/text/TextUtils$TruncateAt", "END", "Landroid/text/TextUtils$TruncateAt;")
+          return if end_ref.null?
+
+          begin
+            JNIHelpers.call_void(env, @native, "setEllipsize", "(Landroid/text/TextUtils$TruncateAt;)V", end_ref)
+          ensure
+            env.delete_local_ref(end_ref)
+          end
+        end
       {% end %}
     end
 
-    private def applyGravity
+    private def apply_gravity(env : Native::Android::JNIEnvWrapper? = nil)
       {% unless flag?(:native_android) %}
         return
       {% end %}
-      env = Native::Android::JNI.env
-      return unless env && @native != 0
-      set_gravity = env.get_method_id(env.get_object_class(@native), "setGravity", "(I)V")
-      env.call_void_method(@native, set_gravity, @gravity)
+
+      if env
+        return if @native == 0
+        JNIHelpers.set_gravity(env, @native, @gravity)
+      else
+        JNIHelpers.with_env do |e|
+          return if @native == 0
+          JNIHelpers.set_gravity(e, @native, @gravity)
+        end
+      end
+    end
+
+    private def argb_from_color(color : Native::Math::Color) : Int32
+      ((color.a * 255).to_i << 24) |
+      ((color.r * 255).to_i << 16) |
+      ((color.g * 255).to_i << 8) |
+      (color.b * 255).to_i
     end
   end
 end
