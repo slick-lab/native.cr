@@ -96,9 +96,3 @@ module Native::CLI
     end
   end
 end
-
-if ARGV.size > 0 && ARGV[0] == "doctor"
-  args = ARGV[1..-1] || [] of String
-  cmd = Native::CLI::DoctorCommand.new(args)
-  cmd.run
-end
