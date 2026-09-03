@@ -77,8 +77,8 @@ module Native::CLI
           puts "[FAIL] Android NDK not found"
         else
           revision = File.read("#{ndk_dir}/source.properties")
-                        .lines
-                        .find(&.starts_with?("Pkg.Revision"))
+            .lines
+            .find(&.starts_with?("Pkg.Revision"))
           version = revision.to_s.split("=").last?.to_s.strip
           puts "[OK] Android NDK: #{version}"
         end
