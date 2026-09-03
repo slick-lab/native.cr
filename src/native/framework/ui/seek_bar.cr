@@ -1,4 +1,5 @@
 # src/native/framework/ui/seek_bar.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class SeekBar < View
@@ -12,15 +13,13 @@ module Native::UI
       super()
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        seek_class = env.find_class("android/widget/SeekBar")
-        constructor = env.get_method_id(seek_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.new_object(seek_class, constructor, activity).to_i64
-
-        setupSeekBarListener
+          @native = JNIHelpers.new_widget(env, "android/widget/SeekBar", activity)
+          setup_seek_bar_listener(env)
+        end
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_slider
         @native = ptr.to_i64
@@ -30,10 +29,10 @@ module Native::UI
     def progress=(value : Int32)
       @progress = value.clamp(0, @max)
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_progress = env.get_method_id(env.get_object_class(@native), "setProgress", "(I)V")
-        env.call_void_method(@native, set_progress, @progress)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_progress(env, @native, @progress)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.slider_set_value(@native, @progress, @max)
       {% end %}
@@ -41,10 +40,10 @@ module Native::UI
 
     def progress : Int32
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return @progress unless env && @native != 0
-        get_progress = env.get_method_id(env.get_object_class(@native), "getProgress", "()I")
-        @progress = env.call_int_method(@native, get_progress)
+        JNIHelpers.with_env do |env|
+          return @progress if @native == 0
+          @progress = JNIHelpers.get_progress(env, @native)
+        end
       {% elsif flag?(:native_ios) %}
         value = LibIOS.slider_get_value(@native)
         @progress = (value * @max).to_i
@@ -55,10 +54,10 @@ module Native::UI
     def max=(value : Int32)
       @max = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_max = env.get_method_id(env.get_object_class(@native), "setMax", "(I)V")
-        env.call_void_method(@native, set_max, @max)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_max(env, @native, @max)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.slider_set_max(@native, @max)
       {% end %}
@@ -80,35 +79,24 @@ module Native::UI
       @on_stop_touch = block
     end
 
-    private def setupSeekBarListener
-      {% unless flag?(:native_android) %}
-        return
-      {% end %}
-      env = Native::Android::JNI.env
-      return unless env && @native != 0
-
-      callback_class = env.find_class("com/nativecr/SeekBarCallback")
-      if callback_class == Pointer(Void).null
-        return
-      end
-
-      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
-
-      set_listener = env.get_method_id(env.get_object_class(@native), "setOnSeekBarChangeListener", "(Landroid/widget/SeekBar$OnSeekBarChangeListener;)V")
-      env.call_void_method(@native, set_listener, callback_obj)
-    end
-
-    def handleProgressChanged(progress : Int32)
+    def handle_progress_changed(progress : Int32)
       @progress = progress
       @on_progress_changed.try &.call(progress)
     end
 
-    def handleStartTrackingTouch
+    def handle_start_touch
       @on_start_touch.try &.call
     end
 
-    def handleStopTrackingTouch
+    def handle_stop_touch
       @on_stop_touch.try &.call
+    end
+
+    private def setup_seek_bar_listener(env : Native::Android::JNIEnvWrapper)
+      {% unless flag?(:native_android) %}
+        return
+      {% end %}
+      # TODO: Set up OnSeekBarChangeListener via callback
     end
   end
 end

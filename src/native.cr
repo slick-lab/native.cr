@@ -3,6 +3,14 @@ require "file_utils"
 require "signal"
 require "./native/app"
 require "./native/cli/*"
+
+# Engine must be loaded before framework (framework uses JNIHelpers)
+{% if flag?(:native_android) %}
+  require "./native/engine/android/*"
+{% elsif flag?(:native_ios) %}
+  require "./native/engine/ios/*"
+{% end %}
+
 require "./native/framework/*"
 require "./native/framework/ui/view"
 require "./native/framework/ui/text_view"
@@ -28,12 +36,6 @@ require "./native/framework/media/*"
 require "./native/framework/navigation/screen"
 require "./native/framework/navigation/navigator"
 require "./native/framework/navigation/toolbar"
-
-{% if flag?(:native_android) %}
-  require "./native/engine/android/*"
-{% elsif flag?(:native_ios) %}
-  require "./native/engine/ios/*"
-{% end %}
 
 module Native
   VERSION = "0.1.6"
