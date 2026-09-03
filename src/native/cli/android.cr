@@ -236,13 +236,17 @@ module Native::CLI
       # -f : fail on HTTP errors instead of saving the error page as the jar
       # -sS: no progress meter, but keep error messages
       # -L : follow redirects (GitHub release assets redirect to CDN)
+      # -w : print the final HTTP status code so failures are explainable
+      # Only `success?` is used on the process result — stream accessors
+      # differ between crystal versions.
+      http_code_out = IO::Memory.new
       result = Process.run(
         "curl",
-        args: ["-fsSL", "--retry", "3", "--retry-delay", "2", "--connect-timeout", "15", "--max-time", "300", "-o", tmp_path, url],
-        output: Process::Redirect::Close,
-        error: Process::Redirect::Pipe
+        args: ["-fsSL", "--retry", "3", "--retry-delay", "2", "--connect-timeout", "15", "--max-time", "300", "-w", "%{http_code}", "-o", tmp_path, url],
+        output: http_code_out,
+        error: Process::Redirect::Inherit
       )
-      stderr = result.error.gets_to_end
+      http_code = http_code_out.to_s.strip
 
       if result.success? && valid_jar?(tmp_path)
         File.rename(tmp_path, jar_path)
@@ -252,20 +256,19 @@ module Native::CLI
 
       # Something went wrong — say exactly what instead of failing silently.
       File.delete(tmp_path) if File.exists?(tmp_path)
-      if result.success?
-        reason = "downloaded file is not a valid jar (expected a zip archive)"
-      elsif result.normal_exit? && result.exit_code == 22
-        reason = "HTTP error fetching #{url} (no release asset for v#{version}?)"
-      elsif result.normal_exit?
-        reason = "curl exited with code #{result.exit_code}"
-      else
-        reason = "curl killed by signal #{result.exit_signal}"
-      end
+      code = http_code.to_i?
+      reason =
+        if code && code >= 400
+          "HTTP #{code} fetching #{url} (no release asset for v#{version}?)"
+        elsif code && code >= 200 && code < 400
+          "downloaded file is not a valid jar (expected a zip archive)"
+        elsif code == 0 || http_code.empty?
+          "network error reaching #{url} (offline, timeout, or DNS failure)"
+        else
+          "curl could not complete the download (see curl error above)"
+        end
 
       puts "[native.cr] ERROR: could not download gradle-wrapper.jar: #{reason}"
-      stderr.each_line do |line|
-        puts "[native.cr]   #{line}" unless line.empty?
-      end
       puts "[native.cr] The android build cannot work without this jar."
       puts "[native.cr] Download it manually from https://github.com/slick-lab/native.cr/releases"
       puts "[native.cr] and place it at: #{jar_path}"
