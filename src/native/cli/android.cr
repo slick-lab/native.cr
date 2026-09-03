@@ -225,14 +225,65 @@ module Native::CLI
     private def download_gradle_jar(android_dir : String)
       jar_dir = "#{android_dir}/gradle/wrapper"
       jar_path = "#{jar_dir}/gradle-wrapper.jar"
+      tmp_path = "#{jar_path}.part"
 
       Dir.mkdir_p(jar_dir)
       version = Native::VERSION
       url = "https://github.com/slick-lab/native.cr/releases/download/v#{version}/gradle-wrapper.jar"
-      system("curl -L -o #{jar_path} #{url}")
-      unless File.exists?(jar_path) && File.size(jar_path) > 0
-        puts "could not download gradle-wrapper.jar builds will fail without this"
+
+      # Download to a .part file first so a failed or interrupted transfer
+      # never leaves a broken jar at the final path.
+      # -f : fail on HTTP errors instead of saving the error page as the jar
+      # -sS: no progress meter, but keep error messages
+      # -L : follow redirects (GitHub release assets redirect to CDN)
+      # -w : print the final HTTP status code so failures are explainable
+      # Only `success?` is used on the process result — stream accessors
+      # differ between crystal versions.
+      http_code_out = IO::Memory.new
+      result = Process.run(
+        "curl",
+        args: ["-fsSL", "--retry", "3", "--retry-delay", "2", "--connect-timeout", "15", "--max-time", "300", "-w", "%{http_code}", "-o", tmp_path, url],
+        output: http_code_out,
+        error: Process::Redirect::Inherit
+      )
+      http_code = http_code_out.to_s.strip
+
+      if result.success? && valid_jar?(tmp_path)
+        File.rename(tmp_path, jar_path)
+        puts "[native.cr] gradle-wrapper.jar downloaded and verified (#{File.size(jar_path)} bytes)"
+        return
       end
+
+      # Something went wrong — say exactly what instead of failing silently.
+      File.delete(tmp_path) if File.exists?(tmp_path)
+      code = http_code.to_i?
+      reason =
+        if code && code >= 400
+          "HTTP #{code} fetching #{url} (no release asset for v#{version}?)"
+        elsif code && code >= 200 && code < 400
+          "downloaded file is not a valid jar (expected a zip archive)"
+        elsif code == 0 || http_code.empty?
+          "network error reaching #{url} (offline, timeout, or DNS failure)"
+        else
+          "curl could not complete the download (see curl error above)"
+        end
+
+      puts "[native.cr] ERROR: could not download gradle-wrapper.jar: #{reason}"
+      puts "[native.cr] The android build cannot work without this jar."
+      puts "[native.cr] Download it manually from https://github.com/slick-lab/native.cr/releases"
+      puts "[native.cr] and place it at: #{jar_path}"
+      exit 1
+    end
+
+    private def valid_jar?(path : String) : Bool
+      return false unless File.exists?(path) && File.size(path) >= 4
+      # A jar is a zip: it must start with the "PK\x03\x04" magic bytes.
+      # An HTML error page or truncated body will not.
+      header = Bytes.new(4)
+      File.open(path, "rb") do |file|
+        file.read_fully(header)
+      end
+      header[0] == 0x50 && header[1] == 0x4B && header[2] == 0x03 && header[3] == 0x04
     end
   end
 end
