@@ -261,27 +261,23 @@ module Native::Network
 
     private def execute_desktop_sync(request : Request) : Response
       begin
-        http_method = case request.method
-                      when Method::GET    then HTTP::Method::GET
-                      when Method::POST   then HTTP::Method::POST
-                      when Method::PUT    then HTTP::Method::PUT
-                      when Method::DELETE then HTTP::Method::DELETE
-                      when Method::PATCH  then HTTP::Method::PATCH
-                      when Method::HEAD   then HTTP::Method::HEAD
-                      end
+        client = build_desktop_client(request)
+        http_request = build_desktop_request(request)
 
-        http_response = HTTP::Client.exec(
-          method: http_method,
-          url: request.url,
-          headers: HTTP::Headers.new(request.headers),
-          body: request.body
-        )
+        http_response = client.exec(http_request)
+
+        response_headers = {} of String => String
+        http_response.headers.each do |key, values|
+          response_headers[key] = values.first? || ""
+        end
 
         Response.new(
           status_code: http_response.status_code,
-          headers: http_response.headers.to_h,
+          headers: response_headers,
           body: http_response.body,
-          success: true
+          # success used to be hardcoded true — a 404 or 500 was reported
+          # as a successful response with an error page as its body.
+          success: http_response.success?
         )
       rescue ex
         Response.new(success: false, error: ex.message)
@@ -290,28 +286,52 @@ module Native::Network
 
     private def execute_desktop_stream(request : Request) : Response
       begin
-        http_method = case request.method
-                      when Method::GET    then HTTP::Method::GET
-                      when Method::POST   then HTTP::Method::POST
-                      when Method::PUT    then HTTP::Method::PUT
-                      when Method::DELETE then HTTP::Method::DELETE
-                      when Method::PATCH  then HTTP::Method::PATCH
-                      when Method::HEAD   then HTTP::Method::HEAD
-                      end
+        client = build_desktop_client(request)
+        http_request = build_desktop_request(request)
+        handler = request.chunk_handler
 
-        HTTP::Client.get(request.url, headers: HTTP::Headers.new(request.headers)) do |response|
-          handler = request.chunk_handler
-          if handler
-            response.body_io.each_byte do |byte|
-              handler.call(Bytes[byte])
+        # The stream path used to ignore the request method entirely and
+        # always issue a GET; it also called the handler once per byte and
+        # hardcoded success/200 regardless of the actual status.
+        final_status = 0
+        client.exec(http_request) do |http_response|
+          final_status = http_response.status_code
+          if handler && (body_io = http_response.body_io)
+            buffer = Bytes.new(65536)
+            while (read = body_io.read(buffer)) > 0
+              handler.call(buffer[0, read])
             end
           end
         end
 
-        Response.new(success: true, status_code: 200)
+        Response.new(
+          success: final_status >= 200 && final_status < 300,
+          status_code: final_status
+        )
       rescue ex
         Response.new(success: false, error: ex.message)
       end
+    end
+
+    # Shared desktop client: honours request.timeout (connect, read and
+    # DNS) — timeouts used to be silently ignored.
+    private def build_desktop_client(request : Request) : HTTP::Client
+      client = HTTP::Client.new(URI.parse(request.url))
+      client.connect_timeout = request.timeout.seconds
+      client.read_timeout = request.timeout.seconds
+      client.dns_timeout = request.timeout.seconds
+      client
+    end
+
+    private def build_desktop_request(request : Request) : HTTP::Request
+      headers = HTTP::Headers.new
+      request.headers.each do |key, value|
+        headers[key] = value
+      end
+      # GET/HEAD carry no body — sending an empty one made some servers
+      # respond 400.
+      body = (request.method == Method::GET || request.method == Method::HEAD) ? nil : request.body
+      HTTP::Request.new(request.method.to_s, URI.parse(request.url).request_target, headers, body)
     end
 
     private def cleanup_android(env : Void*, url : Void*, method : Void*, keys : Void*, values : Void*, body : Void*? = nil)

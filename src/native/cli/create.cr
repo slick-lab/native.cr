@@ -2,6 +2,28 @@ require "./android"
 require "./ios"
 
 module Native::CLI
+  # Pure helpers for the create command, kept module-level so specs can
+  # exercise them without running the generator.
+  module CreateUtil
+    # Project names become a directory path and show up in generated files —
+    # reject anything that could escape the target directory or break the
+    # generated Crystal code.
+    def self.valid_project_name?(name : String) : Bool
+      !name.empty? && name.match(/\A[a-zA-Z][a-zA-Z0-9_-]*\z/) != nil
+    end
+
+    def self.known_template?(name : String) : Bool
+      {"app", "game"}.includes?(name)
+    end
+
+    # `crystal --version` prints "Crystal 1.20.0 [c7d6de74b] (2026-04-16)" —
+    # the generated shard.yml needs just the number. Returns nil when no
+    # version can be found.
+    def self.extract_crystal_version(raw : String) : String?
+      raw.match(/Crystal\s+(\d+\.\d+\.\d+)/).try &.[1]
+    end
+  end
+
   class CreateCommand
     @project_name : String = ""
     @path : String = ""
@@ -34,6 +56,9 @@ module Native::CLI
         else
           if @project_name.empty?
             @project_name = args[i]
+          else
+            # Unknown extra arguments used to be swallowed silently.
+            puts "[native.cr] Warning: ignoring unexpected argument '#{args[i]}'"
           end
           i += 1
         end
@@ -42,6 +67,18 @@ module Native::CLI
       if @project_name.empty?
         puts "Error: Project name required"
         show_help
+        exit(1)
+      end
+
+      unless CreateUtil.valid_project_name?(@project_name)
+        puts "Error: Invalid project name '#{@project_name}'"
+        puts "Use letters, digits, '-' and '_' only (must start with a letter) —"
+        puts "the name becomes a directory and a Crystal module-safe identifier."
+        exit(1)
+      end
+
+      unless CreateUtil.known_template?(@template)
+        puts "Error: Unknown template '#{@template}' (available: app, game)"
         exit(1)
       end
 
@@ -75,6 +112,14 @@ module Native::CLI
       puts "[native.cr] Location: #{@path}"
       puts "[native.cr] Platform: #{@platform}"
       puts ""
+
+      # Refuse to clobber an existing project instead of silently
+      # overwriting its files.
+      if Dir.exists?(@path) && (File.exists?("#{@path}/shard.yml") || File.exists?("#{@path}/src/main.cr"))
+        puts "[native.cr] Error: #{@path} already contains a project (shard.yml or src/main.cr found)."
+        puts "[native.cr] Remove it or pass a different -p/--path."
+        exit(1)
+      end
 
       Dir.mkdir_p(@path)
       Dir.mkdir_p("#{@path}/src")
@@ -198,8 +243,15 @@ module Native::CLI
     end
 
     private def create_shard_yml
-      version = `crystal --version 2>/dev/null`.lines.first?.to_s.strip
-      File.write("#{@path}/shard.yml", <<-YAML
+      # `crystal --version` prints "Crystal 1.20.0 [c7d6de74b] (...)" — the
+      # raw first line used to be written as the constraint verbatim,
+      # producing an invalid `crystal: ">= Crystal 1.20.0 [...]"`.
+      version = CreateUtil.extract_crystal_version(
+        `crystal --version 2>/dev/null`
+      )
+      crystal_constraint = version ? ">= #{version}" : nil
+
+      content = <<-YAML
         name: #{@project_name}
         version: 0.1.0
 
@@ -210,11 +262,14 @@ module Native::CLI
           native:
             github: slick-lab/native.cr
 
-        crystal: ">= #{version}"
-
         license: MIT
       YAML
-      )
+
+      if crystal_constraint
+        content = content.sub("license: MIT", "crystal: \"#{crystal_constraint}\"\n\nlicense: MIT")
+      end
+
+      File.write("#{@path}/shard.yml", content)
     end
   end
 end

@@ -1,6 +1,27 @@
 # src/native/cli/sign.cr
 
 module Native::CLI
+  # Pure helpers for the sign command, kept module-level so specs can
+  # exercise them without running apksigner.
+  module SignUtil
+    # Renders the apksigner command for display, masking keystore/key
+    # passwords. The full command used to be echoed to stdout — including
+    # both passwords.
+    def self.redact(args : Array(String)) : String
+      masked = args.map do |arg|
+        arg.starts_with?("pass:") ? "pass:***" : arg
+      end
+      masked.join(" ")
+    end
+
+    # Sort key for build-tools directory names ("34.0.0", "9.0.0", ...) so
+    # numeric comparison picks 34.0.0 over 9.0.0 — plain string sort got
+    # this backwards.
+    def self.build_tools_version_key(name : String) : Array(Int32)
+      name.scan(/\d+/).map(&.[0].to_i)
+    end
+  end
+
   class SignCommand
     @keystore : String = ""
     @apk : String = ""
@@ -44,6 +65,12 @@ module Native::CLI
 
       if @apk.empty?
         puts "[native.cr] Error: APK path required"
+        show_help
+        exit(1)
+      end
+
+      if @keystore.empty?
+        puts "[native.cr] Error: Keystore path required (-k/--keystore)"
         show_help
         exit(1)
       end
@@ -114,12 +141,21 @@ module Native::CLI
         @apk,
       ]
 
-      puts "[native.cr] Running: #{cmd.join(" ")}"
+      puts "[native.cr] Running: #{SignUtil.redact(cmd)}"
       puts ""
 
-      output = `#{cmd.join(" ")} 2>&1`
+      # Execute without a shell: the old backticks + join(" ") broke on
+      # paths containing spaces and let crafted paths execute arbitrary
+      # shell commands.
+      output = IO::Memory.new
+      result = Process.run(
+        apksigner_path,
+        args: cmd[1..],
+        output: output,
+        error: output
+      )
 
-      if $?.success?
+      if result.success?
         puts "[native.cr] APK signed successfully!"
         puts "[native.cr] Output: #{@output}"
       else
@@ -137,10 +173,11 @@ module Native::CLI
         apksigner = "#{sdk_path}/build-tools/34.0.0/apksigner"
         return apksigner if File.exists?(apksigner)
 
-        # Try to find the latest build-tools version
+        # Try to find the latest build-tools version — numerically, not
+        # lexicographically (9.0.0 used to beat 34.0.0).
         build_tools_dir = "#{sdk_path}/build-tools"
         if Dir.exists?(build_tools_dir)
-          versions = Dir.glob("#{build_tools_dir}/*").sort_by { |dir| File.basename(dir) }.reverse!
+          versions = Dir.glob("#{build_tools_dir}/*").sort_by { |dir| SignUtil.build_tools_version_key(File.basename(dir)) }.reverse!
           versions.each do |version_dir|
             apksigner = "#{version_dir}/apksigner"
             return apksigner if File.exists?(apksigner)

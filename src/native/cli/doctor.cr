@@ -60,20 +60,30 @@ module Native::CLI
     end
 
     private def check_android
-      sdk = ENV["ANDROID_HOME"]? || ENV["ANDROID_SDK_ROOT"]?
-      if sdk.nil? || sdk.empty?
-        puts "[FAIL] Android SDK not found (set ANDROID_HOME)"
-        return
-      end
+      # A broken ANDROID_HOME (glob hitting a non-NDK directory, unreadable
+      # source.properties, ...) used to crash the whole doctor instead of
+      # degrading to a [FAIL] line like every other check.
+      begin
+        sdk = ENV["ANDROID_HOME"]? || ENV["ANDROID_SDK_ROOT"]?
+        if sdk.nil? || sdk.empty?
+          puts "[FAIL] Android SDK not found (set ANDROID_HOME)"
+          return
+        end
 
-      puts "[OK] Android SDK: #{sdk}"
+        puts "[OK] Android SDK: #{sdk}"
 
-      ndk_dir = Dir.glob("#{sdk}/ndk/*").first?
-      if ndk_dir.nil?
-        puts "[FAIL] Android NDK not found"
-      else
-        version = File.read("#{ndk_dir}/source.properties").lines.find(&.starts_with?("Pkg.Revision")).to_s.split("=").last?.to_s.strip
-        puts "[OK] Android NDK: #{version}"
+        ndk_dir = Dir.glob("#{sdk}/ndk/*").first?
+        if ndk_dir.nil?
+          puts "[FAIL] Android NDK not found"
+        else
+          revision = File.read("#{ndk_dir}/source.properties")
+            .lines
+            .find(&.starts_with?("Pkg.Revision"))
+          version = revision.to_s.split("=").last?.to_s.strip
+          puts "[OK] Android NDK: #{version}"
+        end
+      rescue ex
+        puts "[FAIL] Android check failed: #{ex.message}"
       end
     end
 
