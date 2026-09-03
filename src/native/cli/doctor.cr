@@ -4,6 +4,37 @@ require "semantic_version"
 require "http/client"
 
 module Native::CLI
+  # Version comparison for the doctor update check.
+  #
+  # GitHub release tags are "v"-prefixed ("v0.1.6") while Native::VERSION is
+  # bare ("0.1.6") and SemanticVersion.parse rejects the prefix — so the old
+  # inline check raised on every properly tagged release and the doctor always
+  # ended up printing "Failed to check for updates".
+  module VersionUtil
+    # Compares two version strings tolerantly.
+    # Returns -1, 0 or 1, or nil when either side is not a parseable version.
+    def self.compare(current : String, latest : String) : Int32?
+      current_norm = normalize(current)
+      latest_norm = normalize(latest)
+      return nil if current_norm.nil? || latest_norm.nil?
+
+      begin
+        SemanticVersion.parse(current_norm) <=> SemanticVersion.parse(latest_norm)
+      rescue ArgumentError
+        nil
+      end
+    end
+
+    # Trims whitespace and one leading "v"/"V"; nil when nothing remains.
+    private def self.normalize(version : String) : String?
+      stripped = version.strip
+      if stripped.size > 1 && (stripped[0] == 'v' || stripped[0] == 'V')
+        stripped = stripped[1..]
+      end
+      stripped.empty? ? nil : stripped
+    end
+  end
+
   class DoctorCommand
     def initialize(args : Array(String))
     end
@@ -76,13 +107,13 @@ module Native::CLI
           latest_version = data["tag_name"].as_s
           current_version = Native::VERSION
 
-          v_current = SemanticVersion.parse(current_version)
-          v_latest = SemanticVersion.parse(latest_version)
-
-          if v_current < v_latest
+          comparison = VersionUtil.compare(current_version, latest_version)
+          if comparison.nil?
+            puts "[WARN] Could not compare versions (current: #{current_version}, latest: #{latest_version})"
+          elsif comparison < 0
             puts "[WARN] New version available: #{latest_version}"
             puts "[WARN] Run 'shards update' to upgrade"
-          elsif v_current == v_latest
+          elsif comparison == 0
             puts "[OK] Native.cr is up to date"
           else
             puts "[INFO] You are on a development version: #{current_version}"
