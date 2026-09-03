@@ -17,7 +17,11 @@
     struct JNINativeInterface
       _p0 : Void*[6]                                                          # 0-5
       find_class : (Void*, UInt8*) -> Void*                                   # 6
-      _p1 : Void*[16]                                                         # 7-22
+      _p1 : Void*[8]                                                          # 7-14
+      exception_occurred : (Void*, Void*) -> Void*                            # 15
+      exception_describe : (Void*) -> Void                                    # 16
+      exception_clear : (Void*) -> Void                                       # 17
+      _p1b : Void*[5]                                                         # 18-22
       delete_local_ref : (Void*, Void*) -> Void                               # 23
       _p2 : Void*[6]                                                          # 24-29
       new_object_a : (Void*, Void*, Void*, JValue*) -> Void*                  # 30
@@ -30,9 +34,13 @@
       call_boolean_method_a : (Void*, Void*, Void*, JValue*) -> UInt8         # 39
       _p5 : Void*[11]                                                         # 40-50
       call_int_method_a : (Void*, Void*, Void*, JValue*) -> Int32             # 51
-      _p6 : Void*[5]                                                          # 52-56
+      _p6 : Void*[2]                                                          # 52-53
+      call_long_method_a : (Void*, Void*, Void*, JValue*) -> Int64            # 54
+      _p6b : Void*[2]                                                         # 55-56
       call_float_method_a : (Void*, Void*, Void*, JValue*) -> Float32         # 57
-      _p7 : Void*[5]                                                          # 58-62
+      _p7 : Void*[2]                                                          # 58-59
+      call_double_method_a : (Void*, Void*, Void*, JValue*) -> Float64        # 60
+      _p7b : Void*[2]                                                         # 61-62
       call_void_method_a : (Void*, Void*, Void*, JValue*) -> Void             # 63
       _p8 : Void*[30]                                                         # 64-93
       get_field_id : (Void*, Void*, UInt8*, UInt8*) -> Void*                  # 94
@@ -40,11 +48,15 @@
       get_boolean_field : (Void*, Void*, Void*) -> UInt8                      # 96
       _p9 : Void*[3]                                                          # 97-99
       get_int_field : (Void*, Void*, Void*) -> Int32                          # 100
-      _p10 : Void*[3]                                                         # 101-103
+      get_long_field : (Void*, Void*, Void*) -> Int64                         # 101
+      get_float_field : (Void*, Void*, Void*) -> Float32                      # 102
+      get_double_field : (Void*, Void*, Void*) -> Float64                     # 103
       set_object_field : (Void*, Void*, Void*, Void*) -> Void                 # 104
       _p11 : Void*[4]                                                         # 105-108
       set_int_field : (Void*, Void*, Void*, Int32) -> Void                    # 109
-      _p12 : Void*[3]                                                         # 110-112
+      set_long_field : (Void*, Void*, Void*, Int64) -> Void                   # 110
+      set_float_field : (Void*, Void*, Void*, Float32) -> Void                # 111
+      set_double_field : (Void*, Void*, Void*, Float64) -> Void               # 112
       get_static_method_id : (Void*, Void*, UInt8*, UInt8*) -> Void*          # 113
       _p13 : Void*[2]                                                         # 114-115
       call_static_object_method_a : (Void*, Void*, Void*, JValue*) -> Void*   # 116
@@ -54,7 +66,9 @@
       call_static_int_method_a : (Void*, Void*, Void*, JValue*) -> Int32      # 131
       _p16 : Void*[2]                                                         # 132-133
       call_static_long_method_a : (Void*, Void*, Void*, JValue*) -> Int64     # 134
-      _p17 : Void*[5]                                                         # 135-139
+      _p17 : Void*[2]                                                         # 135-136
+      call_static_float_method_a : (Void*, Void*, Void*, JValue*) -> Float32  # 137
+      _p17b : Void*[2]                                                        # 138-139
       call_static_double_method_a : (Void*, Void*, Void*, JValue*) -> Float64 # 140
       _p18 : Void*[2]                                                         # 141-142
       call_static_void_method_a : (Void*, Void*, Void*, JValue*) -> Void      # 143
@@ -62,22 +76,33 @@
       get_static_object_field : (Void*, Void*, Void*) -> Void*                # 145
       _p19 : Void*[4]                                                         # 146-149
       get_static_int_field : (Void*, Void*, Void*) -> Int32                   # 150
-      _p20 : Void*[16]                                                        # 151-166
+      get_static_long_field : (Void*, Void*, Void*) -> Int64                  # 151
+      get_static_float_field : (Void*, Void*, Void*) -> Float32               # 152
+      get_static_double_field : (Void*, Void*, Void*) -> Float64              # 153
+      _p20 : Void*[13]                                                        # 154-166
       new_string_utf : (Void*, UInt8*) -> Void*                               # 167
       _p21 : Void*                                                            # 168
       get_string_utf_chars : (Void*, Void*, UInt8*) -> UInt8*                 # 169
       release_string_utf_chars : (Void*, Void*, UInt8*) -> Void               # 170
-      _p22 : Void*[4]                                                         # 171-174
-      get_array_length : (Void*, Void*) -> Int32                              # 175
-      new_object_array : (Void*, Int32, Void*, Void*) -> Void*                # 176
-      get_object_array_element : (Void*, Void*, Int32) -> Void*               # 177
-      set_object_array_element : (Void*, Void*, Int32, Void*) -> Void         # 178
-      _p23 : Void*                                                            # 179
-      new_byte_array : (Void*, Int32) -> Void*                                # 180
-      _p24 : Void*[23]                                                        # 181-203
-      get_byte_array_region : (Void*, Void*, Int32, Int32, UInt8*) -> Void    # 204
-      _p25 : Void*[7]                                                         # 205-211
-      set_byte_array_region : (Void*, Void*, Int32, Int32, UInt8*) -> Void    # 212
+      # NOTE: the real JNI function table continues directly at 171 — there
+      # are no entries between ReleaseStringUTFChars (170) and
+      # GetArrayLength (171). The old layout had a phantom Void*[4] gap
+      # here, shifting every array function +4 slots so they bound to the
+      # WRONG JNI functions on device (new_byte_array hit NewIntArray,
+      # get/set_byte_array_region hit float/double region functions).
+      # Indexes below verified against OpenJDK jni.h JNINativeInterface_.
+      get_array_length : (Void*, Void*) -> Int32                              # 171
+      new_object_array : (Void*, Int32, Void*, Void*) -> Void*                # 172
+      get_object_array_element : (Void*, Void*, Int32) -> Void*               # 173
+      set_object_array_element : (Void*, Void*, Int32, Void*) -> Void         # 174
+      _p22 : Void*                                                            # 175 (NewBooleanArray)
+      new_byte_array : (Void*, Int32) -> Void*                                # 176
+      _p24 : Void*[23]                                                        # 177-199
+      get_byte_array_region : (Void*, Void*, Int32, Int32, UInt8*) -> Void    # 200
+      _p25 : Void*[7]                                                         # 201-207
+      set_byte_array_region : (Void*, Void*, Int32, Int32, UInt8*) -> Void    # 208
+      _p26 : Void*[19]                                                        # 209-227
+      exception_check : (Void*, Void*) -> UInt8                               # 228
     end
 
     alias JavaVM = Void*
@@ -265,7 +290,13 @@ module Native::Android::JNI
     end
 
     def self.call_long_method(obj : Void*, method_id : Void*, args : Array(Void*)? = nil) : Int64
-      0i64
+      e = ep; return 0i64 unless e
+      if a = args
+        jv = a.map { |x| jval_l(x) }
+        e.value.call_long_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe)
+      else
+        e.value.call_long_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null)
+      end
     end
 
     def self.call_float_method(obj : Void*, method_id : Void*, args : Array(Void*)? = nil) : Float32
@@ -279,7 +310,13 @@ module Native::Android::JNI
     end
 
     def self.call_double_method(obj : Void*, method_id : Void*, args : Array(Void*)? = nil) : Float64
-      0.0
+      e = ep; return 0.0 unless e
+      if a = args
+        jv = a.map { |x| jval_l(x) }
+        e.value.call_double_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe)
+      else
+        e.value.call_double_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null)
+      end
     end
 
     def self.call_void_method(obj : Void*, method_id : Void*, args : Array(Void*)? = nil) : Nil
@@ -332,6 +369,16 @@ module Native::Android::JNI
       end
     end
 
+    def self.call_static_float_method(class_ref : Void*, method_id : Void*, args : Array(Void*)? = nil) : Float32
+      e = ep; return 0.0f32 unless e
+      if a = args
+        jv = a.map { |x| jval_l(x) }
+        e.value.call_static_float_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe)
+      else
+        e.value.call_static_float_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null)
+      end
+    end
+
     def self.call_static_double_method(class_ref : Void*, method_id : Void*, args : Array(Void*)? = nil) : Float64
       e = ep; return 0.0 unless e
       if a = args
@@ -367,6 +414,21 @@ module Native::Android::JNI
       e.value.get_int_field.call(e.as(Void*), obj, field_id)
     end
 
+    def self.get_long_field(obj : Void*, field_id : Void*) : Int64
+      e = ep; return 0i64 unless e
+      e.value.get_long_field.call(e.as(Void*), obj, field_id)
+    end
+
+    def self.get_float_field(obj : Void*, field_id : Void*) : Float32
+      e = ep; return 0.0f32 unless e
+      e.value.get_float_field.call(e.as(Void*), obj, field_id)
+    end
+
+    def self.get_double_field(obj : Void*, field_id : Void*) : Float64
+      e = ep; return 0.0 unless e
+      e.value.get_double_field.call(e.as(Void*), obj, field_id)
+    end
+
     def self.get_static_object_field(class_ref : Void*, field_id : Void*) : Void*
       e = ep; return Pointer(Void).null unless e
       e.value.get_static_object_field.call(e.as(Void*), class_ref, field_id).as(Void*)
@@ -377,6 +439,21 @@ module Native::Android::JNI
       e.value.get_static_int_field.call(e.as(Void*), class_ref, field_id)
     end
 
+    def self.get_static_long_field(class_ref : Void*, field_id : Void*) : Int64
+      e = ep; return 0i64 unless e
+      e.value.get_static_long_field.call(e.as(Void*), class_ref, field_id)
+    end
+
+    def self.get_static_float_field(class_ref : Void*, field_id : Void*) : Float32
+      e = ep; return 0.0f32 unless e
+      e.value.get_static_float_field.call(e.as(Void*), class_ref, field_id)
+    end
+
+    def self.get_static_double_field(class_ref : Void*, field_id : Void*) : Float64
+      e = ep; return 0.0 unless e
+      e.value.get_static_double_field.call(e.as(Void*), class_ref, field_id)
+    end
+
     def self.set_object_field(obj : Void*, field_id : Void*, value : Void*) : Nil
       e = ep; return unless e
       e.value.set_object_field.call(e.as(Void*), obj, field_id, value)
@@ -385,6 +462,39 @@ module Native::Android::JNI
     def self.set_int_field(obj : Void*, field_id : Void*, value : Int32) : Nil
       e = ep; return unless e
       e.value.set_int_field.call(e.as(Void*), obj, field_id, value)
+    end
+
+    def self.set_long_field(obj : Void*, field_id : Void*, value : Int64) : Nil
+      e = ep; return unless e
+      e.value.set_long_field.call(e.as(Void*), obj, field_id, value)
+    end
+
+    def self.set_float_field(obj : Void*, field_id : Void*, value : Float32) : Nil
+      e = ep; return unless e
+      e.value.set_float_field.call(e.as(Void*), obj, field_id, value)
+    end
+
+    def self.set_double_field(obj : Void*, field_id : Void*, value : Float64) : Nil
+      e = ep; return unless e
+      e.value.set_double_field.call(e.as(Void*), obj, field_id, value)
+    end
+
+    # Exception handling — a pending JNI exception makes every subsequent
+    # JNI call undefined behaviour (usually a crash). Check after calls
+    # that can throw (most of them) and clear before continuing.
+    def self.exception_check : Bool
+      e = ep; return false unless e
+      e.value.exception_check.call(e.as(Void*)) != 0
+    end
+
+    def self.exception_clear : Nil
+      e = ep; return unless e
+      e.value.exception_clear.call(e.as(Void*))
+    end
+
+    def self.exception_occurred : Void*
+      e = ep; return Pointer(Void).null unless e
+      e.value.exception_occurred.call(e.as(Void*)).as(Void*)
     end
 
     def self.delete_local_ref(obj : Void*) : Nil
@@ -523,6 +633,10 @@ module Native::Android::JNI
       0i64
     end
 
+    def self.call_static_float_method(c : Void*, m : Void*, args : Array(Void*)? = nil) : Float32
+      0.0f32
+    end
+
     def self.call_static_double_method(c : Void*, m : Void*, args : Array(Void*)? = nil) : Float64
       0.0
     end
@@ -541,12 +655,52 @@ module Native::Android::JNI
       0
     end
 
+    def self.get_long_field(o : Void*, f : Void*) : Int64
+      0i64
+    end
+
+    def self.get_float_field(o : Void*, f : Void*) : Float32
+      0.0f32
+    end
+
+    def self.get_double_field(o : Void*, f : Void*) : Float64
+      0.0
+    end
+
     def self.get_static_object_field(c : Void*, f : Void*) : Void*
       Pointer(Void).null
     end
 
     def self.get_static_int_field(c : Void*, f : Void*) : Int32
       0
+    end
+
+    def self.get_static_long_field(c : Void*, f : Void*) : Int64
+      0i64
+    end
+
+    def self.get_static_float_field(c : Void*, f : Void*) : Float32
+      0.0f32
+    end
+
+    def self.get_static_double_field(c : Void*, f : Void*) : Float64
+      0.0
+    end
+
+    def self.set_long_field(o : Void*, f : Void*, v : Int64) : Nil; end
+
+    def self.set_float_field(o : Void*, f : Void*, v : Float32) : Nil; end
+
+    def self.set_double_field(o : Void*, f : Void*, v : Float64) : Nil; end
+
+    def self.exception_check : Bool
+      false
+    end
+
+    def self.exception_clear : Nil; end
+
+    def self.exception_occurred : Void*
+      Pointer(Void).null
     end
 
     def self.set_object_field(o : Void*, f : Void*, v : Void*) : Nil; end

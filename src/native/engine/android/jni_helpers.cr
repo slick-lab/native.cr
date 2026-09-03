@@ -76,6 +76,16 @@
       end
     end
 
+    # ── One-shot boolean call on an object ───────────────────────────────────
+    def self.call_boolean(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, *args) : Bool
+      with_object_class(env, obj) do |jclass|
+        return false if jclass.null?
+        mid = env.get_method_id(jclass, method_name, sig)
+        return false if mid.null?
+        env.call_boolean_method(obj, mid, *args)
+      end
+    end
+
     # ── One-shot float call on an object ─────────────────────────────────────
     def self.call_float(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, *args) : Float32
       with_object_class(env, obj) do |jclass|
@@ -93,6 +103,70 @@
         mid = env.get_method_id(jclass, method_name, sig)
         return Pointer(Void).null if mid.null?
         env.call_object_method(obj, mid, *args)
+      end
+    end
+
+    # ── One-shot long call on an object ──────────────────────────────────────
+    # The JNIEnvWrapper used to hardcode this to 0i64 — any Java API
+    # returning a long (durations, file sizes, timestamps) silently
+    # reported 0.
+    def self.call_long(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, *args) : Int64
+      with_object_class(env, obj) do |jclass|
+        return 0i64 if jclass.null?
+        mid = env.get_method_id(jclass, method_name, sig)
+        return 0i64 if mid.null?
+        env.call_long_method(obj, mid, *args)
+      end
+    end
+
+    # ── One-shot double call on an object ────────────────────────────────────
+    def self.call_double(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, *args) : Float64
+      with_object_class(env, obj) do |jclass|
+        return 0.0 if jclass.null?
+        mid = env.get_method_id(jclass, method_name, sig)
+        return 0.0 if mid.null?
+        env.call_double_method(obj, mid, *args)
+      end
+    end
+
+    # ── One-shot call returning a String ─────────────────────────────────────
+    # Reads the returned jstring, then deletes the returned local ref —
+    # the ref returned by call_object belongs to us, so we own the cleanup.
+    def self.call_string(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, *args) : String
+      jstr = call_object(env, obj, method_name, sig, *args)
+      return "" if jstr.null?
+      result = env.get_string_utf_chars(jstr)
+      env.delete_local_ref(jstr)
+      result
+    end
+
+    # ── One-shot static int call ─────────────────────────────────────────────
+    def self.call_static_int(env : JNIEnvWrapper, class_name : String, method_name : String, sig : String, *args) : Int32
+      with_class(env, class_name) do |jclass|
+        return 0 if jclass.null?
+        mid = env.get_static_method_id(jclass, method_name, sig)
+        return 0 if mid.null?
+        env.call_static_int_method(jclass, mid, *args)
+      end
+    end
+
+    # ── One-shot static boolean call ─────────────────────────────────────────
+    def self.call_static_boolean(env : JNIEnvWrapper, class_name : String, method_name : String, sig : String, *args) : Bool
+      with_class(env, class_name) do |jclass|
+        return false if jclass.null?
+        mid = env.get_static_method_id(jclass, method_name, sig)
+        return false if mid.null?
+        env.call_static_boolean_method(jclass, mid, *args)
+      end
+    end
+
+    # ── One-shot static float call ───────────────────────────────────────────
+    def self.call_static_float(env : JNIEnvWrapper, class_name : String, method_name : String, sig : String, *args) : Float32
+      with_class(env, class_name) do |jclass|
+        return 0.0f32 if jclass.null?
+        mid = env.get_static_method_id(jclass, method_name, sig)
+        return 0.0f32 if mid.null?
+        env.call_static_float_method(jclass, mid, *args)
       end
     end
 
