@@ -76,6 +76,16 @@
       end
     end
 
+    # ── One-shot float call on an object ─────────────────────────────────────
+    def self.call_float(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, *args) : Float32
+      with_object_class(env, obj) do |jclass|
+        return 0.0f32 if jclass.null?
+        mid = env.get_method_id(jclass, method_name, sig)
+        return 0.0f32 if mid.null?
+        env.call_float_method(obj, mid, *args)
+      end
+    end
+
     # ── One-shot object call on an object ────────────────────────────────────
     def self.call_object(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, *args) : Void*
       with_object_class(env, obj) do |jclass|
@@ -116,6 +126,16 @@
         return 0i64 if ctor.null?
         obj = env.new_object(jclass, ctor, context)
         obj ? obj.to_i64 : 0i64
+      end
+    end
+
+    # Create a callback object with a long constructor: new Callback(J)
+    def self.new_callback(env : JNIEnvWrapper, class_name : String, handle : Int64) : Void*
+      with_class(env, class_name) do |jclass|
+        return Pointer(Void).null if jclass.null?
+        ctor = env.get_method_id(jclass, "<init>", "(J)V")
+        return Pointer(Void).null if ctor.null?
+        env.new_object(jclass, ctor, handle)
       end
     end
 
@@ -163,6 +183,49 @@
       call_void(env, obj, "setAlpha", "(F)V", alpha)
     end
 
+    def self.set_all_caps(env : JNIEnvWrapper, obj : Int64, all_caps : Bool)
+      call_void(env, obj, "setAllCaps", "(Z)V", all_caps)
+    end
+
+    # ── Position / Size helpers ──────────────────────────────────────────────
+
+    def self.set_x(env : JNIEnvWrapper, obj : Int64, x : Float32)
+      call_void(env, obj, "setX", "(F)V", x)
+    end
+
+    def self.set_y(env : JNIEnvWrapper, obj : Int64, y : Float32)
+      call_void(env, obj, "setY", "(F)V", y)
+    end
+
+    def self.set_position(env : JNIEnvWrapper, obj : Int64, x : Int32, y : Int32)
+      set_x(env, obj, x.to_f32)
+      set_y(env, obj, y.to_f32)
+    end
+
+    # ── LayoutParams helpers ─────────────────────────────────────────────────
+
+    def self.get_layout_params(env : JNIEnvWrapper, obj : Int64) : Void*
+      call_object(env, obj, "getLayoutParams", "()Landroid/view/ViewGroup$LayoutParams;")
+    end
+
+    def self.set_layout_params_size(env : JNIEnvWrapper, obj : Int64, width : Int32, height : Int32)
+      params = get_layout_params(env, obj)
+      return if params.null?
+
+      begin
+        JNIHelpers.with_object_class(env, params.to_i64) do |params_class|
+          return if params_class.null?
+          width_fid = env.get_field_id(params_class, "width", "I")
+          height_fid = env.get_field_id(params_class, "height", "I")
+          env.set_int_field(params, width_fid, width)
+          env.set_int_field(params, height_fid, height)
+        end
+        call_void(env, obj, "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V", params)
+      ensure
+        env.delete_local_ref(params)
+      end
+    end
+
     # ── Layout helpers ───────────────────────────────────────────────────────
 
     def self.add_view(env : JNIEnvWrapper, parent : Int64, child : Int64)
@@ -179,6 +242,16 @@
       with_jstring(env, tag) do |jtag|
         call_void(env, obj, "setTag", "(Ljava/lang/Object;)V", jtag)
       end
+    end
+
+    # ── Click listener helpers ───────────────────────────────────────────────
+
+    def self.set_on_click_listener(env : JNIEnvWrapper, obj : Int64, callback : Void*)
+      call_void(env, obj, "setOnClickListener", "(Landroid/view/View$OnClickListener;)V", callback)
+    end
+
+    def self.set_on_long_click_listener(env : JNIEnvWrapper, obj : Int64, callback : Void*)
+      call_void(env, obj, "setOnLongClickListener", "(Landroid/view/View$OnLongClickListener;)V", callback)
     end
   end
 {% end %}

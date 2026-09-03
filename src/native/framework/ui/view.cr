@@ -1,4 +1,5 @@
 # src/native/framework/ui/view.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class View
@@ -50,10 +51,10 @@ module Native::UI
     def visible=(value : Bool)
       @visible = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_visibility = env.get_method_id(env.get_object_class(@native), "setVisibility", "(I)V")
-        env.call_void_method(@native, set_visibility, value ? 0 : 8)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_visibility(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_visible(@native, value)
       {% end %}
@@ -66,10 +67,10 @@ module Native::UI
     def enabled=(value : Bool)
       @enabled = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_enabled = env.get_method_id(env.get_object_class(@native), "setEnabled", "(Z)V")
-        env.call_void_method(@native, set_enabled, value)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_enabled(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_enabled(@native, value)
       {% end %}
@@ -82,10 +83,10 @@ module Native::UI
     def tag=(value : String)
       @tag = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_tag = env.get_method_id(env.get_object_class(@native), "setTag", "(Ljava/lang/Object;)V")
-        env.call_void_method(@native, set_tag, env.new_string_utf(value))
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_tag(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_tag(@native, value.to_utf8)
       {% end %}
@@ -97,12 +98,10 @@ module Native::UI
 
     protected def update_position : Nil
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_x = env.get_method_id(env.get_object_class(@native), "setX", "(F)V")
-        set_y = env.get_method_id(env.get_object_class(@native), "setY", "(F)V")
-        env.call_void_method(@native, set_x, @x.to_f32)
-        env.call_void_method(@native, set_y, @y.to_f32)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_position(env, @native, @x, @y)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_position(@native, @x, @y)
       {% end %}
@@ -110,17 +109,9 @@ module Native::UI
 
     protected def update_size : Nil
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        layout_params = env.get_method_id(env.get_object_class(@native), "getLayoutParams", "()Landroid/view/ViewGroup$LayoutParams;")
-        params = env.call_object_method(@native, layout_params)
-        if params
-          set_width = env.get_field_id(env.get_object_class(params), "width", "I")
-          set_height = env.get_field_id(env.get_object_class(params), "height", "I")
-          env.set_int_field(params, set_width, @width)
-          env.set_int_field(params, set_height, @height)
-          set_layout = env.get_method_id(env.get_object_class(@native), "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V")
-          env.call_void_method(@native, set_layout, params)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_layout_params_size(env, @native, @width, @height)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_size(@native, @width, @height)
@@ -133,14 +124,21 @@ module Native::UI
 
     def background_color=(color : Native::Math::Color)
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        argb = (255 << 24) | ((color.r * 255).to_i << 16) | ((color.g * 255).to_i << 8) | (color.b * 255).to_i
-        set_bg = env.get_method_id(env.get_object_class(@native), "setBackgroundColor", "(I)V")
-        env.call_void_method(@native, set_bg, argb)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          argb = argb_from_color(color)
+          JNIHelpers.set_background_color(env, @native, argb)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.view_set_background_color(@native, color.r, color.g, color.b, color.a)
       {% end %}
+    end
+
+    private def argb_from_color(color : Native::Math::Color) : Int32
+      (255 << 24) |
+      ((color.r * 255).to_i << 16) |
+      ((color.g * 255).to_i << 8) |
+      (color.b * 255).to_i
     end
   end
 end

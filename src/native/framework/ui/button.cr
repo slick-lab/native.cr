@@ -1,4 +1,5 @@
 # src/native/framework/ui/button.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class Button < View
@@ -15,21 +16,20 @@ module Native::UI
       @text = text
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        button_class = env.find_class("android/widget/Button")
-        constructor = env.get_method_id(button_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.new_object(button_class, constructor, activity).to_i64
+          @native = JNIHelpers.new_widget(env, "android/widget/Button", activity)
 
-        if !text.empty?
-          self.text = text
+          if !text.empty?
+            JNIHelpers.set_text(env, @native, text)
+          end
+          JNIHelpers.set_text_size(env, @native, @text_size)
+          apply_text_color(env)
+          apply_background_color(env)
+          setup_click_listeners(env)
         end
-        self.text_size = @text_size
-        applyTextColor
-        applyBackgroundColor
-        setupClickListeners
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_button
         @native = ptr.to_i64
@@ -37,19 +37,18 @@ module Native::UI
           self.text = text
         end
         self.text_size = @text_size
-        applyTextColor
-        applyBackgroundColor
+        apply_text_color
+        apply_background_color
       {% end %}
     end
 
     def text=(value : String)
       @text = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        jtext = env.new_string_utf(value)
-        set_text = env.get_method_id(env.get_object_class(@native), "setText", "(Ljava/lang/CharSequence;)V")
-        env.call_void_method(@native, set_text, jtext)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_text(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.button_set_text(@native, value.to_utf8)
       {% end %}
@@ -62,10 +61,10 @@ module Native::UI
     def text_size=(value : Int32)
       @text_size = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_size = env.get_method_id(env.get_object_class(@native), "setTextSize", "(F)V")
-        env.call_void_method(@native, set_size, value.to_f32)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_text_size(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.button_set_text_size(@native, value)
       {% end %}
@@ -77,7 +76,7 @@ module Native::UI
 
     def text_color=(value : Native::Math::Color)
       @text_color = value
-      applyTextColor
+      apply_text_color
     end
 
     def text_color : Native::Math::Color
@@ -86,7 +85,7 @@ module Native::UI
 
     def background_color=(value : Native::Math::Color)
       @background_color = value
-      applyBackgroundColor
+      apply_background_color
     end
 
     def background_color : Native::Math::Color
@@ -96,10 +95,10 @@ module Native::UI
     def all_caps=(value : Bool)
       @all_caps = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_all_caps = env.get_method_id(env.get_object_class(@native), "setAllCaps", "(Z)V")
-        env.call_void_method(@native, set_all_caps, value)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_all_caps(env, @native, value)
+        end
       {% end %}
     end
 
@@ -110,72 +109,93 @@ module Native::UI
     def on_click(&block : -> Nil)
       @on_click = block
       {% if flag?(:native_android) %}
-        setupClickListeners
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          setup_click_listeners(env)
+        end
       {% end %}
     end
 
     def on_long_click(&block : -> Nil)
       @on_long_click = block
       {% if flag?(:native_android) %}
-        setupClickListeners
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          setup_click_listeners(env)
+        end
       {% end %}
     end
 
-    private def applyTextColor
+    private def apply_text_color(env : Native::Android::JNIEnvWrapper? = nil)
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        color = ((@text_color.a * 255).to_i << 24) | ((@text_color.r * 255).to_i << 16) | ((@text_color.g * 255).to_i << 8) | (@text_color.b * 255).to_i
-        set_color = env.get_method_id(env.get_object_class(@native), "setTextColor", "(I)V")
-        env.call_void_method(@native, set_color, color)
+        if env
+          return if @native == 0
+          color = argb_from_color(@text_color)
+          JNIHelpers.set_text_color(env, @native, color)
+        else
+          JNIHelpers.with_env do |e|
+            return if @native == 0
+            color = argb_from_color(@text_color)
+            JNIHelpers.set_text_color(e, @native, color)
+          end
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.button_set_text_color(@native, @text_color.r, @text_color.g, @text_color.b)
       {% end %}
     end
 
-    private def applyBackgroundColor
+    private def apply_background_color(env : Native::Android::JNIEnvWrapper? = nil)
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        color = ((@background_color.a * 255).to_i << 24) | ((@background_color.r * 255).to_i << 16) | ((@background_color.g * 255).to_i << 8) | (@background_color.b * 255).to_i
-        set_bg = env.get_method_id(env.get_object_class(@native), "setBackgroundColor", "(I)V")
-        env.call_void_method(@native, set_bg, color)
+        if env
+          return if @native == 0
+          color = argb_from_color(@background_color)
+          JNIHelpers.set_background_color(env, @native, color)
+        else
+          JNIHelpers.with_env do |e|
+            return if @native == 0
+            color = argb_from_color(@background_color)
+            JNIHelpers.set_background_color(e, @native, color)
+          end
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.button_set_background_color(@native, @background_color.r, @background_color.g, @background_color.b, @background_color.a)
       {% end %}
     end
 
-    private def setupClickListeners
+    private def setup_click_listeners(env : Native::Android::JNIEnvWrapper)
       {% unless flag?(:native_android) %}
         return
       {% end %}
-      env = Native::Android::JNI.env
-      return unless env && @native != 0
 
-      callback_class = env.find_class("com/nativecr/OnClickCallback")
-      if callback_class == Pointer(Void).null
-        return
-      end
+      callback = JNIHelpers.new_callback(env, "com/nativecr/OnClickCallback", 0i64)
+      return if callback.null?
 
-      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
+      begin
+        if @on_click
+          JNIHelpers.set_on_click_listener(env, @native, callback)
+        end
 
-      if @on_click
-        set_onclick = env.get_method_id(env.get_object_class(@native), "setOnClickListener", "(Landroid/view/View$OnClickListener;)V")
-        env.call_void_method(@native, set_onclick, callback_obj)
-      end
-
-      if @on_long_click
-        set_onlongclick = env.get_method_id(env.get_object_class(@native), "setOnLongClickListener", "(Landroid/view/View$OnLongClickListener;)V")
-        env.call_void_method(@native, set_onlongclick, callback_obj)
+        if @on_long_click
+          JNIHelpers.set_on_long_click_listener(env, @native, callback)
+        end
+      ensure
+        env.delete_local_ref(callback)
       end
     end
 
-    def handleClick
+    def handle_click
       @on_click.try &.call
     end
 
-    def handleLongClick
+    def handle_long_click
       @on_long_click.try &.call
+    end
+
+    private def argb_from_color(color : Native::Math::Color) : Int32
+      ((color.a * 255).to_i << 24) |
+      ((color.r * 255).to_i << 16) |
+      ((color.g * 255).to_i << 8) |
+      (color.b * 255).to_i
     end
   end
 end
