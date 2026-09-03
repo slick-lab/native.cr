@@ -143,8 +143,10 @@ module Native::Core
             while Time.monotonic < deadline && !proc.terminated?
               sleep 0.05.seconds
             end
-            # If still alive, force-kill.
-            proc.terminate unless proc.terminated?
+            # If still alive, force-kill — "terminate" again would just
+            # send a second SIGTERM, and a hung app ignoring SIGTERM used
+            # to hang `native.cr reload` forever.
+            proc.signal(Signal::KILL) unless proc.terminated?
           end
           proc.wait rescue nil
         rescue e
@@ -180,39 +182,38 @@ module Native::Core
         Dir.mkdir_p(File.dirname(@config.build_output))
         bootstrap = File.join(File.dirname(@config.build_output), "desktop_bootstrap.cr")
 
-        # Two valid layouts:
-        #   (a) Running inside native.cr repo itself — engine is at src/native/engine/show.cr
-        #   (b) Running inside a user project with native.cr as a shard —
-        #       engine is at lib/native/src/native/engine/show.cr
-        engine_path = if File.exists?("lib/native/src/native/engine/show.cr")
-                        "../lib/native/src/native/engine/show"
-                      elsif File.exists?("src/native/engine/show.cr")
-                        "../src/native/engine/show"
-                      else
-                        # Fallback: let the user's require "native" handle it
-                        nil
-                      end
-
-        engine_require = engine_path ? %Q(require "#{engine_path}"\n) : ""
+        # The bootstrap used to also require
+        # `lib/native/src/native/engine/desktop/show` — a path that never
+        # existed in the repo (and even the real engine/show.cr needs the
+        # opt-in crsfml shard). The user's entry point already requires
+        # "native", which loads the whole framework; the SFML preview
+        # runner stays opt-in via `require "native/engine/show"`.
+        entry_require = if @config.entry_point.starts_with?("/")
+                          %Q(require "#{@config.entry_point}")
+                        else
+                          %Q(require "../#{@config.entry_point}")
+                        end
 
         File.write(bootstrap, <<-CR
-          require "../#{@config.entry_point}"
-          require "../lib/native/src/native/engine/desktop/show"
+          #{entry_require}
         CR
         )
 
         binary = "#{@config.build_output}_desktop"
-        cmd = "crystal build #{bootstrap} -o #{binary} --error-trace"
-        cmd += " --release" if @config.release
+        crystal_args = ["build", bootstrap, "-o", binary, "--error-trace"]
+        crystal_args << "--release" if @config.release
 
         begin
           start_time = Time.utc
-          output = `#{cmd} 2>&1`
+          # Run without a shell: interpolated paths with spaces used to
+          # break the backtick command line.
+          compile_output = IO::Memory.new
+          result = Process.run("crystal", args: crystal_args, output: compile_output, error: compile_output)
           elapsed = (Time.utc - start_time).total_seconds
 
-          unless $?.success?
+          unless result.success?
             puts "[native.cr] Desktop build failed (#{elapsed.round(2)}s):"
-            puts output
+            puts compile_output
             raise CompileError.new("Desktop build failed")
           end
 

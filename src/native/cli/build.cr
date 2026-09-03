@@ -40,6 +40,11 @@ module Native::CLI
         else
           if File.exists?(args[i])
             @entry_point = args[i]
+          else
+            # Typos in the positional argument used to be swallowed
+            # silently and the default entry point was built instead.
+            puts "[native.cr] Error: Neither a platform, nor an option, nor an existing file: '#{args[i]}'"
+            exit(1)
           end
           i += 1
         end
@@ -79,7 +84,9 @@ module Native::CLI
 
     def run
       if @platform == "ios"
-        if mac?
+        # The check used to be inverted: it errored on macOS (the only
+        # platform that can build iOS) and attempted the build on Linux.
+        unless mac?
           puts "[native.cr] Error: iOS builds can only be performed on macOS."
           puts "[native.cr] To build for iOS, you need a Mac with Xcode installed."
           exit(1)
@@ -158,11 +165,21 @@ module Native::CLI
 
       puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
-      cmd = "crystal build #{@entry_point} -Dwithout_zlib -Dwithout_openssl -Dwithout_dl -Dwithout-pthread -Dnative_android --target aarch64-linux-android --cross-compile -o #{user_o}"
-      cmd += " --release" if @release
-      output = `#{cmd} 2>&1`
+      crystal_args = [
+        "build", @entry_point,
+        "-Dwithout_zlib", "-Dwithout_openssl", "-Dwithout_dl", "-Dwithout-pthread",
+        "-Dnative_android",
+        "--target", "aarch64-linux-android",
+        "--cross-compile", "-o", user_o,
+      ]
+      crystal_args << "--release" if @release
 
-      unless $?.success?
+      # Run without a shell — interpolated paths with spaces (or crafted
+      # paths) used to break or execute arbitrary commands.
+      output = IO::Memory.new
+      result = Process.run("crystal", args: crystal_args, output: output, error: output)
+
+      unless result.success?
         puts "[native.cr] Compilation failed:"
         puts output
         exit(1)
@@ -170,10 +187,16 @@ module Native::CLI
 
       puts "[native.cr] Linking final library..."
       final_so = "#{@output}/lib/arm64-v8a/libnative_app.so"
-      link_cmd = "#{clang} -shared -fPIC -Wl,-soname,libnative_app.so -o #{final_so} #{user_o} #{lib_dir}/native_engine.o #{lib_dir}/libgc.a #{lib_dir}/libpcre.a -latomic -ldl -landroid -llog"
-      link_output = `#{link_cmd} 2>&1`
+      link_args = [
+        "-shared", "-fPIC", "-Wl,-soname,libnative_app.so",
+        "-o", final_so, user_o,
+        "#{lib_dir}/native_engine.o", "#{lib_dir}/libgc.a", "#{lib_dir}/libpcre.a",
+        "-latomic", "-ldl", "-landroid", "-llog",
+      ]
+      link_output = IO::Memory.new
+      link_result = Process.run(clang, args: link_args, output: link_output, error: link_output)
 
-      unless $?.success?
+      unless link_result.success?
         puts "[native.cr] Linking failed:"
         puts link_output
         exit(1)
@@ -232,11 +255,18 @@ module Native::CLI
 
       puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
-      cmd = "crystal build #{@entry_point} -D ios --target aarch64-apple-darwin --cross-compile -o #{user_o}"
-      cmd += " --release" if @release
-      output = `#{cmd} 2>&1`
+      crystal_args = [
+        "build", @entry_point,
+        "-D", "ios",
+        "--target", "aarch64-apple-darwin",
+        "--cross-compile", "-o", user_o,
+      ]
+      crystal_args << "--release" if @release
 
-      unless $?.success?
+      output = IO::Memory.new
+      result = Process.run("crystal", args: crystal_args, output: output, error: output)
+
+      unless result.success?
         puts "[native.cr] Compilation failed:"
         puts output
         exit(1)
@@ -244,7 +274,12 @@ module Native::CLI
 
       puts "[native.cr] Creating static library..."
       final_a = "#{@output}/libuser_app.a"
-      `ar rcs #{final_a} #{user_o}`
+      ar_result = Process.run("ar", args: ["rcs", final_a, user_o], output: Process::Redirect::Close, error: Process::Redirect::Inherit)
+
+      unless ar_result.success?
+        puts "[native.cr] Error: failed to create static library (ar failed)"
+        exit(1)
+      end
 
       FileUtils.cp(final_a, frameworks_dir)
 

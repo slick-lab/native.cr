@@ -42,7 +42,10 @@ module Native
 
   def self.run
     args = ARGV
-    if args.includes?("--version")
+    # Only treat --version as the command when it is the command —
+    # `native.cr create my_app --version` used to print the version and
+    # exit instead of creating anything.
+    if args[0]? == "--version"
       puts "Native #{VERSION}"
       exit(0)
     elsif args.empty?

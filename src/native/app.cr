@@ -3,7 +3,11 @@
 module Native
   abstract class App
     @@current : App?
-    @@registered_subclass : App.class = Native::App
+    # Nilable until the user registers their subclass; starting without a
+    # registration used to fall through to instantiating the abstract
+    # Native::App itself, because the non-nilable default made the
+    # "if registered" check always true.
+    @@registered_subclass : App.class?
     def self.current : App
       @@current.not_nil!
     end
@@ -21,7 +25,7 @@ module Native
     #   Native::App.registered_subclass = MyApp
     #
     # On desktop you can continue to call Native::App.start(MyApp) as before.
-    def self.registered_subclass : App.class
+    def self.registered_subclass : App.class?
       @@registered_subclass
     end
 
@@ -36,9 +40,6 @@ module Native
       app.setup
       app.run
     end
-
-    # Used by the Android bridge (crystal_android_main) to start the
-    # user's app when the entry-point main.cr doesn't run.
 
     # Used by the Android bridge (crystal_android_main) to start the
     # user's app when the entry-point main.cr doesn't run.
