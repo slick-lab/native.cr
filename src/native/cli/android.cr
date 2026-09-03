@@ -248,7 +248,7 @@ module Native::CLI
       )
       http_code = http_code_out.to_s.strip
 
-      if result.success? && valid_jar?(tmp_path)
+      if result.success? && JarUtil.valid_jar?(tmp_path)
         File.rename(tmp_path, jar_path)
         puts "[native.cr] gradle-wrapper.jar downloaded and verified (#{File.size(jar_path)} bytes)"
         return
@@ -275,10 +275,15 @@ module Native::CLI
       exit 1
     end
 
-    private def valid_jar?(path : String) : Bool
+  end
+
+  # Jar integrity helpers for the CLI download logic.
+  # Kept module-level so specs can exercise them without a device.
+  module JarUtil
+    # A jar is a zip: it must start with the "PK\x03\x04" magic bytes.
+    # An HTML error page or truncated body will not.
+    def self.valid_jar?(path : String) : Bool
       return false unless File.exists?(path) && File.size(path) >= 4
-      # A jar is a zip: it must start with the "PK\x03\x04" magic bytes.
-      # An HTML error page or truncated body will not.
       header = Bytes.new(4)
       File.open(path, "rb") do |file|
         file.read_fully(header)
