@@ -39,7 +39,6 @@ module Native
 
     # Used by the Android bridge (crystal_android_main) to start the
     # user's app when the entry-point main.cr doesn't run.
-    end
 
     # Used by the Android bridge (crystal_android_main) to start the
     # user's app when the entry-point main.cr doesn't run.
