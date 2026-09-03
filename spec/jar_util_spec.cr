@@ -6,13 +6,15 @@
 
 require "./spec_helper"
 
-describe Native::CLI::JarUtil do
-  def write_temp(content : String | Bytes) : String
-    path = File.tempname("jarutil", ".bin")
-    File.write(path, content)
-    path
-  end
+# Helper kept at file top level - defs cannot be declared inside a
+# describe block on the crystal version used in CI.
+private def write_temp(content : String | Bytes) : String
+  path = File.tempname("jarutil", ".bin")
+  File.write(path, content)
+  path
+end
 
+describe Native::CLI::JarUtil do
   it "accepts a file that starts with the zip magic bytes" do
     path = write_temp(Bytes[0x50, 0x4B, 0x03, 0x04, 0x00, 0x14, 0x08, 0x00])
     begin
