@@ -206,9 +206,11 @@ module Native::Core
         begin
           start_time = Time.utc
           # Run without a shell: interpolated paths with spaces used to
-          # break the backtick command line.
+          # break the backtick command line. (:: prefix — inside
+          # Native::Core::Process, a bare `Process` resolves to this
+          # module, not to ::Process.)
           compile_output = IO::Memory.new
-          result = Process.run("crystal", args: crystal_args, output: compile_output, error: compile_output)
+          result = ::Process.run("crystal", args: crystal_args, output: compile_output, error: compile_output)
           elapsed = (Time.utc - start_time).total_seconds
 
           unless result.success?
