@@ -26,3 +26,29 @@ jobs:
 
       - name: Run tests
         run: crystal spec
+
+  typecheck:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: desktop, flags: "" }
+          - { name: android, flags: -Dnative_android }
+          - { name: ios, flags: -Dnative_ios }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.20.0
+
+      # The platform-conditional code ({% if flag?(:native_android) %} etc.)
+      # is never compiled by the test/build jobs — this is the only place
+      # its types are actually checked.
+      - name: Type-check (${{ matrix.name }})
+        run: crystal build --no-codegen -o /dev/null src/native.cr ${{ matrix.flags }}

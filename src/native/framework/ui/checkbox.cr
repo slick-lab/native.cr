@@ -1,4 +1,5 @@
 # src/native/framework/ui/checkbox.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class CheckBox < View
@@ -11,18 +12,17 @@ module Native::UI
       @text = text
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        checkbox_class = env.find_class("android/widget/CheckBox")
-        constructor = env.get_method_id(checkbox_class, "<init>", "(Landroid/content/Context;)V")
-        @native = env.new_object(checkbox_class, constructor, activity).to_i64
+          @native = JNIHelpers.new_widget(env, "android/widget/CheckBox", activity)
 
-        if !text.empty?
-          self.text = text
+          if !text.empty?
+            JNIHelpers.set_text(env, @native, text)
+          end
+          setupCheckedListener(env)
         end
-        setupCheckedListener
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_checkbox
         @native = ptr.to_i64
@@ -35,10 +35,10 @@ module Native::UI
     def checked=(value : Bool)
       @checked = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_checked = env.get_method_id(env.get_object_class(@native), "setChecked", "(Z)V")
-        env.call_void_method(@native, set_checked, value)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.call_void(env, @native, "setChecked", "(Z)V", value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.checkbox_set_checked(@native, value)
       {% end %}
@@ -46,10 +46,10 @@ module Native::UI
 
     def checked? : Bool
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return @checked unless env && @native != 0
-        is_checked = env.get_method_id(env.get_object_class(@native), "isChecked", "()Z")
-        @checked = env.call_boolean_method(@native, is_checked)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          @checked = JNIHelpers.call_boolean(env, @native, "isChecked", "()Z")
+        end
       {% elsif flag?(:native_ios) %}
         @checked = LibIOS.checkbox_is_checked(@native)
       {% end %}
@@ -63,11 +63,10 @@ module Native::UI
     def text=(value : String)
       @text = value
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        jtext = env.new_string_utf(value)
-        set_text = env.get_method_id(env.get_object_class(@native), "setText", "(Ljava/lang/CharSequence;)V")
-        env.call_void_method(@native, set_text, jtext)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_text(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.checkbox_set_text(@native, value.to_utf8)
       {% end %}
@@ -79,11 +78,10 @@ module Native::UI
 
     def text_color=(value : Native::Math::Color)
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
-        set_color = env.get_method_id(env.get_object_class(@native), "setTextColor", "(I)V")
-        env.call_void_method(@native, set_color, color)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_text_color(env, @native, argb_from_color(value))
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.checkbox_set_text_color(@native, value.r, value.g, value.b)
       {% end %}
@@ -91,10 +89,10 @@ module Native::UI
 
     def text_size=(value : Int32)
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env && @native != 0
-        set_size = env.get_method_id(env.get_object_class(@native), "setTextSize", "(F)V")
-        env.call_void_method(@native, set_size, value.to_f32)
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.set_text_size(env, @native, value)
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.checkbox_set_text_size(@native, value)
       {% end %}
@@ -102,29 +100,42 @@ module Native::UI
 
     def on_checked_change(&block : Bool -> Nil)
       @on_checked_change = block
+      {% if flag?(:native_android) %}
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          setupCheckedListener(env)
+        end
+      {% end %}
     end
 
-    private def setupCheckedListener
+    private def setupCheckedListener(env : Native::Android::JNIEnvWrapper)
       {% unless flag?(:native_android) %}
         return
       {% end %}
-      env = Native::Android::JNI.env
-      return unless env && @native != 0
 
-      callback_class = env.find_class("com/nativecr/CompoundButtonCallback")
-      if callback_class == Pointer(Void).null
-        return
+      callback = JNIHelpers.new_callback(env, "com/nativecr/CompoundButtonCallback", 0i64)
+      return if callback.null?
+
+      begin
+        JNIHelpers.call_void(
+          env, @native, "setOnCheckedChangeListener",
+          "(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V", callback
+        )
+      ensure
+        env.delete_local_ref(callback)
       end
-
-      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
-
-      set_listener = env.get_method_id(env.get_object_class(@native), "setOnCheckedChangeListener", "(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V")
-      env.call_void_method(@native, set_listener, callback_obj)
     end
 
     def handleCheckedChanged(checked : Bool)
       @checked = checked
       @on_checked_change.try &.call(checked)
+    end
+
+    private def argb_from_color(color : Native::Math::Color) : Int32
+      ((color.a * 255).to_i << 24) |
+      ((color.r * 255).to_i << 16) |
+      ((color.g * 255).to_i << 8) |
+      (color.b * 255).to_i
     end
   end
 end
