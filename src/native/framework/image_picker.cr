@@ -1,4 +1,5 @@
 # src/native/framework/image_picker.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::ImagePicker
   enum ImageSource
@@ -45,18 +46,20 @@ module Native::ImagePicker
       @@callback = callback
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        picker_class = env.find_class("com/nativecr/ImagePickerHelper")
-        if picker_class == Pointer(Void).null
-          callback.call(ImagePickerResult.new(success: false, error_message: "ImagePicker class not found"))
-          return
+          JNIHelpers.with_class(env, "com/nativecr/ImagePickerHelper") do |picker_class|
+            if picker_class.null?
+              callback.call(ImagePickerResult.new(success: false, error_message: "ImagePicker class not found"))
+              next
+            end
+            pick_method = env.get_static_method_id(picker_class, "pickImage", "(Landroid/app/Activity;III)V")
+            next if pick_method.null?
+            env.call_static_void_method(picker_class, pick_method, activity, source.value, quality.value, 0)
+          end
         end
-
-        pick_method = env.get_static_method_id(picker_class, "pickImage", "(Landroid/app/Activity;III)V")
-        env.call_static_void_method(picker_class, pick_method, activity, source.value, quality.value, 0)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_picker_pick(source.value, quality.value, max_width, max_height)
       {% else %}
@@ -71,18 +74,20 @@ module Native::ImagePicker
       @@callback = callback
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        picker_class = env.find_class("com/nativecr/ImagePickerHelper")
-        if picker_class == Pointer(Void).null
-          callback.call(ImagePickerResult.new(success: false, error_message: "ImagePicker class not found"))
-          return
+          JNIHelpers.with_class(env, "com/nativecr/ImagePickerHelper") do |picker_class|
+            if picker_class.null?
+              callback.call(ImagePickerResult.new(success: false, error_message: "ImagePicker class not found"))
+              next
+            end
+            take_method = env.get_static_method_id(picker_class, "takePhoto", "(Landroid/app/Activity;III)V")
+            next if take_method.null?
+            env.call_static_void_method(picker_class, take_method, activity, quality.value, 0)
+          end
         end
-
-        take_method = env.get_static_method_id(picker_class, "takePhoto", "(Landroid/app/Activity;III)V")
-        env.call_static_void_method(picker_class, take_method, activity, quality.value, 0)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_picker_take_photo(quality.value, max_width, max_height)
       {% else %}

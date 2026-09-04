@@ -1,4 +1,5 @@
 # src/native/framework/ui/scroll_view.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class ScrollView < View
@@ -37,6 +38,7 @@ module Native::UI
 
         constructor = env.get_method_id(scroll_class, "<init>", "(Landroid/content/Context;)V")
         @native = env.new_object(scroll_class, constructor, activity).to_i64
+        env.delete_local_ref(scroll_class) unless scroll_class.null?
 
         setupScrollListener
       {% elsif flag?(:native_ios) %}
@@ -50,8 +52,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
-        add_view = env.get_method_id(env.get_object_class(@native), "addView", "(Landroid/view/View;)V")
-        env.call_void_method(@native, add_view, view.native_ptr)
+        JNIHelpers.call_void(env, @native, "addView", "(Landroid/view/View;)V", , view.native_ptr)
       {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_add_view(@native, view.native_ptr)
       {% end %}
@@ -61,8 +62,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0 && view.native_ptr != 0
-        remove_view = env.get_method_id(env.get_object_class(@native), "removeView", "(Landroid/view/View;)V")
-        env.call_void_method(@native, remove_view, view.native_ptr)
+        JNIHelpers.call_void(env, @native, "removeView", "(Landroid/view/View;)V", , view.native_ptr)
       {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_remove_view(@native, view.native_ptr)
       {% end %}
@@ -74,11 +74,9 @@ module Native::UI
         return unless env && @native != 0
 
         if animated
-          smooth_scroll = env.get_method_id(env.get_object_class(@native), "smoothScrollTo", "(II)V")
-          env.call_void_method(@native, smooth_scroll, x, y)
+          JNIHelpers.call_void(env, @native, "smoothScrollTo", "(II)V", , x, y)
         else
-          scroll_to = env.get_method_id(env.get_object_class(@native), "scrollTo", "(II)V")
-          env.call_void_method(@native, scroll_to, x, y)
+          JNIHelpers.call_void(env, @native, "scrollTo", "(II)V", x, y)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_scroll_to(@native, x, y, animated)
@@ -108,8 +106,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
-        get_x = env.get_method_id(env.get_object_class(@native), "getScrollX", "()I")
-        env.call_int_method(@native, get_x)
+        JNIHelpers.call_int(env, @native, "getScrollX", "()I")
       {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_get_scroll_x(@native)
       {% else %}
@@ -121,8 +118,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
-        get_y = env.get_method_id(env.get_object_class(@native), "getScrollY", "()I")
-        env.call_int_method(@native, get_y)
+        JNIHelpers.call_int(env, @native, "getScrollY", "()I")
       {% elsif flag?(:native_ios) %}
         LibIOS.scroll_view_get_scroll_y(@native)
       {% else %}
@@ -157,8 +153,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_style = env.get_method_id(env.get_object_class(@native), "setScrollBarStyle", "(I)V")
-        env.call_void_method(@native, set_style, value.value)
+        JNIHelpers.call_void(env, @native, "setScrollBarStyle", "(I)V", , value.value)
       {% end %}
     end
 
@@ -209,9 +204,9 @@ module Native::UI
       end
 
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
+      env.delete_local_ref(callback_class) unless callback_class.null?
 
-      set_listener = env.get_method_id(env.get_object_class(@native), "setOnScrollChangeListener", "(Landroid/view/View$OnScrollChangeListener;)V")
-      env.call_void_method(@native, set_listener, callback_obj)
+      JNIHelpers.call_void(env, @native, "setOnScrollChangeListener", "(Landroid/view/View$OnScrollChangeListener;)V", , callback_obj)
     end
 
     def handleScrollChanged(x : Int32, y : Int32)

@@ -31,49 +31,80 @@ module Native::Share
       {% end %}
     end
 
+    # Refactored to use JNIHelpers for automatic local reference cleanup.
+    # The old version had never compiled for Android: a `retun` typo, a
+    # garbage putExtra signature ("(Ljava/lang/string:...)"), and
+    # `activity.class` on a Void* — all in code paths CI never type-checked.
     private def show_android
-      env = Native::Android::JNI.env
-      activity = Native::Android::JNI.activity
-      retun unless env && activity
+      JNIHelpers.with_env do |env|
+        activity = Native::Android::JNI.activity
+        return unless activity
 
-      intent_class = env.find_class("android/content/Intent")
-      intent_constructor = env.get_method_id(intent_class, "<init>", "()V")
-      intent = env.new_object(intent_class, intent_constructor)
+        intent = JNIHelpers.with_class(env, "android/content/Intent") do |intent_class|
+          next Pointer(Void).null if intent_class.null?
+          ctor = env.get_method_id(intent_class, "<init>", "()V")
+          next Pointer(Void).null if ctor.null?
+          env.new_object(intent_class, ctor)
+        end
+        return if intent.null?
 
-      set_action = env.get_method_id(intent_class, "setAction", "(Ljava/lang/String;)Landroid/content/Intent;")
-      env.call_object_method(intent, set_action, env.new_string_utf("android.intent.action.SEND"))
+        begin
+          JNIHelpers.with_jstring(env, "android.intent.action.SEND") do |jaction|
+            JNIHelpers.call_object(env, intent.to_i64, "setAction", "(Ljava/lang/String;)Landroid/content/Intent;", jaction)
+          end
 
-      if @options.text && !@options.text.empty?
-        put_extra = env.get_method_id(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/string:)Landroid/content/Intent;")
-        env.call_object_method(intent, put_extra, env.new_string_utf("android.intent.extra.TEXT"), env.new_string_utf(@options.text))
+          unless @options.text.empty?
+            JNIHelpers.with_jstring(env, @options.text) do |jtext|
+              JNIHelpers.with_jstring(env, "android.intent.extra.TEXT") do |jkey|
+                JNIHelpers.call_object(env, intent.to_i64, "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;", jkey, jtext)
+              end
+            end
+          end
+
+          unless @options.url.empty?
+            JNIHelpers.with_jstring(env, @options.url) do |jurl|
+              JNIHelpers.with_jstring(env, "android.intent.extra.TEXT") do |jkey|
+                JNIHelpers.call_object(env, intent.to_i64, "putExtra", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;", jkey, jurl)
+              end
+            end
+          end
+
+          JNIHelpers.with_jstring(env, @options.mime_type) do |jtype|
+            JNIHelpers.call_object(env, intent.to_i64, "setType", "(Ljava/lang/String;)Landroid/content/Intent;", jtype)
+          end
+
+          unless @options.image_path.empty?
+            JNIHelpers.with_jstring(env, @options.image_path) do |jpath|
+              image_uri = JNIHelpers.call_static_object(env, "android/net/Uri", "parse", "(Ljava/lang/String;)Landroid/net/Uri;", jpath)
+              unless image_uri.null?
+                begin
+                  JNIHelpers.with_jstring(env, "android.intent.extra.STREAM") do |jkey|
+                    JNIHelpers.call_object(env, intent.to_i64, "putExtra", "(Ljava/lang/String;Landroid/os/Parcelable;)Landroid/content/Intent;", jkey, image_uri)
+                  end
+                ensure
+                  env.delete_local_ref(image_uri)
+                end
+              end
+            end
+          end
+
+          chooser = JNIHelpers.with_jstring(env, @options.title) do |jtitle|
+            JNIHelpers.call_static_object(env, "android/content/Intent", "createChooser", "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;", intent, jtitle)
+          end
+
+          unless chooser.null?
+            begin
+              JNIHelpers.call_void(env, activity.to_i64, "startActivity", "(Landroid/content/Intent;)V", chooser)
+            ensure
+              env.delete_local_ref(chooser)
+            end
+          end
+
+          @on_complete.try &.call(true)
+        ensure
+          env.delete_local_ref(intent)
+        end
       end
-
-      if @options.url && !@options.url.empty?
-        put_extra = env.get_method_id(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/string:)Landroid/content/Intent;")
-        env.call_object_method(intent, put_extra, env.new_string_utf("android.intent.extra.TEXT"), env.new_string_utf(@options.url))
-      end
-
-      if @options.image_path && !@options.image_path.empty?
-        uri_class = env.find_class("android/net/Uri")
-        uri_parse = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
-        image_uri = env.call_static_object_method(uri_class, uri_parse, env.new_string_utf(@options.image_path))
-
-        put_extra = env.get_method_id(intent_class, "putExtra", "(Ljava/lang/string:ljava/lang/Object;)Landroid/content/Intent;")
-        env.call_object_method(intent, put_extra, env.new_string_utf("android.intent.extra.STREAM"), image_uri)
-
-        set_type = env.get_method_id(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
-        env.call_object_method(intent, set_type, env.new_string_utf(@options.mime_type))
-      else
-        set_type = env.get_method_id(intent_class, "setType", "(Ljava/lang/String;)Landroid/content/Intent;")
-        env.call_object_method(intent, set_type, env.new_string_utf(@options.mime_type))
-      end
-
-      create_chooser = env.get_static_method_id(intent_class, "createChooser", "(Landroid/content/Intent;Ljava/lang/String;)Landroid/content/Intent;")
-      chooser = env.call_static_object_method(intent_class, create_chooser, intent, env.new_string_utf(@options.title))
-      start_activity = env.get_method_id(activity.class, "startActivity", "(Landroid/content/Intent;)V")
-      env.call_void_method(activity, start_activity, chooser)
-
-      @on_complete.try &.call(true)
     end
 
     private def show_ios

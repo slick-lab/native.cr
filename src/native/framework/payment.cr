@@ -1,4 +1,5 @@
 # src/native/framework/payment.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Payment
   enum ProductType
@@ -103,6 +104,7 @@ module Native::Payment
 
         init_method = env.get_static_method_id(billing_class, "init", "(Landroid/app/Activity;Ljava/lang/String;)V")
         env.call_static_void_method(billing_class, init_method, activity, env.new_string_utf(merchant_id))
+        env.delete_local_ref(billing_class) unless billing_class.null?
 
         setupCallbacks
       {% elsif flag?(:native_ios) %}
@@ -152,6 +154,7 @@ module Native::Payment
 
         purchase_method = env.get_static_method_id(billing_class, "purchase", "(Landroid/app/Activity;Ljava/lang/String;)V")
         env.call_static_void_method(billing_class, purchase_method, Native::Android::JNI.activity, env.new_string_utf(product_id))
+        env.delete_local_ref(billing_class) unless billing_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_purchase(product_id.to_utf8)
       {% else %}
@@ -174,6 +177,7 @@ module Native::Payment
 
         restore_method = env.get_static_method_id(billing_class, "restore", "()V")
         env.call_static_void_method(billing_class, restore_method)
+        env.delete_local_ref(billing_class) unless billing_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_restore
       {% else %}
@@ -194,6 +198,7 @@ module Native::Payment
 
         purchased_method = env.get_static_method_id(billing_class, "isPurchased", "(Ljava/lang/String;)Z")
         env.call_static_boolean_method(billing_class, purchased_method, env.new_string_utf(product_id))
+        env.delete_local_ref(billing_class) unless billing_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_is_purchased(product_id.to_utf8)
       {% else %}
@@ -213,6 +218,7 @@ module Native::Payment
 
         active_method = env.get_static_method_id(billing_class, "isSubscriptionActive", "(Ljava/lang/String;)Z")
         env.call_static_boolean_method(billing_class, active_method, env.new_string_utf(product_id))
+        env.delete_local_ref(billing_class) unless billing_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.payment_is_subscription_active(product_id.to_utf8)
       {% else %}
@@ -231,12 +237,14 @@ module Native::Payment
         end
 
         callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
+        env.delete_local_ref(callback_class) unless callback_class.null?
 
         billing_class = env.find_class("com/nativecr/BillingHelper")
         return if billing_class == Pointer(Void).null
 
         set_callback = env.get_static_method_id(billing_class, "setCallback", "(Lcom/nativecr/BillingCallback;)V")
         env.call_static_void_method(billing_class, set_callback, callback_obj)
+        env.delete_local_ref(billing_class) unless billing_class.null?
       {% elsif flag?(:native_ios) %}
         # iOS callbacks are handled by the Swift bridge
       {% end %}
@@ -259,6 +267,7 @@ module Native::Payment
       end
 
       result = env.call_static_object_method(billing_class, fetch_method, product_array)
+      env.delete_local_ref(billing_class) unless billing_class.null?
 
       if result
         json = env.get_string_utf_chars(result, nil).to_s

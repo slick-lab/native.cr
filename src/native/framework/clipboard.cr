@@ -1,4 +1,5 @@
 # src/native/framework/clipboard.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Clipboard
   class ClipboardManager
@@ -9,27 +10,40 @@ module Native::Clipboard
       @@instance.not_nil!
     end
 
+    # Yields the system clipboard service, cleaning up the service ref and
+    # the "clipboard" jstring afterwards.
+    private def with_clipboard(env : Native::Android::JNIEnvWrapper, &block : Void* -> T?) : T? forall T
+      activity = Native::Android::JNI.activity
+      return nil if activity.null?
+
+      service = JNIHelpers.with_jstring(env, "clipboard") do |jname|
+        JNIHelpers.call_object(env, activity.to_i64, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;", jname)
+      end
+      return nil if service.null?
+      begin
+        yield service
+      ensure
+        env.delete_local_ref(service)
+      end
+    end
+
     def set_text(text : String) : Bool
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return false unless env && activity
-
-        clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
-
-        if clipboard
-          clip_class = env.find_class("android/content/ClipData")
-          new_plain_text = env.get_static_method_id(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
-          clip = env.call_static_object_method(clip_class, new_plain_text, env.new_string_utf("text"), env.new_string_utf(text))
-
-          set_clip = env.get_method_id(env.get_object_class(clipboard), "setPrimaryClip", "(Landroid/content/ClipData;)V")
-          env.call_void_method(clipboard, set_clip, clip)
-
-          env.delete_local_ref(clipboard)
-          env.delete_local_ref(clip)
-          true
-        else
-          false
+        JNIHelpers.with_env do |env|
+          with_clipboard(env) do |clipboard|
+            clip = JNIHelpers.with_jstring(env, "text") do |jlabel|
+              JNIHelpers.with_jstring(env, text) do |jtext|
+                JNIHelpers.call_static_object(env, "android/content/ClipData", "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;", jlabel, jtext)
+              end
+            end
+            next false if clip.null?
+            begin
+              JNIHelpers.call_void(env, clipboard.to_i64, "setPrimaryClip", "(Landroid/content/ClipData;)V", clip)
+              true
+            ensure
+              env.delete_local_ref(clip)
+            end
+          end || false
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.clipboard_set_text(text.to_utf8)
@@ -40,35 +54,31 @@ module Native::Clipboard
 
     def get_text : String?
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return nil unless env && activity
+        JNIHelpers.with_env do |env|
+          with_clipboard(env) do |clipboard|
+            next nil unless JNIHelpers.call_boolean(env, clipboard.to_i64, "hasPrimaryClip", "()Z")
 
-        clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
-
-        if clipboard
-          has_text = env.get_method_id(env.get_object_class(clipboard), "hasPrimaryClip", "()Z")
-          if env.call_boolean_method(clipboard, has_text)
-            get_clip = env.get_method_id(env.get_object_class(clipboard), "getPrimaryClip", "()Landroid/content/ClipData;")
-            clip = env.call_object_method(clipboard, get_clip)
-
-            get_item = env.get_method_id(env.get_object_class(clip), "getItemAt", "(I)Landroid/content/ClipData$Item;")
-            item = env.call_object_method(clip, get_item, 0)
-
-            get_text = env.get_method_id(env.get_object_class(item), "getText", "()Ljava/lang/CharSequence;")
-            text = env.call_object_method(item, get_text)
-
-            result = env.get_string_utf_chars(text, nil).to_s
-
-            env.delete_local_ref(clipboard)
-            env.delete_local_ref(clip)
-            env.delete_local_ref(item)
-
-            return result
+            clip = JNIHelpers.call_object(env, clipboard.to_i64, "getPrimaryClip", "()Landroid/content/ClipData;")
+            next nil if clip.null?
+            begin
+              item = JNIHelpers.call_object(env, clip.to_i64, "getItemAt", "(I)Landroid/content/ClipData$Item;", 0)
+              next nil if item.null?
+              begin
+                text = JNIHelpers.call_object(env, item.to_i64, "getText", "()Ljava/lang/CharSequence;")
+                next nil if text.null?
+                begin
+                  JNIHelpers.call_string(env, text.to_i64, "toString", "()Ljava/lang/String;")
+                ensure
+                  env.delete_local_ref(text)
+                end
+              ensure
+                env.delete_local_ref(item)
+              end
+            ensure
+              env.delete_local_ref(clip)
+            end
           end
-          env.delete_local_ref(clipboard)
         end
-        nil
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.clipboard_get_text
         if ptr
@@ -85,19 +95,11 @@ module Native::Clipboard
 
     def has_text? : Bool
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return false unless env && activity
-
-        clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
-
-        if clipboard
-          has_text = env.get_method_id(env.get_object_class(clipboard), "hasPrimaryClip", "()Z")
-          result = env.call_boolean_method(clipboard, has_text)
-          env.delete_local_ref(clipboard)
-          result
-        else
-          false
+        JNIHelpers.with_env do |env|
+          result = with_clipboard(env) do |clipboard|
+            JNIHelpers.call_boolean(env, clipboard.to_i64, "hasPrimaryClip", "()Z")
+          end
+          result || false
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.clipboard_has_text

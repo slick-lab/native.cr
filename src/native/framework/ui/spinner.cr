@@ -1,4 +1,5 @@
 # src/native/framework/ui/spinner.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class Spinner < View
@@ -19,6 +20,7 @@ module Native::UI
         spinner_class = env.find_class("android/widget/Spinner")
         constructor = env.get_method_id(spinner_class, "<init>", "(Landroid/content/Context;)V")
         @native = env.new_object(spinner_class, constructor, activity).to_i64
+        env.delete_local_ref(spinner_class) unless spinner_class.null?
 
         setupSpinnerListener
       {% elsif flag?(:native_ios) %}
@@ -38,6 +40,7 @@ module Native::UI
         array_list = env.new_object(array_class, array_constructor)
 
         add_method = env.get_method_id(array_class, "add", "(Ljava/lang/Object;)Z")
+        env.delete_local_ref(array_class) unless array_class.null?
 
         items.each do |item|
           env.call_boolean_method(array_list, add_method, env.new_string_utf(item))
@@ -50,9 +53,9 @@ module Native::UI
         layout_id = env.get_static_int_field(env.find_class("android/R$layout"), layout)
 
         adapter = env.new_object(adapter_class, adapter_constructor, Native::Android::JNI.activity, layout_id, array_list)
+        env.delete_local_ref(adapter_class) unless adapter_class.null?
 
-        set_adapter = env.get_method_id(env.get_object_class(@native), "setAdapter", "(Landroid/widget/SpinnerAdapter;)V")
-        env.call_void_method(@native, set_adapter, adapter)
+        JNIHelpers.call_void(env, @native, "setAdapter", "(Landroid/widget/SpinnerAdapter;)V", , adapter)
       {% elsif flag?(:native_ios) %}
         LibIOS.picker_view_set_items(@native, items.to_utf8)
       {% end %}
@@ -67,8 +70,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_selection = env.get_method_id(env.get_object_class(@native), "setSelection", "(I)V")
-        env.call_void_method(@native, set_selection, @selected_position)
+        JNIHelpers.call_void(env, @native, "setSelection", "(I)V", , @selected_position)
       {% elsif flag?(:native_ios) %}
         LibIOS.picker_view_set_selected(@native, @selected_position)
       {% end %}
@@ -96,8 +98,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_prompt = env.get_method_id(env.get_object_class(@native), "setPrompt", "(Ljava/lang/CharSequence;)V")
-        env.call_void_method(@native, set_prompt, env.new_string_utf(value))
+        JNIHelpers.call_void(env, @native, "setPrompt", "(Ljava/lang/CharSequence;)V", , env.new_string_utf(value))
       {% end %}
     end
 
@@ -110,8 +111,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_width = env.get_method_id(env.get_object_class(@native), "setDropDownWidth", "(I)V")
-        env.call_void_method(@native, set_width, width)
+        JNIHelpers.call_void(env, @native, "setDropDownWidth", "(I)V", , width)
       {% end %}
     end
 
@@ -136,9 +136,9 @@ module Native::UI
       end
 
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
+      env.delete_local_ref(callback_class) unless callback_class.null?
 
-      set_listener = env.get_method_id(env.get_object_class(@native), "setOnItemSelectedListener", "(Landroid/widget/AdapterView$OnItemSelectedListener;)V")
-      env.call_void_method(@native, set_listener, callback_obj)
+      JNIHelpers.call_void(env, @native, "setOnItemSelectedListener", "(Landroid/widget/AdapterView$OnItemSelectedListener;)V", , callback_obj)
     end
 
     def handleItemSelected(position : Int32)

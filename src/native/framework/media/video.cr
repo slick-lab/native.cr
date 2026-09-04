@@ -1,4 +1,5 @@
 # src/native/framework/media/video.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Media
   class VideoPlayer < UI::View
@@ -33,6 +34,7 @@ module Native::Media
 
         constructor = env.get_method_id(video_class, "<init>", "(Landroid/app/Activity;)V")
         @native = env.new_object(video_class, constructor, activity).to_i64
+        env.delete_local_ref(video_class) unless video_class.null?
 
         setupCallbacks
       {% elsif flag?(:native_ios) %}
@@ -46,8 +48,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        load_video = env.get_method_id(env.get_object_class(@native), "loadVideo", "(Ljava/lang/String;)V")
-        env.call_void_method(@native, load_video, env.new_string_utf(path))
+        JNIHelpers.call_void(env, @native, "loadVideo", "(Ljava/lang/String;)V", , env.new_string_utf(path))
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_load(@native, path.to_utf8)
       {% end %}
@@ -57,8 +58,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        play_video = env.get_method_id(env.get_object_class(@native), "play", "()V")
-        env.call_void_method(@native, play_video)
+        JNIHelpers.call_void(env, @native, "play", "()V")
         @is_playing = true
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_play(@native)
@@ -70,8 +70,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        pause_video = env.get_method_id(env.get_object_class(@native), "pause", "()V")
-        env.call_void_method(@native, pause_video)
+        JNIHelpers.call_void(env, @native, "pause", "()V")
         @is_playing = false
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_pause(@native)
@@ -83,8 +82,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        stop_video = env.get_method_id(env.get_object_class(@native), "stop", "()V")
-        env.call_void_method(@native, stop_video)
+        JNIHelpers.call_void(env, @native, "stop", "()V")
         @is_playing = false
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_stop(@native)
@@ -101,8 +99,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_loop = env.get_method_id(env.get_object_class(@native), "setLooping", "(Z)V")
-        env.call_void_method(@native, set_loop, value)
+        JNIHelpers.call_void(env, @native, "setLooping", "(Z)V", , value)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_looping(@native, value)
       {% end %}
@@ -117,8 +114,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_volume = env.get_method_id(env.get_object_class(@native), "setVolume", "(FF)V")
-        env.call_void_method(@native, set_volume, @volume, @volume)
+        JNIHelpers.call_void(env, @native, "setVolume", "(FF)V", , @volume, @volume)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_volume(@native, @volume)
       {% end %}
@@ -138,8 +134,7 @@ module Native::Media
                       when ScaleType::FitCenter  then 1
                       when ScaleType::CenterCrop then 2
                       end
-        set_scale = env.get_method_id(env.get_object_class(@native), "setScaleType", "(I)V")
-        env.call_void_method(@native, set_scale, scale_value)
+        JNIHelpers.call_void(env, @native, "setScaleType", "(I)V", , scale_value)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_scale_type(@native, value.value)
       {% end %}
@@ -153,8 +148,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        seek = env.get_method_id(env.get_object_class(@native), "seekTo", "(I)V")
-        env.call_void_method(@native, seek, msec)
+        JNIHelpers.call_void(env, @native, "seekTo", "(I)V", , msec)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_seek_to(@native, msec)
       {% end %}
@@ -164,8 +158,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
-        get_pos = env.get_method_id(env.get_object_class(@native), "getCurrentPosition", "()I")
-        env.call_int_method(@native, get_pos)
+        JNIHelpers.call_int(env, @native, "getCurrentPosition", "()I")
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_current_position(@native)
       {% else %}
@@ -177,8 +170,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 0 unless env && @native != 0
-        get_dur = env.get_method_id(env.get_object_class(@native), "getDuration", "()I")
-        env.call_int_method(@native, get_dur)
+        JNIHelpers.call_int(env, @native, "getDuration", "()I")
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_duration(@native)
       {% else %}
@@ -215,9 +207,9 @@ module Native::Media
       end
 
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
+      env.delete_local_ref(callback_class) unless callback_class.null?
 
-      set_callback = env.get_method_id(env.get_object_class(@native), "setCallback", "(Lcom/nativecr/VideoPlayerCallback;)V")
-      env.call_void_method(@native, set_callback, callback_obj)
+      JNIHelpers.call_void(env, @native, "setCallback", "(Lcom/nativecr/VideoPlayerCallback;)V", , callback_obj)
     end
 
     def handlePrepared

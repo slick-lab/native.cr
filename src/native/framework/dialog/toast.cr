@@ -1,4 +1,5 @@
 # src/native/framework/dialog/toast.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Dialog
   class Toast
@@ -42,6 +43,7 @@ module Native::Dialog
         toast = env.call_static_object_method(toast_class, make_text, activity, env.new_string_utf(@text), @duration.value)
 
         show_method = env.get_method_id(toast_class, "show", "()V")
+        env.delete_local_ref(toast_class) unless toast_class.null?
         env.call_void_method(toast, show_method)
       {% elsif flag?(:native_ios) %}
         LibIOS.show_toast(@text.to_utf8, @duration == Length::Long ? 3.5 : 2.0)

@@ -1,4 +1,5 @@
 # src/native/framework/biometric.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Biometric
   enum BiometricType
@@ -71,13 +72,20 @@ module Native::Biometric
 
     def self.is_enrolled? : Bool
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return false unless env
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          next false if activity.null?
 
-        keyguard_class = env.find_class("android/app/KeyguardManager")
-        keyguard = env.call_object_method(Native::Android::JNI.activity, env.get_method_id(env.get_object_class(Native::Android::JNI.activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("keyguard"))
-        is_keyguard = env.get_method_id(env.get_object_class(keyguard), "isKeyguardSecure", "()Z")
-        env.call_boolean_method(keyguard, is_keyguard)
+          keyguard = JNIHelpers.with_jstring(env, "keyguard") do |jname|
+            JNIHelpers.call_object(env, activity.to_i64, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;", jname)
+          end
+          next false if keyguard.null?
+          begin
+            JNIHelpers.call_boolean(env, keyguard.to_i64, "isKeyguardSecure", "()Z")
+          ensure
+            env.delete_local_ref(keyguard)
+          end
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.is_biometric_enrolled
       {% else %}
@@ -89,45 +97,64 @@ module Native::Biometric
       return BiometricResult.new(success: false, error: BiometricError::NotAvailable) unless is_available?
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return BiometricResult.new(success: false, error: BiometricError::NotAvailable) unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          next BiometricResult.new(success: false, error: BiometricError::NotAvailable) if activity.null?
 
-        biometric_class = env.find_class("androidx/biometric/BiometricPrompt")
-        if biometric_class == Pointer(Void).null
-          return BiometricResult.new(success: false, error: BiometricError::NotAvailable)
+          executor = JNIHelpers.call_static_object(env, "android/os/Handler", "getMain", "()Landroid/os/Handler;")
+          next BiometricResult.new(success: false, error: BiometricError::NotAvailable) if executor.null?
+          begin
+            callback_obj = JNIHelpers.new_callback(env, "com/nativecr/BiometricCallback", 0i64)
+            next BiometricResult.new(success: false, error: BiometricError::NotAvailable) if callback_obj.null?
+            begin
+              prompt_info = JNIHelpers.with_class(env, "androidx/biometric/BiometricPrompt$PromptInfo$Builder") do |builder_class|
+                next Pointer(Void).null if builder_class.null?
+                ctor = env.get_method_id(builder_class, "<init>", "()V")
+                next Pointer(Void).null if ctor.null?
+                builder = env.new_object(builder_class, ctor)
+                next Pointer(Void).null if builder.null?
+                begin
+                  JNIHelpers.with_jstring(env, config.title) do |jt|
+                    JNIHelpers.call_object(env, builder.to_i64, "setTitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;", jt)
+                  end
+                  JNIHelpers.with_jstring(env, config.subtitle) do |jt|
+                    JNIHelpers.call_object(env, builder.to_i64, "setSubtitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;", jt)
+                  end
+                  JNIHelpers.with_jstring(env, config.description) do |jt|
+                    JNIHelpers.call_object(env, builder.to_i64, "setDescription", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;", jt)
+                  end
+                  JNIHelpers.with_jstring(env, config.cancel_title) do |jt|
+                    JNIHelpers.call_object(env, builder.to_i64, "setNegativeButtonText", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;", jt)
+                  end
+                  JNIHelpers.call_object(env, builder.to_i64, "build", "()Landroidx/biometric/BiometricPrompt$PromptInfo;")
+                ensure
+                  env.delete_local_ref(builder)
+                end
+              end
+              next BiometricResult.new(success: false, error: BiometricError::NotAvailable) if prompt_info.null?
+
+              JNIHelpers.with_class(env, "androidx/biometric/BiometricPrompt") do |prompt_class|
+                next if prompt_class.null?
+                # The real BiometricPrompt constructor takes a
+                # FragmentActivity — the old code looked up a
+                # ContextCompat signature (null method id → JNI abort).
+                ctor = env.get_method_id(prompt_class, "<init>", "(Landroidx/fragment/app/FragmentActivity;Ljava/util/concurrent/Executor;Landroidx/biometric/BiometricPrompt$AuthenticationCallback;)V")
+                next if ctor.null?
+                biometric_prompt = env.new_object(prompt_class, ctor, activity, executor, callback_obj)
+                next if biometric_prompt.null?
+                begin
+                  JNIHelpers.call_void(env, biometric_prompt.to_i64, "authenticate", "(Landroidx/biometric/BiometricPrompt$PromptInfo;)V", prompt_info)
+                ensure
+                  env.delete_local_ref(biometric_prompt)
+                end
+              end
+            ensure
+              env.delete_local_ref(callback_obj)
+            end
+          ensure
+            env.delete_local_ref(executor)
+          end
         end
-
-        executor_class = env.find_class("android/os/Handler")
-        executor = env.call_static_object_method(executor_class, env.get_static_method_id(executor_class, "getMain", "()Landroid/os/Handler;"))
-
-        callback_class = env.find_class("com/nativecr/BiometricCallback")
-        callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
-
-        prompt_info_class = env.find_class("androidx/biometric/BiometricPrompt$PromptInfo")
-        builder_class = env.find_class("androidx/biometric/BiometricPrompt$PromptInfo$Builder")
-        builder = env.new_object(builder_class, env.get_method_id(builder_class, "<init>", "()V"))
-
-        set_title = env.get_method_id(builder_class, "setTitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.call_object_method(builder, set_title, env.new_string_utf(config.title))
-
-        set_subtitle = env.get_method_id(builder_class, "setSubtitle", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.call_object_method(builder, set_subtitle, env.new_string_utf(config.subtitle))
-
-        set_desc = env.get_method_id(builder_class, "setDescription", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.call_object_method(builder, set_desc, env.new_string_utf(config.description))
-
-        set_negative = env.get_method_id(builder_class, "setNegativeButtonText", "(Ljava/lang/CharSequence;)Landroidx/biometric/BiometricPrompt$PromptInfo$Builder;")
-        env.call_object_method(builder, set_negative, env.new_string_utf(config.cancel_title))
-
-        build = env.get_method_id(builder_class, "build", "()Landroidx/biometric/BiometricPrompt$PromptInfo;")
-        prompt_info = env.call_object_method(builder, build)
-
-        biometric_prompt = env.new_object(biometric_class, env.get_method_id(biometric_class, "<init>", "(Landroidx/core/content/ContextCompat;Ljava/util/concurrent/Executor;Landroidx/biometric/BiometricPrompt$AuthenticationCallback;)V"), activity, executor, callback_obj)
-
-        authenticate = env.get_method_id(biometric_class, "authenticate", "(Landroidx/biometric/BiometricPrompt$PromptInfo;)V")
-        env.call_void_method(biometric_prompt, authenticate, prompt_info)
-
         wait_result
       {% elsif flag?(:native_ios) %}
         result_code = LibIOS.authenticate_biometric(
@@ -153,23 +180,20 @@ module Native::Biometric
 
     private def self.check_availability : Nil
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return unless env
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          next if activity.null?
 
-        biometric_class = env.find_class("androidx/biometric/BiometricManager")
-        if biometric_class == Pointer(Void).null
-          @@is_available = false
-          return
+          manager = JNIHelpers.call_static_object(env, "androidx/biometric/BiometricManager", "from", "(Landroid/content/Context;)Landroidx/biometric/BiometricManager;", activity)
+          next if manager.null?
+          begin
+            result = JNIHelpers.call_int(env, manager.to_i64, "canAuthenticate", "(I)I", 0)
+            @@is_available = result == 0
+            @@available_type = BiometricType::Fingerprint if @@is_available
+          ensure
+            env.delete_local_ref(manager)
+          end
         end
-
-        from = env.get_static_method_id(biometric_class, "from", "(Landroid/content/Context;)Landroidx/biometric/BiometricManager;")
-        manager = env.call_static_object_method(biometric_class, from, Native::Android::JNI.activity)
-
-        can_auth = env.get_method_id(biometric_class, "canAuthenticate", "(I)I")
-        result = env.call_int_method(manager, can_auth, 0)
-
-        @@is_available = result == 0
-        @@available_type = BiometricType::Fingerprint if @@is_available
       {% elsif flag?(:native_ios) %}
         result = LibIOS.get_biometric_type
         @@is_available = result != 0

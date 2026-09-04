@@ -1,4 +1,5 @@
 # src/native/framework/notifications.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Notifications
   enum NotificationPriority
@@ -85,6 +86,7 @@ module Native::Notifications
 
         init_method = env.get_static_method_id(notif_class, "init", "(Landroid/app/Activity;)V")
         env.call_static_void_method(notif_class, init_method, activity)
+        env.delete_local_ref(notif_class) unless notif_class.null?
 
         channels.each do |channel|
           create_channel(channel)
@@ -111,6 +113,7 @@ module Native::Notifications
 
       create_method = env.get_static_method_id(notif_class, "createChannel", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IZZZLjava/lang/String;)V")
       env.call_static_void_method(notif_class, create_method,
+      env.delete_local_ref(notif_class) unless notif_class.null?
         env.new_string_utf(channel.id),
         env.new_string_utf(channel.name),
         channel.description ? env.new_string_utf(channel.description.not_nil!) : Pointer(Void).null,
@@ -137,6 +140,7 @@ module Native::Notifications
         show_method = env.get_static_method_id(notif_class, "showNotification", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIZLjava/lang/String;ZILjava/lang/String;ZLjava/lang/String;)V")
 
         env.call_static_void_method(notif_class, show_method,
+        env.delete_local_ref(notif_class) unless notif_class.null?
           notification.id,
           env.new_string_utf(notification.channel_id),
           env.new_string_utf(notification.title),
@@ -178,6 +182,7 @@ module Native::Notifications
 
         timestamp = notification.schedule_time.not_nil!.to_unix * 1000
         env.call_static_void_method(notif_class, schedule_method,
+        env.delete_local_ref(notif_class) unless notif_class.null?
           notification.id,
           timestamp,
           env.new_string_utf(notification.channel_id),
@@ -206,6 +211,7 @@ module Native::Notifications
 
         cancel_method = env.get_static_method_id(notif_class, "cancelNotification", "(I)V")
         env.call_static_void_method(notif_class, cancel_method, id)
+        env.delete_local_ref(notif_class) unless notif_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.cancel_notification(id)
       {% end %}
@@ -221,6 +227,7 @@ module Native::Notifications
 
         cancel_method = env.get_static_method_id(notif_class, "cancelAllNotifications", "()V")
         env.call_static_void_method(notif_class, cancel_method)
+        env.delete_local_ref(notif_class) unless notif_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.cancel_all_notifications
       {% end %}
@@ -236,6 +243,7 @@ module Native::Notifications
 
         badge_method = env.get_static_method_id(notif_class, "setBadgeNumber", "(I)V")
         env.call_static_void_method(notif_class, badge_method, count)
+        env.delete_local_ref(notif_class) unless notif_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.set_badge_number(count)
       {% end %}
@@ -248,8 +256,7 @@ module Native::Notifications
         return false unless env && activity
 
         notif_manager = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("notification"))
-        are_notifs_enabled = env.get_method_id(env.get_object_class(notif_manager), "areNotificationsEnabled", "()Z")
-        env.call_boolean_method(notif_manager, are_notifs_enabled)
+        JNIHelpers.call_boolean(env, notif_manager, "areNotificationsEnabled", "()Z")
       {% elsif flag?(:native_ios) %}
         LibIOS.notification_permission_granted
       {% else %}

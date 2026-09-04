@@ -1,4 +1,5 @@
 # src/native/framework/ui/recycler_view.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   abstract class RecyclerViewAdapter
@@ -40,6 +41,7 @@ module Native::UI
         rv_class = env.find_class("androidx/recyclerview/widget/RecyclerView")
         constructor = env.get_method_id(rv_class, "<init>", "(Landroid/content/Context;)V")
         @native = env.new_object(rv_class, constructor, activity).to_i64
+        env.delete_local_ref(rv_class) unless rv_class.null?
 
         set_layout_manager(LayoutManager::Linear)
       {% elsif flag?(:native_ios) %}
@@ -61,9 +63,9 @@ module Native::UI
         end
 
         adapter_obj = env.new_object(rv_adapter_class, env.get_method_id(rv_adapter_class, "<init>", "(J)V"), 0i64)
+        env.delete_local_ref(rv_adapter_class) unless rv_adapter_class.null?
 
-        set_adapter = env.get_method_id(env.get_object_class(@native), "setAdapter", "(Landroidx/recyclerview/widget/RecyclerView$Adapter;)V")
-        env.call_void_method(@native, set_adapter, adapter_obj)
+        JNIHelpers.call_void(env, @native, "setAdapter", "(Landroidx/recyclerview/widget/RecyclerView$Adapter;)V", , adapter_obj)
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_set_delegate(@native, 0i64)
       {% end %}
@@ -107,8 +109,7 @@ module Native::UI
           lm = env.new_object(lm_class, constructor, 2, 1)
         end
 
-        set_lm = env.get_method_id(env.get_object_class(@native), "setLayoutManager", "(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V")
-        env.call_void_method(@native, set_lm, lm)
+        JNIHelpers.call_void(env, @native, "setLayoutManager", "(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V", , lm)
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_set_style(@native, manager.value)
       {% end %}
@@ -128,11 +129,9 @@ module Native::UI
         return unless env && @native != 0
 
         if smooth
-          smooth_scroll = env.get_method_id(env.get_object_class(@native), "smoothScrollToPosition", "(I)V")
-          env.call_void_method(@native, smooth_scroll, position)
+          JNIHelpers.call_void(env, @native, "smoothScrollToPosition", "(I)V", , position)
         else
-          scroll_to = env.get_method_id(env.get_object_class(@native), "scrollToPosition", "(I)V")
-          env.call_void_method(@native, scroll_to, position)
+          JNIHelpers.call_void(env, @native, "scrollToPosition", "(I)V", , position)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_scroll_to_row(@native, position, smooth)
@@ -152,8 +151,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          notify_changed = env.get_method_id(env.get_object_class(adapter_obj), "notifyDataSetChanged", "()V")
-          env.call_void_method(adapter_obj, notify_changed)
+          JNIHelpers.call_void(env, adapter_obj, "notifyDataSetChanged", "()V")
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_reload_data(@native)
@@ -169,8 +167,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          notify_insert = env.get_method_id(env.get_object_class(adapter_obj), "notifyItemInserted", "(I)V")
-          env.call_void_method(adapter_obj, notify_insert, position)
+          JNIHelpers.call_void(env, adapter_obj, "notifyItemInserted", "(I)V", , position)
         end
       {% end %}
     end
@@ -184,8 +181,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          notify_remove = env.get_method_id(env.get_object_class(adapter_obj), "notifyItemRemoved", "(I)V")
-          env.call_void_method(adapter_obj, notify_remove, position)
+          JNIHelpers.call_void(env, adapter_obj, "notifyItemRemoved", "(I)V", , position)
         end
       {% end %}
     end

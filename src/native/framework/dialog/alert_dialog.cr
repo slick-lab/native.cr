@@ -1,4 +1,5 @@
 # src/native/framework/dialog/alert_dialog.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Dialog
   class AlertDialog
@@ -22,6 +23,7 @@ module Native::Dialog
         builder_class = env.find_class("android/app/AlertDialog$Builder")
         constructor = env.get_method_id(builder_class, "<init>", "(Landroid/content/Context;)V")
         @dialog_ptr = env.new_object(builder_class, constructor, activity).to_i64
+        env.delete_local_ref(builder_class) unless builder_class.null?
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_alert_controller
         @dialog_ptr = ptr.to_i64
@@ -33,8 +35,7 @@ module Native::Dialog
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @dialog_ptr != 0
-        set_title = env.get_method_id(env.get_object_class(@dialog_ptr), "setTitle", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;")
-        env.call_object_method(@dialog_ptr, set_title, env.new_string_utf(value))
+        JNIHelpers.call_object(env, @dialog_ptr, "setTitle", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;", , env.new_string_utf(value))
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_set_title(@dialog_ptr, value.to_utf8)
       {% end %}
@@ -49,8 +50,7 @@ module Native::Dialog
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @dialog_ptr != 0
-        set_message = env.get_method_id(env.get_object_class(@dialog_ptr), "setMessage", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;")
-        env.call_object_method(@dialog_ptr, set_message, env.new_string_utf(value))
+        JNIHelpers.call_object(env, @dialog_ptr, "setMessage", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;", , env.new_string_utf(value))
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_set_message(@dialog_ptr, value.to_utf8)
       {% end %}
@@ -68,6 +68,7 @@ module Native::Dialog
         set_positive = env.get_method_id(env.get_object_class(@dialog_ptr), "setPositiveButton", "(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;")
         callback_class = env.find_class("com/nativecr/DialogCallback")
         callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(JI)V"), 0i64, 0)
+        env.delete_local_ref(callback_class) unless callback_class.null?
         env.call_object_method(@dialog_ptr, set_positive, env.new_string_utf(value), callback_obj)
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_add_action(@dialog_ptr, value.to_utf8, 0)
@@ -82,6 +83,7 @@ module Native::Dialog
         set_negative = env.get_method_id(env.get_object_class(@dialog_ptr), "setNegativeButton", "(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;")
         callback_class = env.find_class("com/nativecr/DialogCallback")
         callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(JI)V"), 0i64, 1)
+        env.delete_local_ref(callback_class) unless callback_class.null?
         env.call_object_method(@dialog_ptr, set_negative, env.new_string_utf(value), callback_obj)
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_add_action(@dialog_ptr, value.to_utf8, 1)
@@ -96,6 +98,7 @@ module Native::Dialog
         set_neutral = env.get_method_id(env.get_object_class(@dialog_ptr), "setNeutralButton", "(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;")
         callback_class = env.find_class("com/nativecr/DialogCallback")
         callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(JI)V"), 0i64, 2)
+        env.delete_local_ref(callback_class) unless callback_class.null?
         env.call_object_method(@dialog_ptr, set_neutral, env.new_string_utf(value), callback_obj)
       {% end %}
     end
@@ -105,8 +108,7 @@ module Native::Dialog
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @dialog_ptr != 0
-        set_cancelable = env.get_method_id(env.get_object_class(@dialog_ptr), "setCancelable", "(Z)Landroid/app/AlertDialog$Builder;")
-        env.call_object_method(@dialog_ptr, set_cancelable, value)
+        JNIHelpers.call_object(env, @dialog_ptr, "setCancelable", "(Z)Landroid/app/AlertDialog$Builder;", , value)
       {% end %}
     end
 
@@ -132,8 +134,7 @@ module Native::Dialog
         return unless env && @dialog_ptr != 0
         create = env.get_method_id(env.get_object_class(@dialog_ptr), "create", "()Landroid/app/AlertDialog;")
         dialog = env.call_object_method(@dialog_ptr, create)
-        show_method = env.get_method_id(env.get_object_class(dialog), "show", "()V")
-        env.call_void_method(dialog, show_method)
+        JNIHelpers.call_void(env, dialog, "show", "()V")
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_show(@dialog_ptr)
       {% end %}
@@ -145,8 +146,7 @@ module Native::Dialog
         return unless env && @dialog_ptr != 0
         create = env.get_method_id(env.get_object_class(@dialog_ptr), "create", "()Landroid/app/AlertDialog;")
         dialog = env.call_object_method(@dialog_ptr, create)
-        dismiss_method = env.get_method_id(env.get_object_class(dialog), "dismiss", "()V")
-        env.call_void_method(dialog, dismiss_method)
+        JNIHelpers.call_void(env, dialog, "dismiss", "()V")
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_dismiss(@dialog_ptr)
       {% end %}
