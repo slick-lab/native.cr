@@ -1,4 +1,5 @@
 # src/native/framework/ui/edit_text.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class EditText < View
@@ -24,6 +25,7 @@ module Native::UI
         view_class = env.find_class("android/widget/EditText")
         constructor = env.get_method_id(view_class, "<init>", "(Landroid/content/Context;)V")
         @native = env.new_object(view_class, constructor, activity).to_i64
+        env.delete_local_ref(view_class) unless view_class.null?
 
         if !text.empty?
           self.text = text
@@ -46,8 +48,8 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jtext = env.new_string_utf(value)
-        set_text = env.get_method_id(env.get_object_class(@native), "setText", "(Ljava/lang/CharSequence;)V")
-        env.call_void_method(@native, set_text, jtext)
+        JNIHelpers.call_void(env, @native, "setText", "(Ljava/lang/CharSequence;)V", jtext)
+        env.delete_local_ref(jtext) unless jtext.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text(@native, value.to_utf8)
       {% end %}
@@ -79,8 +81,8 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jhint = env.new_string_utf(value)
-        set_hint = env.get_method_id(env.get_object_class(@native), "setHint", "(Ljava/lang/CharSequence;)V")
-        env.call_void_method(@native, set_hint, jhint)
+        JNIHelpers.call_void(env, @native, "setHint", "(Ljava/lang/CharSequence;)V", jhint)
+        env.delete_local_ref(jhint) unless jhint.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_placeholder(@native, value.to_utf8)
       {% end %}
@@ -95,8 +97,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_size = env.get_method_id(env.get_object_class(@native), "setTextSize", "(F)V")
-        env.call_void_method(@native, set_size, value.to_f32)
+        JNIHelpers.call_void(env, @native, "setTextSize", "(F)V", value.to_f32)
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text_size(@native, value)
       {% end %}
@@ -112,8 +113,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
-        set_color = env.get_method_id(env.get_object_class(@native), "setTextColor", "(I)V")
-        env.call_void_method(@native, set_color, color)
+        JNIHelpers.call_void(env, @native, "setTextColor", "(I)V", color)
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text_color(@native, value.r, value.g, value.b)
       {% end %}
@@ -125,8 +125,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
-        set_hint_color = env.get_method_id(env.get_object_class(@native), "setHintTextColor", "(I)V")
-        env.call_void_method(@native, set_hint_color, color)
+        JNIHelpers.call_void(env, @native, "setHintTextColor", "(I)V", color)
       {% end %}
     end
 
@@ -135,8 +134,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_input = env.get_method_id(env.get_object_class(@native), "setInputType", "(I)V")
-        env.call_void_method(@native, set_input, type)
+        JNIHelpers.call_void(env, @native, "setInputType", "(I)V", type)
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_input_type(@native, type)
       {% end %}
@@ -172,8 +170,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_lines = env.get_method_id(env.get_object_class(@native), "setLines", "(I)V")
-        env.call_void_method(@native, set_lines, value)
+        JNIHelpers.call_void(env, @native, "setLines", "(I)V", value)
       {% end %}
     end
 
@@ -190,9 +187,9 @@ module Native::UI
         filter_class = env.find_class("android/text/InputFilter$LengthFilter")
         filter_constructor = env.get_method_id(filter_class, "<init>", "(I)V")
         filter = env.new_object(filter_class, filter_constructor, value)
+        env.delete_local_ref(filter_class) unless filter_class.null?
         env.set_object_array_element(filters, 0, filter)
-        set_filters = env.get_method_id(env.get_object_class(@native), "setFilters", "([Landroid/text/InputFilter;)V")
-        env.call_void_method(@native, set_filters, filters)
+        JNIHelpers.call_void(env, @native, "setFilters", "([Landroid/text/InputFilter;)V", filters)
       {% end %}
     end
 
@@ -217,9 +214,9 @@ module Native::UI
       end
 
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
+      env.delete_local_ref(callback_class) unless callback_class.null?
 
-      add_watcher = env.get_method_id(env.get_object_class(@native), "addTextChangedListener", "(Landroid/text/TextWatcher;)V")
-      env.call_void_method(@native, add_watcher, callback_obj)
+      JNIHelpers.call_void(env, @native, "addTextChangedListener", "(Landroid/text/TextWatcher;)V", callback_obj)
     end
 
     def handleTextChanged(text : String)

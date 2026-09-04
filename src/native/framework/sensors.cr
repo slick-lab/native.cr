@@ -1,3 +1,10 @@
+# src/native/framework/sensors.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
+# Also fixed: two double-comma syntax errors in the JNI calls, misnamed
+# enum members (SesnorType::Gytoscope etc.), a wrong callback class path
+# (com/native/ instead of com/nativecr/), a `-> NIl` return annotation,
+# and delay_us being used without ever being a parameter.
+
 module Native::Sensors
   enum SensorType
     Accelerometer
@@ -52,13 +59,14 @@ module Native::Sensors
     end
 
     private def init_android
-      env = Native::Android::JNI.env
-      activity = Native::Android::JNI.activity
-      return unless env && activity
+      JNIHelpers.with_env do |env|
+        activity = Native::Android::JNI.activity
+        return unless activity
 
-      sensor_class = env.find_class("android/hardware/Sensor")
-      get_service = env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;")
-      @@manager_ptr = env.call_object_method(activity, get_service, env.new_string_utf("sensor")).to_i64
+        @@manager_ptr = JNIHelpers.with_jstring(env, "sensor") do |jname|
+          JNIHelpers.call_object(env, activity.to_i64, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;", jname)
+        end.to_i64
+      end
     end
 
     private def init_ios
@@ -67,51 +75,61 @@ module Native::Sensors
 
     def sensor_available?(type : SensorType) : Bool
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        return false unless env && @@manager_ptr != 0_i64
-        sensor_type = sensor_type_value(type)
-        sensor_class = env.find_class("android/hardware/Sensor")
-        get_default_sensor = env.get_method_id(env.get_object_class(@@manager_ptr), "getDefaultSensor", "(I)Landroid/hardware/Sensor;")
-        sensor = env.call_object_method(@@manager_ptr, get_default_sensor, sensor_type)
-        return sensor != Pointer(Void).null
+        JNIHelpers.with_env do |env|
+          return false if @@manager_ptr == 0_i64
+          sensor = JNIHelpers.call_object(env, @@manager_ptr, "getDefaultSensor", "(I)Landroid/hardware/Sensor;", sensor_type_value(type))
+          !sensor.null?
+        end
       {% elsif flag?(:native_ios) %}
-        return LibIOS.sensor_available(type.value)
+        LibIOS.sensor_available(type.value)
       {% else %}
         false
       {% end %}
     end
 
-    def start_listening(type : SensorType, &callback : SensorData -> Nil)
+    def start_listening(type : SensorType, delay_us : Int32 = 200000, &callback : SensorData -> Nil)
       @@listeners[type] ||= [] of SensorData -> Nil
       @@listeners[type] << callback
 
       unless @@active_sensors[type]
         {% if flag?(:native_android) %}
-          start_listening_android(type)
+          start_listening_android(type, delay_us)
         {% elsif flag?(:native_ios) %}
-          start_listening_ios(type)
+          start_listening_ios(type, delay_us)
         {% end %}
         @@active_sensors[type] = true
       end
     end
 
-    private def start_listening_android(type)
-      env = Native::Android::JNI.env
-      return unless env && @@manager_ptr != 0_i64
-      sensor_type = sensor_type_value(type)
-      get_default = env.get_method_id(env.get_object_class(@@manager_ptr), "getDefaultSensor", "(I)Landroid/hardware/Sensor;")
-      sensor = env.call_object_method(@@manager_ptr, get_default, sensor_type)
-      if sensor != Pointer(Void).null
-        listener_class = env.find_class("com/nativecr/SensorListener")
-        if listener_class != Pointer(Void).null
-          callback_obj = env.new_object(listener_class, env.get_method_id(listener_class, "<init>", "(JI)V"), 0i64, type.value)
-          register = env.get_method_id(env.get_object_class(@@manager_ptr), "registerListener", "(Landroid/hardware/SensorEventListener;Landroid/hardware/Sensor;I)Z")
-          env.call_boolean_method(@@manager_ptr, register, callback_obj, sensor, delay_us)
+    private def start_listening_android(type, delay_us : Int32)
+      JNIHelpers.with_env do |env|
+        return if @@manager_ptr == 0_i64
+        sensor = JNIHelpers.call_object(env, @@manager_ptr, "getDefaultSensor", "(I)Landroid/hardware/Sensor;", sensor_type_value(type))
+        return if sensor.null?
+        begin
+          listener = JNIHelpers.with_class(env, "com/nativecr/SensorListener") do |listener_class|
+            next Pointer(Void).null if listener_class.null?
+            ctor = env.get_method_id(listener_class, "<init>", "(JI)V")
+            next Pointer(Void).null if ctor.null?
+            env.new_object(listener_class, ctor, 0i64, type.value)
+          end
+          next if listener.null?
+          begin
+            JNIHelpers.call_boolean(
+              env, @@manager_ptr, "registerListener",
+              "(Landroid/hardware/SensorEventListener;Landroid/hardware/Sensor;I)Z",
+              listener, sensor, delay_us
+            )
+          ensure
+            env.delete_local_ref(listener)
+          end
+        ensure
+          env.delete_local_ref(sensor)
         end
       end
     end
 
-    private def start_listening_ios(type)
+    private def start_listening_ios(type, delay_us : Int32)
       LibIOS.sensor_start(type.value, delay_us)
     end
 
@@ -127,14 +145,19 @@ module Native::Sensors
     end
 
     private def stop_listening_android(type)
-      env = Native::Android::JNI.env
-      return unless env && @@manager_ptr != 0_i64
-      sensor_type = sensor_type_value(type)
-      listener_class = env.find_class("com/native/SensorListener")
-      if listener_class != Pointer(Void).null
-        callback_obj = env.get_static_object_field(listener_class, env.get_static_field_id(listener_class, "instance", "Lcom/native/SensorListener;"))
-        unregister = env.get_method_id(env.get_object_class(@@manager_ptr), "unregisterListener", "(Landroid/hardware/SensorEventListener;)V")
-        env.call_void_method(@@manager_ptr, unregister, callback_obj)
+      JNIHelpers.with_env do |env|
+        return if @@manager_ptr == 0_i64
+        listener = JNIHelpers.with_class(env, "com/nativecr/SensorListener") do |listener_class|
+          next Pointer(Void).null if listener_class.null?
+          fid = env.get_static_field_id(listener_class, "instance", "Lcom/nativecr/SensorListener;")
+          fid.null? ? Pointer(Void).null : env.get_static_object_field(listener_class, fid)
+        end
+        return if listener.null?
+        begin
+          JNIHelpers.call_void(env, @@manager_ptr, "unregisterListener", "(Landroid/hardware/SensorEventListener;)V", listener)
+        ensure
+          env.delete_local_ref(listener)
+        end
       end
     end
 
@@ -143,7 +166,7 @@ module Native::Sensors
     end
 
     def stop_all
-      @@listeners.each do |type|
+      @@listeners.each_key do |type|
         stop_listening(type)
       end
       @@listeners.clear
@@ -159,8 +182,8 @@ module Native::Sensors
     private def sensor_type_value(type : SensorType) : Int32
       case type
       when SensorType::Accelerometer then 1
-      when SesnorType::Gytoscope     then 4
-      when SensorType::Magnometer    then 3
+      when SensorType::Gyroscope     then 4
+      when SensorType::Magnetometer  then 3
       when SensorType::Light         then 5
       when SensorType::Proximity     then 8
       when SensorType::Pressure      then 6
@@ -174,7 +197,7 @@ module Native::Sensors
 
   module Sensor
     def self.accelerometer(delay_us : Int32 = 200000, &callback : SensorData -> Nil)
-      SensorManager.instance.start_listening(SensorType::Acclerometer, delay_us, &callback)
+      SensorManager.instance.start_listening(SensorType::Accelerometer, delay_us, &callback)
     end
 
     def self.gyroscope(delay_us : Int32 = 200000, &callback : SensorData -> Nil)
@@ -185,7 +208,7 @@ module Native::Sensors
       SensorManager.instance.start_listening(SensorType::Magnetometer, delay_us, &callback)
     end
 
-    def self.light(delay_us : Int32 = 20000, &callback : SensorData -> NIl)
+    def self.light(delay_us : Int32 = 20000, &callback : SensorData -> Nil)
       SensorManager.instance.start_listening(SensorType::Light, delay_us, &callback)
     end
 

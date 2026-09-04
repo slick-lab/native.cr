@@ -1,4 +1,5 @@
 # src/native/framework/ui/image_view.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class ImageView < View
@@ -23,6 +24,7 @@ module Native::UI
         image_class = env.find_class("android/widget/ImageView")
         constructor = env.get_method_id(image_class, "<init>", "(Landroid/content/Context;)V")
         @native = env.new_object(image_class, constructor, activity).to_i64
+        env.delete_local_ref(image_class) unless image_class.null?
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_image_view
         @native = ptr.to_i64
@@ -33,8 +35,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_image = env.get_method_id(env.get_object_class(@native), "setImageResource", "(I)V")
-        env.call_void_method(@native, set_image, resource_id)
+        JNIHelpers.call_void(env, @native, "setImageResource", "(I)V", resource_id)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_resource(@native, resource_id)
       {% end %}
@@ -49,6 +50,8 @@ module Native::UI
         uri_class = env.find_class("android/net/Uri")
         parse_method = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
         uri = env.call_static_object_method(uri_class, parse_method, jpath)
+        env.delete_local_ref(jpath) unless jpath.null?
+        env.delete_local_ref(uri_class) unless uri_class.null?
         env.call_void_method(@native, set_image, uri)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_path(@native, path.to_utf8)
@@ -65,6 +68,7 @@ module Native::UI
         bitmap_class = env.find_class("android/graphics/BitmapFactory")
         decode_method = env.get_static_method_id(bitmap_class, "decodeByteArray", "([BII)Landroid/graphics/Bitmap;")
         bitmap = env.call_static_object_method(bitmap_class, decode_method, byte_array, 0, data.size)
+        env.delete_local_ref(bitmap_class) unless bitmap_class.null?
         env.call_void_method(@native, set_image, bitmap)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_data(@native, data, data.size)
@@ -86,8 +90,7 @@ module Native::UI
                       end
         scale_field = env.get_static_field_id(env.find_class("android/widget/ImageView$ScaleType"), scale_value, "Landroid/widget/ImageView$ScaleType;")
         scale_obj = env.get_static_object_field(env.find_class("android/widget/ImageView$ScaleType"), scale_field)
-        set_scale = env.get_method_id(env.get_object_class(@native), "setScaleType", "(Landroid/widget/ImageView$ScaleType;)V")
-        env.call_void_method(@native, set_scale, scale_obj)
+        JNIHelpers.call_void(env, @native, "setScaleType", "(Landroid/widget/ImageView$ScaleType;)V", scale_obj)
       {% elsif flag?(:native_ios) %}
         scale_value = type.value
         LibIOS.image_view_set_scale_type(@native, scale_value)
@@ -121,8 +124,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        set_alpha = env.get_method_id(env.get_object_class(@native), "setAlpha", "(F)V")
-        env.call_void_method(@native, set_alpha, value)
+        JNIHelpers.call_void(env, @native, "setAlpha", "(F)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_alpha(@native, value)
       {% end %}
@@ -132,8 +134,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return 1.0f32 unless env && @native != 0
-        get_alpha = env.get_method_id(env.get_object_class(@native), "getAlpha", "()F")
-        env.call_float_method(@native, get_alpha)
+        JNIHelpers.call_float(env, @native, "getAlpha", "()F")
       {% else %}
         1.0f32
       {% end %}

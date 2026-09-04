@@ -47,6 +47,7 @@ module Native::Platform
 
       android_id = env.new_string_utf("android_id")
       model = env.call_static_object_method(settings_class, get_string, resolver, android_id)
+      env.delete_local_ref(settings_class) unless settings_class.null?
 
       result = if model
                  env.get_string_utf_chars(model).to_s
@@ -81,6 +82,7 @@ module Native::Platform
       version_class = env.find_class("android/os/Build$VERSION")
       release_field = env.get_static_field_id(version_class, "RELEASE", "Ljava/lang/String;")
       release = env.get_static_object_field(version_class, release_field)
+      env.delete_local_ref(version_class) unless version_class.null?
 
       if release
         result = env.get_string_utf_chars(release).to_s
@@ -179,8 +181,7 @@ module Native::Platform
       vibrator = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("vibrator"))
 
       if vibrator
-        vibrate_method = env.get_method_id(env.get_object_class(vibrator), "vibrate", "(J)V")
-        env.call_void_method(vibrator, vibrate_method, duration_ms.to_i64)
+        JNIHelpers.call_void(env, vibrator, "vibrate", "(J)V", duration_ms.to_i64)
         env.delete_local_ref(vibrator)
       end
     elsif ios?
@@ -197,13 +198,14 @@ module Native::Platform
       uri_class = env.find_class("android/net/Uri")
       parse_method = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
       uri = env.call_static_object_method(uri_class, parse_method, env.new_string_utf(url))
+      env.delete_local_ref(uri_class) unless uri_class.null?
 
       intent_class = env.find_class("android/content/Intent")
       intent_constructor = env.get_method_id(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V")
       intent = env.new_object(intent_class, intent_constructor, env.new_string_utf("android.intent.action.VIEW"), uri)
+      env.delete_local_ref(intent_class) unless intent_class.null?
 
-      start_activity = env.get_method_id(env.get_object_class(activity), "startActivity", "(Landroid/content/Intent;)V")
-      env.call_void_method(activity, start_activity, intent)
+      JNIHelpers.call_void(env, activity.to_i64, "startActivity", "(Landroid/content/Intent;)V", intent)
 
       env.delete_local_ref(uri)
       env.delete_local_ref(intent)
@@ -237,9 +239,9 @@ module Native::Platform
 
       create_chooser = env.get_static_method_id(intent_class, "createChooser", "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;")
       chooser = env.call_static_object_method(intent_class, create_chooser, intent, env.new_string_utf(title))
+      env.delete_local_ref(intent_class) unless intent_class.null?
 
-      start_activity = env.get_method_id(env.get_object_class(activity), "startActivity", "(Landroid/content/Intent;)V")
-      env.call_void_method(activity, start_activity, chooser)
+      JNIHelpers.call_void(env, activity.to_i64, "startActivity", "(Landroid/content/Intent;)V", chooser)
 
       env.delete_local_ref(intent)
       env.delete_local_ref(chooser)
@@ -260,9 +262,9 @@ module Native::Platform
         clip_class = env.find_class("android/content/ClipData")
         new_plain_text = env.get_static_method_id(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
         clip = env.call_static_object_method(clip_class, new_plain_text, env.new_string_utf("text"), env.new_string_utf(text))
+        env.delete_local_ref(clip_class) unless clip_class.null?
 
-        set_clip = env.get_method_id(env.get_object_class(clipboard), "setPrimaryClip", "(Landroid/content/ClipData;)V")
-        env.call_void_method(clipboard, set_clip, clip)
+        JNIHelpers.call_void(env, clipboard, "setPrimaryClip", "(Landroid/content/ClipData;)V", clip)
 
         env.delete_local_ref(clipboard)
         env.delete_local_ref(clip)

@@ -172,8 +172,12 @@ module Native::Network
       end
 
       result = env.call_static_object_method(http_client_class, execute_method, url_string, method_string, headers_keys, headers_values, body_string, request.timeout)
+      env.delete_local_ref(http_client_class) unless http_client_class.null?
 
       cleanup_android(env, url_string, method_string, headers_keys, headers_values, body_string)
+      env.delete_local_ref(url_string) unless url_string.null?
+      env.delete_local_ref(method_string) unless method_string.null?
+      env.delete_local_ref(body_string) unless body_string.null?
 
       if result
         json = env.get_string_utf_chars(result, nil).to_s
@@ -209,6 +213,7 @@ module Native::Network
       end
 
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "()V"))
+      env.delete_local_ref(callback_class) unless callback_class.null?
 
       stream_method = env.get_static_method_id(http_client_class, "executeStream", "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/String;Lcom/nativecr/StreamCallback;D)V")
       if stream_method == Pointer(Void).null
@@ -218,8 +223,11 @@ module Native::Network
       end
 
       env.call_static_void_method(http_client_class, stream_method, url_string, method_string, headers_keys, headers_values, callback_obj, request.timeout)
+      env.delete_local_ref(http_client_class) unless http_client_class.null?
 
       cleanup_android(env, url_string, method_string, headers_keys, headers_values)
+      env.delete_local_ref(url_string) unless url_string.null?
+      env.delete_local_ref(method_string) unless method_string.null?
       env.delete_local_ref(callback_obj)
 
       Response.new(success: true, status_code: 200)
@@ -463,6 +471,7 @@ module Native::Network
       end
 
       env.call_static_long_method(ws_class, connect_method, activity, env.new_string_utf(@url))
+      env.delete_local_ref(ws_class) unless ws_class.null?
     end
 
     private def connect_ios : Void

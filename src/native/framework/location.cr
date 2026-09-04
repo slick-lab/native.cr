@@ -1,4 +1,5 @@
 # src/native/framework/location.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Location
   enum LocationAccuracy
@@ -66,6 +67,7 @@ module Native::Location
 
         init_method = env.get_static_method_id(location_class, "init", "(Landroid/app/Activity;)V")
         env.call_static_void_method(location_class, init_method, activity)
+        env.delete_local_ref(location_class) unless location_class.null?
 
         setupCallbacks
       {% end %}
@@ -89,6 +91,7 @@ module Native::Location
 
         start_method = env.get_static_method_id(location_class, "startUpdates", "(IIFJ)V")
         env.call_static_void_method(location_class, start_method, accuracy.value, 0, min_distance, min_time)
+        env.delete_local_ref(location_class) unless location_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.location_start_updates(accuracy.value, min_distance, min_time)
       {% end %}
@@ -108,6 +111,7 @@ module Native::Location
 
         stop_method = env.get_static_method_id(location_class, "stopUpdates", "()V")
         env.call_static_void_method(location_class, stop_method)
+        env.delete_local_ref(location_class) unless location_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.location_stop_updates
       {% end %}
@@ -129,6 +133,7 @@ module Native::Location
 
         get_method = env.get_static_method_id(location_class, "getLastLocation", "()Ljava/lang/String;")
         result = env.call_static_object_method(location_class, get_method)
+        env.delete_local_ref(location_class) unless location_class.null?
 
         if result
           json = env.get_string_utf_chars(result, nil).to_s
@@ -167,21 +172,16 @@ module Native::Location
       {% unless flag?(:native_android) %}
         return
       {% end %}
-      env = Native::Android::JNI.env
-      return unless env
+      JNIHelpers.with_env do |env|
+        callback_obj = JNIHelpers.new_callback(env, "com/nativecr/LocationCallback", 0i64)
+        return if callback_obj.null?
 
-      callback_class = env.find_class("com/nativecr/LocationCallback")
-      if callback_class == Pointer(Void).null
-        return
+        begin
+          JNIHelpers.call_static_void(env, "com/nativecr/LocationHelper", "setCallback", "(Lcom/nativecr/LocationCallback;)V", callback_obj)
+        ensure
+          env.delete_local_ref(callback_obj)
+        end
       end
-
-      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
-
-      location_class = env.find_class("com/nativecr/LocationHelper")
-      return if location_class == Pointer(Void).null
-
-      set_callback = env.get_static_method_id(location_class, "setCallback", "(Lcom/nativecr/LocationCallback;)V")
-      env.call_static_void_method(location_class, set_callback, callback_obj)
     end
 
     private def parse_location_json(json : String) : Location?

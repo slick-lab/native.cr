@@ -1,4 +1,5 @@
 # src/native/framework/connectivity.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Connectivity
   enum NetworkType
@@ -58,6 +59,7 @@ module Native::Connectivity
 
         init_method = env.get_static_method_id(conn_class, "init", "(Landroid/app/Activity;)V")
         env.call_static_void_method(conn_class, init_method, activity)
+        env.delete_local_ref(conn_class) unless conn_class.null?
 
         setupCallbacks
       {% elsif flag?(:native_ios) %}
@@ -75,6 +77,7 @@ module Native::Connectivity
 
         get_info = env.get_static_method_id(conn_class, "getNetworkInfo", "()Ljava/lang/String;")
         result = env.call_static_object_method(conn_class, get_info)
+        env.delete_local_ref(conn_class) unless conn_class.null?
 
         if result
           json = env.get_string_utf_chars(result, nil).to_s
@@ -122,6 +125,7 @@ module Native::Connectivity
 
         start_mon = env.get_static_method_id(conn_class, "startMonitoring", "()V")
         env.call_static_void_method(conn_class, start_mon)
+        env.delete_local_ref(conn_class) unless conn_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.connectivity_start_monitoring
       {% end %}
@@ -141,6 +145,7 @@ module Native::Connectivity
 
         stop_mon = env.get_static_method_id(conn_class, "stopMonitoring", "()V")
         env.call_static_void_method(conn_class, stop_mon)
+        env.delete_local_ref(conn_class) unless conn_class.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.connectivity_stop_monitoring
       {% end %}
@@ -156,21 +161,16 @@ module Native::Connectivity
       {% unless flag?(:native_android) %}
         return
       {% end %}
-      env = Native::Android::JNI.env
-      return unless env
+      JNIHelpers.with_env do |env|
+        callback_obj = JNIHelpers.new_callback(env, "com/nativecr/ConnectivityCallback", 0i64)
+        return if callback_obj.null?
 
-      callback_class = env.find_class("com/nativecr/ConnectivityCallback")
-      if callback_class == Pointer(Void).null
-        return
+        begin
+          JNIHelpers.call_static_void(env, "com/nativecr/ConnectivityHelper", "setCallback", "(Lcom/nativecr/ConnectivityCallback;)V", callback_obj)
+        ensure
+          env.delete_local_ref(callback_obj)
+        end
       end
-
-      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
-
-      conn_class = env.find_class("com/nativecr/ConnectivityHelper")
-      return if conn_class == Pointer(Void).null
-
-      set_callback = env.get_static_method_id(conn_class, "setCallback", "(Lcom/nativecr/ConnectivityCallback;)V")
-      env.call_static_void_method(conn_class, set_callback, callback_obj)
     end
 
     private def parse_network_info_json(json : String) : NetworkInfo

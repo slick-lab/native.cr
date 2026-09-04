@@ -1,4 +1,5 @@
 # src/native/framework/permissions.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Permissions
   enum PermissionType
@@ -32,18 +33,19 @@ module Native::Permissions
 
     def self.check(type : PermissionType) : PermissionStatus
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return PermissionStatus::Denied unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return PermissionStatus::Denied if activity.null?
 
-        perm_name = permission_string(type)
-        check_permission = env.get_method_id(env.get_object_class(activity), "checkSelfPermission", "(Ljava/lang/String;)I")
-        result = env.call_int_method(activity, check_permission, env.new_string_utf(perm_name))
+          result = JNIHelpers.with_jstring(env, permission_string(type)) do |jperm|
+            JNIHelpers.call_int(env, activity.to_i64, "checkSelfPermission", "(Ljava/lang/String;)I", jperm)
+          end
 
-        case result
-        when  0 then PermissionStatus::Granted
-        when -1 then PermissionStatus::Denied
-        else         PermissionStatus::NotDetermined
+          case result
+          when 0 then PermissionStatus::Granted
+          when -1 then PermissionStatus::Denied
+          else PermissionStatus::NotDetermined
+          end
         end
       {% elsif flag?(:native_ios) %}
         status = LibIOS.check_permission(type.value)
@@ -65,15 +67,24 @@ module Native::Permissions
       @@callbacks[type] << callback
 
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        perm_name = permission_string(type)
-        request_perms = env.get_method_id(env.get_object_class(activity), "requestPermissions", "([Ljava/lang/String;I)V")
-        perm_array = env.new_object_array(1, env.find_class("java/lang/String"), nil)
-        env.set_object_array_element(perm_array, 0, env.new_string_utf(perm_name))
-        env.call_void_method(activity, request_perms, perm_array, type.value)
+          JNIHelpers.with_class(env, "java/lang/String") do |string_class|
+            next if string_class.null?
+            perm_array = env.new_object_array(1, string_class)
+            next if perm_array.null?
+            begin
+              JNIHelpers.with_jstring(env, permission_string(type)) do |jperm|
+                env.set_object_array_element(perm_array, 0, jperm)
+              end
+              JNIHelpers.call_void(env, activity.to_i64, "requestPermissions", "([Ljava/lang/String;I)V", perm_array, type.value)
+            ensure
+              env.delete_local_ref(perm_array)
+            end
+          end
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.request_permission(type.value)
       {% end %}
@@ -106,22 +117,47 @@ module Native::Permissions
 
     def self.open_settings
       {% if flag?(:native_android) %}
-        env = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        return unless env && activity
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
 
-        intent_class = env.find_class("android/content/Intent")
-        settings_action = env.get_static_field_id(intent_class, "ACTION_APPLICATION_DETAILS_SETTINGS", "Ljava/lang/String;")
-        action = env.get_static_object_field(intent_class, settings_action)
+          JNIHelpers.with_class(env, "android/content/Intent") do |intent_class|
+            next if intent_class.null?
+            settings_fid = env.get_static_field_id(intent_class, "ACTION_APPLICATION_DETAILS_SETTINGS", "Ljava/lang/String;")
+            next if settings_fid.null?
+            action = env.get_static_object_field(intent_class, settings_fid)
 
-        uri_class = env.find_class("android/net/Uri")
-        parse_method = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
-        package_name = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getPackageName", "()Ljava/lang/String;"))
-        uri = env.call_static_object_method(uri_class, parse_method, env.new_string_utf("package:"), package_name)
-
-        intent = env.new_object(intent_class, env.get_method_id(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V"), action, uri)
-        start_activity = env.get_method_id(env.get_object_class(activity), "startActivity", "(Landroid/content/Intent;)V")
-        env.call_void_method(activity, start_activity, intent)
+            package_name = JNIHelpers.call_object(env, activity.to_i64, "getPackageName", "()Ljava/lang/String;")
+            next if package_name.null?
+            begin
+              uri = JNIHelpers.with_jstring(env, "package:") do |jprefix|
+                JNIHelpers.call_object(env, jprefix.to_i64, "concat", "(Ljava/lang/String;)Ljava/lang/String;", package_name)
+              end
+              next if uri.null?
+              begin
+                uri_obj = JNIHelpers.call_static_object(env, "android/net/Uri", "parse", "(Ljava/lang/String;)Landroid/net/Uri;", uri)
+                next if uri_obj.null?
+                begin
+                  ctor = env.get_method_id(intent_class, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V")
+                  next if ctor.null?
+                  intent = env.new_object(intent_class, ctor, action, uri_obj)
+                  next if intent.null?
+                  begin
+                    JNIHelpers.call_void(env, activity.to_i64, "startActivity", "(Landroid/content/Intent;)V", intent)
+                  ensure
+                    env.delete_local_ref(intent)
+                  end
+                ensure
+                  env.delete_local_ref(uri_obj)
+                end
+              ensure
+                env.delete_local_ref(uri)
+              end
+            ensure
+              env.delete_local_ref(package_name)
+            end
+          end
+        end
       {% elsif flag?(:native_ios) %}
         LibIOS.open_settings
       {% end %}

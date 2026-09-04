@@ -18,11 +18,9 @@ module Native::Storage
         edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
         editor = env.call_object_method(prefs, edit)
 
-        put_string = env.get_method_id(env.get_object_class(editor), "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;")
-        env.call_object_method(editor, put_string, jkey, jvalue)
+        JNIHelpers.call_object(env, editor, "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", jkey, jvalue)
 
-        apply = env.get_method_id(env.get_object_class(editor), "apply", "()V")
-        env.call_void_method(editor, apply)
+        JNIHelpers.call_void(env, editor, "apply", "()V")
 
         env.delete_local_ref(jkey)
         env.delete_local_ref(jvalue)
@@ -153,11 +151,9 @@ module Native::Storage
         edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
         editor = env.call_object_method(prefs, edit)
 
-        remove = env.get_method_id(env.get_object_class(editor), "remove", "(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;")
-        env.call_object_method(editor, remove, jkey)
+        JNIHelpers.call_object(env, editor, "remove", "(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", jkey)
 
-        apply = env.get_method_id(env.get_object_class(editor), "apply", "()V")
-        env.call_void_method(editor, apply)
+        JNIHelpers.call_void(env, editor, "apply", "()V")
 
         env.delete_local_ref(jkey)
         env.delete_local_ref(prefs)
@@ -179,11 +175,9 @@ module Native::Storage
         edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
         editor = env.call_object_method(prefs, edit)
 
-        clr = env.get_method_id(env.get_object_class(editor), "clear", "()Landroid/content/SharedPreferences$Editor;")
-        env.call_object_method(editor, clr)
+        JNIHelpers.call_object(env, editor, "clear", "()Landroid/content/SharedPreferences$Editor;")
 
-        apply = env.get_method_id(env.get_object_class(editor), "apply", "()V")
-        env.call_void_method(editor, apply)
+        JNIHelpers.call_void(env, editor, "apply", "()V")
 
         env.delete_local_ref(prefs)
         env.delete_local_ref(editor)
@@ -275,6 +269,7 @@ module Native::Storage
         file_class = env.find_class("java/io/File")
         file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
         file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
+        env.delete_local_ref(file_class) unless file_class.null?
 
         fos_class = env.find_class("java/io/FileOutputStream")
         fos_constructor = env.get_method_id(fos_class, "<init>", "(Ljava/io/File;)V")
@@ -286,6 +281,7 @@ module Native::Storage
         env.call_void_method(fos, write_method, byte_array)
 
         close_method = env.get_method_id(fos_class, "close", "()V")
+        env.delete_local_ref(fos_class) unless fos_class.null?
         env.call_void_method(fos, close_method)
 
         env.delete_local_ref(file)
@@ -329,6 +325,7 @@ module Native::Storage
         file_class = env.find_class("java/io/File")
         file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
         file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
+        env.delete_local_ref(file_class) unless file_class.null?
 
         fis_class = env.find_class("java/io/FileInputStream")
         fis_constructor = env.get_method_id(fis_class, "<init>", "(Ljava/io/File;)V")
@@ -348,6 +345,7 @@ module Native::Storage
         env.call_int_method(fis, read_method, byte_array)
 
         close_method = env.get_method_id(fis_class, "close", "()V")
+        env.delete_local_ref(fis_class) unless fis_class.null?
         env.call_void_method(fis, close_method)
 
         data = Bytes.new(size)
@@ -405,6 +403,7 @@ module Native::Storage
         file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
         exists_method = env.get_method_id(file_class, "exists", "()Z")
+        env.delete_local_ref(file_class) unless file_class.null?
         result = env.call_boolean_method(file, exists_method)
 
         env.delete_local_ref(file)
@@ -444,6 +443,7 @@ module Native::Storage
         file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
         delete_method = env.get_method_id(file_class, "delete", "()Z")
+        env.delete_local_ref(file_class) unless file_class.null?
         result = env.call_boolean_method(file, delete_method)
 
         env.delete_local_ref(file)
@@ -487,6 +487,7 @@ module Native::Storage
         file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
 
         list_method = env.get_method_id(file_class, "list", "()[Ljava/lang/String;")
+        env.delete_local_ref(file_class) unless file_class.null?
         array = env.call_object_method(file, list_method)
 
         if array

@@ -140,6 +140,15 @@
       result
     end
 
+    # ── One-shot object call taking a String ─────────────────────────────────
+    # Creates the jstring, passes it, deletes it — the mirror of
+    # call_void_string for chainable builder methods.
+    def self.call_object_string(env : JNIEnvWrapper, obj : Int64, method_name : String, sig : String, str : String, *args) : Void*
+      with_jstring(env, str) do |jstr|
+        call_object(env, obj, method_name, sig, jstr, *args)
+      end
+    end
+
     # ── One-shot static int call ─────────────────────────────────────────────
     def self.call_static_int(env : JNIEnvWrapper, class_name : String, method_name : String, sig : String, *args) : Int32
       with_class(env, class_name) do |jclass|

@@ -1,4 +1,5 @@
 # src/native/framework/audio.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::Audio
   enum AudioFormat
@@ -44,6 +45,7 @@ module Native::Audio
         end
 
         @sound_ptr = env.call_static_long_method(sound_class, load_method, activity, env.new_string_utf(path))
+        env.delete_local_ref(sound_class) unless sound_class.null?
         @is_loaded = @sound_ptr != 0
         @is_loaded
       {% elsif flag?(:native_ios) %}
@@ -74,6 +76,7 @@ module Native::Audio
         end
 
         instance_ptr = env.call_static_long_method(sound_class, play_method, @sound_ptr, config.volume, config.loop ? 1 : 0, config.pitch, config.pan)
+        env.delete_local_ref(sound_class) unless sound_class.null?
         if instance_ptr != 0
           SoundInstance.new(instance_ptr)
         else
@@ -103,6 +106,7 @@ module Native::Audio
           stop_method = env.get_static_method_id(sound_class, "stopAll", "(J)V")
           if stop_method != Pointer(Void).null
             env.call_static_void_method(sound_class, stop_method, @sound_ptr)
+            env.delete_local_ref(sound_class) unless sound_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -130,6 +134,7 @@ module Native::Audio
           unload_method = env.get_static_method_id(sound_class, "unload", "(J)V")
           if unload_method != Pointer(Void).null
             env.call_static_void_method(sound_class, unload_method, @sound_ptr)
+            env.delete_local_ref(sound_class) unless sound_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -160,6 +165,7 @@ module Native::Audio
           stop_method = env.get_static_method_id(sound_class, "stopInstance", "(J)V")
           if stop_method != Pointer(Void).null
             env.call_static_void_method(sound_class, stop_method, @instance_ptr)
+            env.delete_local_ref(sound_class) unless sound_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -181,6 +187,7 @@ module Native::Audio
           pause_method = env.get_static_method_id(sound_class, "pause", "(J)V")
           if pause_method != Pointer(Void).null
             env.call_static_void_method(sound_class, pause_method, @instance_ptr)
+            env.delete_local_ref(sound_class) unless sound_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -198,6 +205,7 @@ module Native::Audio
           resume_method = env.get_static_method_id(sound_class, "resume", "(J)V")
           if resume_method != Pointer(Void).null
             env.call_static_void_method(sound_class, resume_method, @instance_ptr)
+            env.delete_local_ref(sound_class) unless sound_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -217,6 +225,7 @@ module Native::Audio
           volume_method = env.get_static_method_id(sound_class, "setVolume", "(JF)V")
           if volume_method != Pointer(Void).null
             env.call_static_void_method(sound_class, volume_method, @instance_ptr, value)
+            env.delete_local_ref(sound_class) unless sound_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -235,7 +244,9 @@ module Native::Audio
         if sound_class != Pointer(Void).null
           playing_method = env.get_static_method_id(sound_class, "isPlaying", "(J)Z")
           if playing_method != Pointer(Void).null
-            return env.call_static_boolean_method(sound_class, playing_method, @instance_ptr)
+            _jni_res = env.call_static_boolean_method(sound_class, playing_method, @instance_ptr)
+            env.delete_local_ref(sound_class) unless sound_class.null?
+            return _jni_res
           end
         end
         false
@@ -273,6 +284,7 @@ module Native::Audio
         end
 
         @music_ptr = env.call_static_long_method(music_class, load_method, activity, env.new_string_utf(path))
+        env.delete_local_ref(music_class) unless music_class.null?
         @music_ptr != 0
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.music_load(path.to_utf8)
@@ -295,6 +307,7 @@ module Native::Audio
           play_method = env.get_static_method_id(music_class, "play", "(JZ)V")
           if play_method != Pointer(Void).null
             env.call_static_void_method(music_class, play_method, @music_ptr, loop)
+            env.delete_local_ref(music_class) unless music_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -316,6 +329,7 @@ module Native::Audio
           pause_method = env.get_static_method_id(music_class, "pause", "(J)V")
           if pause_method != Pointer(Void).null
             env.call_static_void_method(music_class, pause_method, @music_ptr)
+            env.delete_local_ref(music_class) unless music_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -337,6 +351,7 @@ module Native::Audio
           resume_method = env.get_static_method_id(music_class, "resume", "(J)V")
           if resume_method != Pointer(Void).null
             env.call_static_void_method(music_class, resume_method, @music_ptr)
+            env.delete_local_ref(music_class) unless music_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -358,6 +373,7 @@ module Native::Audio
           stop_method = env.get_static_method_id(music_class, "stop", "(J)V")
           if stop_method != Pointer(Void).null
             env.call_static_void_method(music_class, stop_method, @music_ptr)
+            env.delete_local_ref(music_class) unless music_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -379,6 +395,7 @@ module Native::Audio
           volume_method = env.get_static_method_id(music_class, "setVolume", "(JF)V")
           if volume_method != Pointer(Void).null
             env.call_static_void_method(music_class, volume_method, @music_ptr, @volume)
+            env.delete_local_ref(music_class) unless music_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -406,6 +423,7 @@ module Native::Audio
           seek_method = env.get_static_method_id(music_class, "seek", "(JD)V")
           if seek_method != Pointer(Void).null
             env.call_static_void_method(music_class, seek_method, @music_ptr, position)
+            env.delete_local_ref(music_class) unless music_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -424,7 +442,9 @@ module Native::Audio
         if music_class != Pointer(Void).null
           position_method = env.get_static_method_id(music_class, "getPosition", "(J)D")
           if position_method != Pointer(Void).null
-            return env.call_static_double_method(music_class, position_method, @music_ptr)
+            _jni_res = env.call_static_double_method(music_class, position_method, @music_ptr)
+            env.delete_local_ref(music_class) unless music_class.null?
+            return _jni_res
           end
         end
         0.0
@@ -446,7 +466,9 @@ module Native::Audio
         if music_class != Pointer(Void).null
           duration_method = env.get_static_method_id(music_class, "getDuration", "(J)D")
           if duration_method != Pointer(Void).null
-            return env.call_static_double_method(music_class, duration_method, @music_ptr)
+            _jni_res = env.call_static_double_method(music_class, duration_method, @music_ptr)
+            env.delete_local_ref(music_class) unless music_class.null?
+            return _jni_res
           end
         end
         0.0
@@ -469,6 +491,7 @@ module Native::Audio
           unload_method = env.get_static_method_id(music_class, "unload", "(J)V")
           if unload_method != Pointer(Void).null
             env.call_static_void_method(music_class, unload_method, @music_ptr)
+            env.delete_local_ref(music_class) unless music_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -505,6 +528,7 @@ module Native::Audio
         end
 
         @recorder_ptr = env.call_static_long_method(recorder_class, start_method, activity)
+        env.delete_local_ref(recorder_class) unless recorder_class.null?
         @is_recording = @recorder_ptr != 0
         @is_recording
       {% elsif flag?(:native_ios) %}
@@ -535,6 +559,7 @@ module Native::Audio
         end
 
         byte_array = env.call_static_object_method(recorder_class, stop_method, @recorder_ptr)
+        env.delete_local_ref(recorder_class) unless recorder_class.null?
         @is_recording = false
         @recorder_ptr = 0
 
@@ -612,6 +637,7 @@ module Native::Audio
           set_volume_method = env.get_static_method_id(audio_class, "setMasterVolume", "(F)V")
           if set_volume_method != Pointer(Void).null
             env.call_static_void_method(audio_class, set_volume_method, @master_volume)
+            env.delete_local_ref(audio_class) unless audio_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -644,6 +670,7 @@ module Native::Audio
           stop_method = env.get_static_method_id(audio_class, "stopAll", "()V")
           if stop_method != Pointer(Void).null
             env.call_static_void_method(audio_class, stop_method)
+            env.delete_local_ref(audio_class) unless audio_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -662,6 +689,7 @@ module Native::Audio
           pause_method = env.get_static_method_id(audio_class, "pauseAll", "()V")
           if pause_method != Pointer(Void).null
             env.call_static_void_method(audio_class, pause_method)
+            env.delete_local_ref(audio_class) unless audio_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}
@@ -680,6 +708,7 @@ module Native::Audio
           resume_method = env.get_static_method_id(audio_class, "resumeAll", "()V")
           if resume_method != Pointer(Void).null
             env.call_static_void_method(audio_class, resume_method)
+            env.delete_local_ref(audio_class) unless audio_class.null?
           end
         end
       {% elsif flag?(:native_ios) %}

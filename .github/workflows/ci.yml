@@ -49,6 +49,8 @@ jobs:
 
       # The platform-conditional code ({% if flag?(:native_android) %} etc.)
       # is never compiled by the test/build jobs — this is the only place
-      # its types are actually checked.
+      # its types are actually checked. NOTE: crystal options must come
+      # BEFORE the programfile; anything after src/native.cr is passed to
+      # the compiled program as ARGV, not as a define.
       - name: Type-check (${{ matrix.name }})
-        run: crystal build --no-codegen -o /dev/null src/native.cr ${{ matrix.flags }}
+        run: crystal build --no-codegen ${{ matrix.flags }} -o /dev/null src/native.cr

@@ -1,4 +1,5 @@
 # src/native/framework/ui/icon.cr
+# Refactored to use JNIHelpers for automatic local reference cleanup.
 
 module Native::UI
   class Icon < TextView
@@ -49,6 +50,7 @@ module Native::UI
 
         asset_manager = env.call_object_method(Native::Android::JNI.activity, env.get_method_id(env.get_object_class(Native::Android::JNI.activity), "getAssets", "()Landroid/content/res/AssetManager;"))
         typeface = env.call_static_object_method(typeface_class, create_method, asset_manager, env.new_string_utf("#{@font_family}.ttf"))
+        env.delete_local_ref(typeface_class) unless typeface_class.null?
 
         if typeface
           env.call_void_method(@native, set_typeface, typeface)
