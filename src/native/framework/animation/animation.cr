@@ -270,12 +270,19 @@ module Native::Animation
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
 
-        animator_array = env.new_object_array(animators.size, env.find_class("android/animation/Animator"), nil)
-        animators.each_with_index do |anim, i|
-          env.set_object_array_element(animator_array, i, anim.animator_ptr)
+        animator_class = env.find_class("android/animation/Animator")
+        return if animator_class.null?
+        animator_array = env.new_object_array(animators.size, animator_class)
+        env.delete_local_ref(animator_class) unless animator_class.null?
+        return if animator_array.null?
+        begin
+          animators.each_with_index do |anim, i|
+            env.set_object_array_element(animator_array, i, anim.animator_ptr)
+          end
+          JNIHelpers.call_void(env, @animator_ptr, "playSequentially", "([Landroid/animation/Animator;)V", animator_array)
+        ensure
+          env.delete_local_ref(animator_array)
         end
-
-        JNIHelpers.call_void(env, @animator_ptr, "playSequentially", "([Landroid/animation/Animator;)V", animator_array)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_play_sequentially(@animator_ptr)
       {% end %}

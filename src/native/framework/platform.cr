@@ -205,7 +205,7 @@ module Native::Platform
       intent = env.new_object(intent_class, intent_constructor, env.new_string_utf("android.intent.action.VIEW"), uri)
       env.delete_local_ref(intent_class) unless intent_class.null?
 
-      JNIHelpers.call_void(env, activity, "startActivity", "(Landroid/content/Intent;)V", intent)
+      JNIHelpers.call_void(env, activity.to_i64, "startActivity", "(Landroid/content/Intent;)V", intent)
 
       env.delete_local_ref(uri)
       env.delete_local_ref(intent)
@@ -241,7 +241,7 @@ module Native::Platform
       chooser = env.call_static_object_method(intent_class, create_chooser, intent, env.new_string_utf(title))
       env.delete_local_ref(intent_class) unless intent_class.null?
 
-      JNIHelpers.call_void(env, activity, "startActivity", "(Landroid/content/Intent;)V", chooser)
+      JNIHelpers.call_void(env, activity.to_i64, "startActivity", "(Landroid/content/Intent;)V", chooser)
 
       env.delete_local_ref(intent)
       env.delete_local_ref(chooser)

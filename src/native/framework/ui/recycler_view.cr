@@ -151,7 +151,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          JNIHelpers.call_void(env, adapter_obj, "notifyDataSetChanged", "()V")
+          JNIHelpers.call_void(env, adapter_obj.to_i64, "notifyDataSetChanged", "()V")
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_reload_data(@native)
@@ -167,7 +167,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          JNIHelpers.call_void(env, adapter_obj, "notifyItemInserted", "(I)V", position)
+          JNIHelpers.call_void(env, adapter_obj.to_i64, "notifyItemInserted", "(I)V", position)
         end
       {% end %}
     end
@@ -181,7 +181,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          JNIHelpers.call_void(env, adapter_obj, "notifyItemRemoved", "(I)V", position)
+          JNIHelpers.call_void(env, adapter_obj.to_i64, "notifyItemRemoved", "(I)V", position)
         end
       {% end %}
     end
