@@ -38,7 +38,7 @@ require "./native/framework/navigation/navigator"
 require "./native/framework/navigation/toolbar"
 
 module Native
-  VERSION = "0.1.6"
+  VERSION = "0.1.7"
 
   def self.run
     args = ARGV
