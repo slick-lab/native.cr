@@ -48,7 +48,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jtext = env.new_string_utf(value)
-        JNIHelpers.call_void(env, @native, "setText", "(Ljava/lang/CharSequence;)V", , jtext)
+        JNIHelpers.call_void(env, @native, "setText", "(Ljava/lang/CharSequence;)V", jtext)
         env.delete_local_ref(jtext) unless jtext.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text(@native, value.to_utf8)
@@ -81,7 +81,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jhint = env.new_string_utf(value)
-        JNIHelpers.call_void(env, @native, "setHint", "(Ljava/lang/CharSequence;)V", , jhint)
+        JNIHelpers.call_void(env, @native, "setHint", "(Ljava/lang/CharSequence;)V", jhint)
         env.delete_local_ref(jhint) unless jhint.null?
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_placeholder(@native, value.to_utf8)
@@ -97,7 +97,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setTextSize", "(F)V", , value.to_f32)
+        JNIHelpers.call_void(env, @native, "setTextSize", "(F)V", value.to_f32)
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text_size(@native, value)
       {% end %}
@@ -113,7 +113,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
-        JNIHelpers.call_void(env, @native, "setTextColor", "(I)V", , color)
+        JNIHelpers.call_void(env, @native, "setTextColor", "(I)V", color)
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_text_color(@native, value.r, value.g, value.b)
       {% end %}
@@ -125,7 +125,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         color = ((value.a * 255).to_i << 24) | ((value.r * 255).to_i << 16) | ((value.g * 255).to_i << 8) | (value.b * 255).to_i
-        JNIHelpers.call_void(env, @native, "setHintTextColor", "(I)V", , color)
+        JNIHelpers.call_void(env, @native, "setHintTextColor", "(I)V", color)
       {% end %}
     end
 
@@ -134,7 +134,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setInputType", "(I)V", , type)
+        JNIHelpers.call_void(env, @native, "setInputType", "(I)V", type)
       {% elsif flag?(:native_ios) %}
         LibIOS.text_field_set_input_type(@native, type)
       {% end %}
@@ -170,7 +170,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setLines", "(I)V", , value)
+        JNIHelpers.call_void(env, @native, "setLines", "(I)V", value)
       {% end %}
     end
 
@@ -189,7 +189,7 @@ module Native::UI
         filter = env.new_object(filter_class, filter_constructor, value)
         env.delete_local_ref(filter_class) unless filter_class.null?
         env.set_object_array_element(filters, 0, filter)
-        JNIHelpers.call_void(env, @native, "setFilters", "([Landroid/text/InputFilter;)V", , filters)
+        JNIHelpers.call_void(env, @native, "setFilters", "([Landroid/text/InputFilter;)V", filters)
       {% end %}
     end
 
@@ -216,7 +216,7 @@ module Native::UI
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
       env.delete_local_ref(callback_class) unless callback_class.null?
 
-      JNIHelpers.call_void(env, @native, "addTextChangedListener", "(Landroid/text/TextWatcher;)V", , callback_obj)
+      JNIHelpers.call_void(env, @native, "addTextChangedListener", "(Landroid/text/TextWatcher;)V", callback_obj)
     end
 
     def handleTextChanged(text : String)

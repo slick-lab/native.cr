@@ -55,7 +55,7 @@ module Native::UI
         adapter = env.new_object(adapter_class, adapter_constructor, Native::Android::JNI.activity, layout_id, array_list)
         env.delete_local_ref(adapter_class) unless adapter_class.null?
 
-        JNIHelpers.call_void(env, @native, "setAdapter", "(Landroid/widget/SpinnerAdapter;)V", , adapter)
+        JNIHelpers.call_void(env, @native, "setAdapter", "(Landroid/widget/SpinnerAdapter;)V", adapter)
       {% elsif flag?(:native_ios) %}
         LibIOS.picker_view_set_items(@native, items.to_utf8)
       {% end %}
@@ -70,7 +70,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setSelection", "(I)V", , @selected_position)
+        JNIHelpers.call_void(env, @native, "setSelection", "(I)V", @selected_position)
       {% elsif flag?(:native_ios) %}
         LibIOS.picker_view_set_selected(@native, @selected_position)
       {% end %}
@@ -98,7 +98,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setPrompt", "(Ljava/lang/CharSequence;)V", , env.new_string_utf(value))
+        JNIHelpers.call_void_string(env, @native, "setPrompt", "(Ljava/lang/CharSequence;)V", value)
       {% end %}
     end
 
@@ -111,7 +111,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setDropDownWidth", "(I)V", , width)
+        JNIHelpers.call_void(env, @native, "setDropDownWidth", "(I)V", width)
       {% end %}
     end
 
@@ -138,7 +138,7 @@ module Native::UI
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
       env.delete_local_ref(callback_class) unless callback_class.null?
 
-      JNIHelpers.call_void(env, @native, "setOnItemSelectedListener", "(Landroid/widget/AdapterView$OnItemSelectedListener;)V", , callback_obj)
+      JNIHelpers.call_void(env, @native, "setOnItemSelectedListener", "(Landroid/widget/AdapterView$OnItemSelectedListener;)V", callback_obj)
     end
 
     def handleItemSelected(position : Int32)

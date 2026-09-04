@@ -51,7 +51,7 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        JNIHelpers.call_object(env, @animator_ptr, "setDuration", "(J)Landroid/animation/ValueAnimator;", , value.to_i64)
+        JNIHelpers.call_object(env, @animator_ptr, "setDuration", "(J)Landroid/animation/ValueAnimator;", value.to_i64)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_duration(@animator_ptr, value)
       {% end %}
@@ -87,7 +87,7 @@ module Native::Animation
                              end
 
         interpolator_obj = env.new_object(interpolator_class, env.get_method_id(interpolator_class, "<init>", "()V"))
-        JNIHelpers.call_void(env, @animator_ptr, "setInterpolator", "(Landroid/animation/TimeInterpolator;)V", , interpolator_obj)
+        JNIHelpers.call_void(env, @animator_ptr, "setInterpolator", "(Landroid/animation/TimeInterpolator;)V", interpolator_obj)
       {% end %}
     end
 
@@ -100,7 +100,7 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        JNIHelpers.call_void(env, @animator_ptr, "setRepeatCount", "(I)V", , value)
+        JNIHelpers.call_void(env, @animator_ptr, "setRepeatCount", "(I)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_repeat_count(@animator_ptr, value)
       {% end %}
@@ -115,7 +115,7 @@ module Native::Animation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @animator_ptr != 0
-        JNIHelpers.call_void(env, @animator_ptr, "setRepeatMode", "(I)V", , value)
+        JNIHelpers.call_void(env, @animator_ptr, "setRepeatMode", "(I)V", value)
       {% end %}
     end
 
@@ -275,7 +275,7 @@ module Native::Animation
           env.set_object_array_element(animator_array, i, anim.animator_ptr)
         end
 
-        JNIHelpers.call_void(env, @animator_ptr, "playSequentially", "([Landroid/animation/Animator;)V", , animator_array)
+        JNIHelpers.call_void(env, @animator_ptr, "playSequentially", "([Landroid/animation/Animator;)V", animator_array)
       {% elsif flag?(:native_ios) %}
         LibIOS.animator_set_play_sequentially(@animator_ptr)
       {% end %}

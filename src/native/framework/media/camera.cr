@@ -55,7 +55,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
-        JNIHelpers.call_void(env, @camera_ptr, "setFacing", "(I)V", , value.value)
+        JNIHelpers.call_void(env, @camera_ptr, "setFacing", "(I)V", value.value)
       {% elsif flag?(:native_ios) %}
         LibIOS.camera_set_facing(@camera_ptr, value.value)
       {% end %}
@@ -70,7 +70,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
-        JNIHelpers.call_void(env, @camera_ptr, "setFlashMode", "(I)V", , value.value)
+        JNIHelpers.call_void(env, @camera_ptr, "setFlashMode", "(I)V", value.value)
       {% elsif flag?(:native_ios) %}
         LibIOS.camera_set_flash_mode(@camera_ptr, value.value)
       {% end %}
@@ -122,7 +122,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @camera_ptr != 0
-        JNIHelpers.call_void(env, @camera_ptr, "startRecording", "(Ljava/lang/String;)V", , env.new_string_utf(output_path))
+        JNIHelpers.call_void_string(env, @camera_ptr, "startRecording", "(Ljava/lang/String;)V", output_path)
       {% elsif flag?(:native_ios) %}
         LibIOS.camera_start_recording(@camera_ptr, output_path.to_utf8)
       {% end %}
@@ -169,7 +169,7 @@ module Native::Media
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
       env.delete_local_ref(callback_class) unless callback_class.null?
 
-      JNIHelpers.call_void(env, @camera_ptr, "setCallback", "(Lcom/nativecr/CameraCallback;)V", , callback_obj)
+      JNIHelpers.call_void(env, @camera_ptr, "setCallback", "(Lcom/nativecr/CameraCallback;)V", callback_obj)
     end
 
     def handlePhotoCaptured(data : Bytes, width : Int32, height : Int32)

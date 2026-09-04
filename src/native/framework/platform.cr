@@ -181,7 +181,7 @@ module Native::Platform
       vibrator = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("vibrator"))
 
       if vibrator
-        JNIHelpers.call_void(env, vibrator, "vibrate", "(J)V", , duration_ms.to_i64)
+        JNIHelpers.call_void(env, vibrator, "vibrate", "(J)V", duration_ms.to_i64)
         env.delete_local_ref(vibrator)
       end
     elsif ios?
@@ -264,7 +264,7 @@ module Native::Platform
         clip = env.call_static_object_method(clip_class, new_plain_text, env.new_string_utf("text"), env.new_string_utf(text))
         env.delete_local_ref(clip_class) unless clip_class.null?
 
-        JNIHelpers.call_void(env, clipboard, "setPrimaryClip", "(Landroid/content/ClipData;)V", , clip)
+        JNIHelpers.call_void(env, clipboard, "setPrimaryClip", "(Landroid/content/ClipData;)V", clip)
 
         env.delete_local_ref(clipboard)
         env.delete_local_ref(clip)

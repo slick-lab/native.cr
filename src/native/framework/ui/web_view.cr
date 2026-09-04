@@ -37,7 +37,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "loadUrl", "(Ljava/lang/String;)V", , env.new_string_utf(value))
+        JNIHelpers.call_void_string(env, @native, "loadUrl", "(Ljava/lang/String;)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_load_url(@native, value.to_utf8)
       {% end %}
@@ -51,7 +51,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "loadDataWithBaseURL", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", , env.new_string_utf(base_url), env.new_string_utf(html), env.new_string_utf("text/html"), env.new_string_utf("UTF-8"), env.new_string_utf(""))
+        JNIHelpers.call_void_string(env, @native, "loadDataWithBaseURL", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", env.new_string_utf(base_url), env.new_string_utf(html), env.new_string_utf("text/html"), env.new_string_utf("UTF-8"), "")
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_load_html(@native, html.to_utf8, base_url.to_utf8)
       {% end %}
@@ -63,7 +63,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
-        JNIHelpers.call_void(env, settings, "setJavaScriptEnabled", "(Z)V", , value)
+        JNIHelpers.call_void(env, settings, "setJavaScriptEnabled", "(Z)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_set_js_enabled(@native, value)
       {% end %}
@@ -79,7 +79,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
-        JNIHelpers.call_void(env, settings, "setDomStorageEnabled", "(Z)V", , value)
+        JNIHelpers.call_void(env, settings, "setDomStorageEnabled", "(Z)V", value)
       {% end %}
     end
 
@@ -171,7 +171,7 @@ module Native::UI
       return unless env && @native != 0
 
       settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
-      JNIHelpers.call_void(env, settings, "setCacheMode", "(I)V", , -1)
+      JNIHelpers.call_void(env, settings, "setCacheMode", "(I)V", -1)
     end
 
     private def setupWebViewClient
@@ -189,7 +189,7 @@ module Native::UI
       client_obj = env.new_object(client_class, env.get_method_id(client_class, "<init>", "(J)V"), 0i64)
       env.delete_local_ref(client_class) unless client_class.null?
 
-      JNIHelpers.call_void(env, @native, "setWebViewClient", "(Landroid/webkit/WebViewClient;)V", , client_obj)
+      JNIHelpers.call_void(env, @native, "setWebViewClient", "(Landroid/webkit/WebViewClient;)V", client_obj)
     end
 
     private def setupWebChromeClient
@@ -207,7 +207,7 @@ module Native::UI
       chrome_obj = env.new_object(chrome_class, env.get_method_id(chrome_class, "<init>", "(J)V"), 0i64)
       env.delete_local_ref(chrome_class) unless chrome_class.null?
 
-      JNIHelpers.call_void(env, @native, "setWebChromeClient", "(Landroid/webkit/WebChromeClient;)V", , chrome_obj)
+      JNIHelpers.call_void(env, @native, "setWebChromeClient", "(Landroid/webkit/WebChromeClient;)V", chrome_obj)
     end
 
     def handlePageStarted(url : String)

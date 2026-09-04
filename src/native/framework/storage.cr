@@ -18,7 +18,7 @@ module Native::Storage
         edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
         editor = env.call_object_method(prefs, edit)
 
-        JNIHelpers.call_object(env, editor, "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", , jkey, jvalue)
+        JNIHelpers.call_object(env, editor, "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", jkey, jvalue)
 
         JNIHelpers.call_void(env, editor, "apply", "()V")
 

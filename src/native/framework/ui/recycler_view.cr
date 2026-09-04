@@ -65,7 +65,7 @@ module Native::UI
         adapter_obj = env.new_object(rv_adapter_class, env.get_method_id(rv_adapter_class, "<init>", "(J)V"), 0i64)
         env.delete_local_ref(rv_adapter_class) unless rv_adapter_class.null?
 
-        JNIHelpers.call_void(env, @native, "setAdapter", "(Landroidx/recyclerview/widget/RecyclerView$Adapter;)V", , adapter_obj)
+        JNIHelpers.call_void(env, @native, "setAdapter", "(Landroidx/recyclerview/widget/RecyclerView$Adapter;)V", adapter_obj)
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_set_delegate(@native, 0i64)
       {% end %}
@@ -109,7 +109,7 @@ module Native::UI
           lm = env.new_object(lm_class, constructor, 2, 1)
         end
 
-        JNIHelpers.call_void(env, @native, "setLayoutManager", "(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V", , lm)
+        JNIHelpers.call_void(env, @native, "setLayoutManager", "(Landroidx/recyclerview/widget/RecyclerView$LayoutManager;)V", lm)
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_set_style(@native, manager.value)
       {% end %}
@@ -129,9 +129,9 @@ module Native::UI
         return unless env && @native != 0
 
         if smooth
-          JNIHelpers.call_void(env, @native, "smoothScrollToPosition", "(I)V", , position)
+          JNIHelpers.call_void(env, @native, "smoothScrollToPosition", "(I)V", position)
         else
-          JNIHelpers.call_void(env, @native, "scrollToPosition", "(I)V", , position)
+          JNIHelpers.call_void(env, @native, "scrollToPosition", "(I)V", position)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.table_view_scroll_to_row(@native, position, smooth)
@@ -167,7 +167,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          JNIHelpers.call_void(env, adapter_obj, "notifyItemInserted", "(I)V", , position)
+          JNIHelpers.call_void(env, adapter_obj, "notifyItemInserted", "(I)V", position)
         end
       {% end %}
     end
@@ -181,7 +181,7 @@ module Native::UI
         adapter_obj = env.call_object_method(@native, get_adapter)
 
         if adapter_obj
-          JNIHelpers.call_void(env, adapter_obj, "notifyItemRemoved", "(I)V", , position)
+          JNIHelpers.call_void(env, adapter_obj, "notifyItemRemoved", "(I)V", position)
         end
       {% end %}
     end

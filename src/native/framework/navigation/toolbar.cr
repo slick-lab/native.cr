@@ -45,7 +45,7 @@ module Native::Navigation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setTitle", "(Ljava/lang/CharSequence;)V", , env.new_string_utf(value))
+        JNIHelpers.call_void_string(env, @native, "setTitle", "(Ljava/lang/CharSequence;)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.navigation_bar_set_title(@native, value.to_utf8)
       {% end %}
@@ -60,7 +60,7 @@ module Native::Navigation
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setSubtitle", "(Ljava/lang/CharSequence;)V", , env.new_string_utf(value))
+        JNIHelpers.call_void_string(env, @native, "setSubtitle", "(Ljava/lang/CharSequence;)V", value)
       {% end %}
     end
 
@@ -101,9 +101,9 @@ module Native::Navigation
         menu_item = env.call_object_method(menu, add_item, 0, id, 0, env.new_string_utf(title))
 
         if icon != 0 && show_as_action
-          JNIHelpers.call_object(env, menu_item, "setIcon", "(I)Landroid/view/MenuItem;", , icon)
+          JNIHelpers.call_object(env, menu_item, "setIcon", "(I)Landroid/view/MenuItem;", icon)
 
-          JNIHelpers.call_void(env, menu_item, "setShowAsAction", "(I)V", , 2)
+          JNIHelpers.call_void(env, menu_item, "setShowAsAction", "(I)V", 2)
         end
       {% end %}
     end
@@ -118,7 +118,7 @@ module Native::Navigation
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        JNIHelpers.call_void(env, activity, "setSupportActionBar", "(Landroidx/appcompat/widget/Toolbar;)V", , @native)
+        JNIHelpers.call_void(env, activity, "setSupportActionBar", "(Landroidx/appcompat/widget/Toolbar;)V", @native)
       {% end %}
     end
 

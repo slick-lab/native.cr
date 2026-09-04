@@ -35,7 +35,7 @@ module Native::Dialog
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @dialog_ptr != 0
-        JNIHelpers.call_object(env, @dialog_ptr, "setTitle", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;", , env.new_string_utf(value))
+        JNIHelpers.call_object_string(env, @dialog_ptr, "setTitle", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_set_title(@dialog_ptr, value.to_utf8)
       {% end %}
@@ -50,7 +50,7 @@ module Native::Dialog
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @dialog_ptr != 0
-        JNIHelpers.call_object(env, @dialog_ptr, "setMessage", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;", , env.new_string_utf(value))
+        JNIHelpers.call_object_string(env, @dialog_ptr, "setMessage", "(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.alert_set_message(@dialog_ptr, value.to_utf8)
       {% end %}
@@ -108,7 +108,7 @@ module Native::Dialog
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @dialog_ptr != 0
-        JNIHelpers.call_object(env, @dialog_ptr, "setCancelable", "(Z)Landroid/app/AlertDialog$Builder;", , value)
+        JNIHelpers.call_object(env, @dialog_ptr, "setCancelable", "(Z)Landroid/app/AlertDialog$Builder;", value)
       {% end %}
     end
 

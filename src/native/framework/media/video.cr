@@ -48,7 +48,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "loadVideo", "(Ljava/lang/String;)V", , env.new_string_utf(path))
+        JNIHelpers.call_void_string(env, @native, "loadVideo", "(Ljava/lang/String;)V", path)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_load(@native, path.to_utf8)
       {% end %}
@@ -99,7 +99,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setLooping", "(Z)V", , value)
+        JNIHelpers.call_void(env, @native, "setLooping", "(Z)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_looping(@native, value)
       {% end %}
@@ -114,7 +114,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setVolume", "(FF)V", , @volume, @volume)
+        JNIHelpers.call_void(env, @native, "setVolume", "(FF)V", @volume, @volume)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_volume(@native, @volume)
       {% end %}
@@ -134,7 +134,7 @@ module Native::Media
                       when ScaleType::FitCenter  then 1
                       when ScaleType::CenterCrop then 2
                       end
-        JNIHelpers.call_void(env, @native, "setScaleType", "(I)V", , scale_value)
+        JNIHelpers.call_void(env, @native, "setScaleType", "(I)V", scale_value)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_set_scale_type(@native, value.value)
       {% end %}
@@ -148,7 +148,7 @@ module Native::Media
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "seekTo", "(I)V", , msec)
+        JNIHelpers.call_void(env, @native, "seekTo", "(I)V", msec)
       {% elsif flag?(:native_ios) %}
         LibIOS.video_player_seek_to(@native, msec)
       {% end %}
@@ -209,7 +209,7 @@ module Native::Media
       callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
       env.delete_local_ref(callback_class) unless callback_class.null?
 
-      JNIHelpers.call_void(env, @native, "setCallback", "(Lcom/nativecr/VideoPlayerCallback;)V", , callback_obj)
+      JNIHelpers.call_void(env, @native, "setCallback", "(Lcom/nativecr/VideoPlayerCallback;)V", callback_obj)
     end
 
     def handlePrepared

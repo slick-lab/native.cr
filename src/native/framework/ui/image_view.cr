@@ -90,7 +90,7 @@ module Native::UI
                       end
         scale_field = env.get_static_field_id(env.find_class("android/widget/ImageView$ScaleType"), scale_value, "Landroid/widget/ImageView$ScaleType;")
         scale_obj = env.get_static_object_field(env.find_class("android/widget/ImageView$ScaleType"), scale_field)
-        JNIHelpers.call_void(env, @native, "setScaleType", "(Landroid/widget/ImageView$ScaleType;)V", , scale_obj)
+        JNIHelpers.call_void(env, @native, "setScaleType", "(Landroid/widget/ImageView$ScaleType;)V", scale_obj)
       {% elsif flag?(:native_ios) %}
         scale_value = type.value
         LibIOS.image_view_set_scale_type(@native, scale_value)
@@ -124,7 +124,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        JNIHelpers.call_void(env, @native, "setAlpha", "(F)V", , value)
+        JNIHelpers.call_void(env, @native, "setAlpha", "(F)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_alpha(@native, value)
       {% end %}
