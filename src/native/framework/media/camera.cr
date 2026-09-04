@@ -161,15 +161,14 @@ module Native::Media
       env = Native::Android::JNI.env
       return unless env && @camera_ptr != 0
 
-      callback_class = env.find_class("com/nativecr/CameraCallback")
-      if callback_class == Pointer(Void).null
-        return
+      callback_obj = JNIHelpers.new_callback(env, "com/nativecr/CameraCallback", 0i64)
+      return if callback_obj.null?
+
+      begin
+        JNIHelpers.call_void(env, @camera_ptr, "setCallback", "(Lcom/nativecr/CameraCallback;)V", callback_obj)
+      ensure
+        env.delete_local_ref(callback_obj)
       end
-
-      callback_obj = env.new_object(callback_class, env.get_method_id(callback_class, "<init>", "(J)V"), 0i64)
-      env.delete_local_ref(callback_class) unless callback_class.null?
-
-      JNIHelpers.call_void(env, @camera_ptr, "setCallback", "(Lcom/nativecr/CameraCallback;)V", callback_obj)
     end
 
     def handlePhotoCaptured(data : Bytes, width : Int32, height : Int32)
