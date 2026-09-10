@@ -12,11 +12,11 @@ module Native::Storage
         jkey = env.new_string_utf(key)
         jvalue = env.new_string_utf(value)
 
-        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
+        prefs = JNIHelpers.with_jstring(env, @name) do |jname|
+          JNIHelpers.call_object(env, activity.to_i64, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
+        end
 
-        edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
-        editor = env.call_object_method(prefs, edit)
+        editor = JNIHelpers.call_object(env, prefs, "edit", "()Landroid/content/SharedPreferences$Editor;")
 
         JNIHelpers.call_object(env, editor, "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", jkey, jvalue)
 
@@ -60,11 +60,11 @@ module Native::Storage
         jkey = env.new_string_utf(key)
         jdefault = env.new_string_utf(default)
 
-        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
+        prefs = JNIHelpers.with_jstring(env, @name) do |jname|
+          JNIHelpers.call_object(env, activity.to_i64, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
+        end
 
-        get_string = env.get_method_id(env.get_object_class(prefs), "getString", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;")
-        result = env.call_object_method(prefs, get_string, jkey, jdefault)
+        result = JNIHelpers.call_object(env, prefs.to_i64, "getString", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", jkey, jdefault)
 
         value = if result
                   env.get_string_utf_chars(result, nil).to_s
@@ -120,11 +120,11 @@ module Native::Storage
 
         jkey = env.new_string_utf(key)
 
-        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
+        prefs = JNIHelpers.with_jstring(env, @name) do |jname|
+          JNIHelpers.call_object(env, activity.to_i64, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
+        end
 
-        contains = env.get_method_id(env.get_object_class(prefs), "contains", "(Ljava/lang/String;)Z")
-        result = env.call_boolean_method(prefs, contains, jkey)
+        result = JNIHelpers.call_boolean(env, prefs.to_i64, "contains", "(Ljava/lang/String;)Z", jkey)
 
         env.delete_local_ref(jkey)
         env.delete_local_ref(prefs)
@@ -145,11 +145,11 @@ module Native::Storage
 
         jkey = env.new_string_utf(key)
 
-        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
+        prefs = JNIHelpers.with_jstring(env, @name) do |jname|
+          JNIHelpers.call_object(env, activity.to_i64, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
+        end
 
-        edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
-        editor = env.call_object_method(prefs, edit)
+        editor = JNIHelpers.call_object(env, prefs, "edit", "()Landroid/content/SharedPreferences$Editor;")
 
         JNIHelpers.call_object(env, editor, "remove", "(Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", jkey)
 
@@ -169,11 +169,11 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return unless env && activity
 
-        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
+        prefs = JNIHelpers.with_jstring(env, @name) do |jname|
+          JNIHelpers.call_object(env, activity.to_i64, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
+        end
 
-        edit = env.get_method_id(env.get_object_class(prefs), "edit", "()Landroid/content/SharedPreferences$Editor;")
-        editor = env.call_object_method(prefs, edit)
+        editor = JNIHelpers.call_object(env, prefs, "edit", "()Landroid/content/SharedPreferences$Editor;")
 
         JNIHelpers.call_object(env, editor, "clear", "()Landroid/content/SharedPreferences$Editor;")
 
@@ -193,17 +193,17 @@ module Native::Storage
         activity = Native::Android::JNI.activity
         return keys unless env && activity
 
-        get_prefs = env.get_method_id(env.get_object_class(activity), "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;")
-        prefs = env.call_object_method(activity, get_prefs, env.new_string_utf(@name), 0)
+        prefs = JNIHelpers.with_jstring(env, @name) do |jname|
+          JNIHelpers.call_object(env, activity.to_i64, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
+        end
 
-        get_all = env.get_method_id(env.get_object_class(prefs), "getAll", "()Ljava/util/Map;")
-        map = env.call_object_method(prefs, get_all)
+        map = JNIHelpers.call_object(env, prefs.to_i64, "getAll", "()Ljava/util/Map;")
 
-        key_set = env.call_object_method(map, env.get_method_id(env.get_object_class(map), "keySet", "()Ljava/util/Set;"))
-        iterator = env.call_object_method(key_set, env.get_method_id(env.get_object_class(key_set), "iterator", "()Ljava/util/Iterator;"))
+        key_set = JNIHelpers.call_object(env, map.to_i64, "keySet", "()Ljava/util/Set;")
+        iterator = JNIHelpers.call_object(env, key_set.to_i64, "iterator", "()Ljava/util/Iterator;")
 
-        while env.call_boolean_method(iterator, env.get_method_id(env.get_object_class(iterator), "hasNext", "()Z"))
-          jkey = env.call_object_method(iterator, env.get_method_id(env.get_object_class(iterator), "next", "()Ljava/lang/Object;"))
+        while JNIHelpers.call_boolean(env, iterator.to_i64, "hasNext", "()Z")
+          jkey = JNIHelpers.call_object(env, iterator.to_i64, "next", "()Ljava/lang/Object;")
           keys << env.get_string_utf_chars(jkey, nil).to_s
           env.delete_local_ref(jkey)
         end
@@ -256,11 +256,9 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
-        dir = env.call_object_method(activity, get_dir)
+        dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
-        path = env.call_object_method(dir, get_path)
+        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -268,7 +266,9 @@ module Native::Storage
 
         file_class = env.find_class("java/io/File")
         file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
+        file = JNIHelpers.with_jstring(env, full_path) do |jpath|
+          env.new_object(file_class, file_constructor, jpath)
+        end
         env.delete_local_ref(file_class) unless file_class.null?
 
         fos_class = env.find_class("java/io/FileOutputStream")
@@ -279,6 +279,7 @@ module Native::Storage
         byte_array = env.new_byte_array(data.size)
         env.set_byte_array_region(byte_array, 0, data.size, data)
         env.call_void_method(fos, write_method, byte_array)
+        env.delete_local_ref(byte_array) unless byte_array.null?
 
         close_method = env.get_method_id(fos_class, "close", "()V")
         env.delete_local_ref(fos_class) unless fos_class.null?
@@ -312,11 +313,9 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
-        dir = env.call_object_method(activity, get_dir)
+        dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
-        path = env.call_object_method(dir, get_path)
+        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -324,7 +323,9 @@ module Native::Storage
 
         file_class = env.find_class("java/io/File")
         file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
+        file = JNIHelpers.with_jstring(env, full_path) do |jpath|
+          env.new_object(file_class, file_constructor, jpath)
+        end
         env.delete_local_ref(file_class) unless file_class.null?
 
         fis_class = env.find_class("java/io/FileInputStream")
@@ -388,11 +389,9 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
-        dir = env.call_object_method(activity, get_dir)
+        dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
-        path = env.call_object_method(dir, get_path)
+        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -400,7 +399,9 @@ module Native::Storage
 
         file_class = env.find_class("java/io/File")
         file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
+        file = JNIHelpers.with_jstring(env, full_path) do |jpath|
+          env.new_object(file_class, file_constructor, jpath)
+        end
 
         exists_method = env.get_method_id(file_class, "exists", "()Z")
         env.delete_local_ref(file_class) unless file_class.null?
@@ -428,11 +429,9 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
-        dir = env.call_object_method(activity, get_dir)
+        dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
-        path = env.call_object_method(dir, get_path)
+        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -440,7 +439,9 @@ module Native::Storage
 
         file_class = env.find_class("java/io/File")
         file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
+        file = JNIHelpers.with_jstring(env, full_path) do |jpath|
+          env.new_object(file_class, file_constructor, jpath)
+        end
 
         delete_method = env.get_method_id(file_class, "delete", "()Z")
         env.delete_local_ref(file_class) unless file_class.null?
@@ -469,11 +470,9 @@ module Native::Storage
                       when StorageType::Temporary then "getCacheDir"
                       end
 
-        get_dir = env.get_method_id(env.get_object_class(activity), method_name, "()Ljava/io/File;")
-        dir = env.call_object_method(activity, get_dir)
+        dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        get_path = env.get_method_id(env.get_object_class(dir), "getPath", "()Ljava/lang/String;")
-        path = env.call_object_method(dir, get_path)
+        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
 
         full_path = env.get_string_utf_chars(path, nil).to_s
         if !directory.empty?
@@ -484,7 +483,9 @@ module Native::Storage
 
         file_class = env.find_class("java/io/File")
         file_constructor = env.get_method_id(file_class, "<init>", "(Ljava/lang/String;)V")
-        file = env.new_object(file_class, file_constructor, env.new_string_utf(full_path))
+        file = JNIHelpers.with_jstring(env, full_path) do |jpath|
+          env.new_object(file_class, file_constructor, jpath)
+        end
 
         list_method = env.get_method_id(file_class, "list", "()[Ljava/lang/String;")
         env.delete_local_ref(file_class) unless file_class.null?

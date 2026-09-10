@@ -147,8 +147,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        get_adapter = env.get_method_id(env.get_object_class(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
-        adapter_obj = env.call_object_method(@native, get_adapter)
+        adapter_obj = JNIHelpers.call_object(env, @native, "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
 
         if adapter_obj
           JNIHelpers.call_void(env, adapter_obj.to_i64, "notifyDataSetChanged", "()V")
@@ -163,8 +162,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        get_adapter = env.get_method_id(env.get_object_class(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
-        adapter_obj = env.call_object_method(@native, get_adapter)
+        adapter_obj = JNIHelpers.call_object(env, @native, "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
 
         if adapter_obj
           JNIHelpers.call_void(env, adapter_obj.to_i64, "notifyItemInserted", "(I)V", position)
@@ -177,8 +175,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        get_adapter = env.get_method_id(env.get_object_class(@native), "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
-        adapter_obj = env.call_object_method(@native, get_adapter)
+        adapter_obj = JNIHelpers.call_object(env, @native, "getAdapter", "()Landroidx/recyclerview/widget/RecyclerView$Adapter;")
 
         if adapter_obj
           JNIHelpers.call_void(env, adapter_obj.to_i64, "notifyItemRemoved", "(I)V", position)

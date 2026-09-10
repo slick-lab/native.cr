@@ -106,6 +106,31 @@
       end
     end
 
+    # ── One-shot constructor call on an object's class ───────────────────────
+    # Builds a new instance of the same class as `obj` — e.g. building an
+    # AlertDialog$Builder from a stored builder handle. The jclass local
+    # ref is cleaned up automatically.
+    def self.new_object(env : JNIEnvWrapper, obj : Int64, ctor_sig : String, *args) : Void*
+      with_object_class(env, obj) do |jclass|
+        return Pointer(Void).null if jclass.null?
+        ctor = env.get_method_id(jclass, "<init>", ctor_sig)
+        return Pointer(Void).null if ctor.null?
+        env.new_object(jclass, ctor, *args)
+      end
+    end
+
+    # ── One-shot int field read by name ──────────────────────────────────────
+    # Reads obj.field_name without leaking the jclass local ref — the
+    # common pattern for DisplayMetrics.widthPixels, battery level, etc.
+    def self.get_int_field_by_name(env : JNIEnvWrapper, obj : Int64, field_name : String, sig : String) : Int32
+      with_object_class(env, obj) do |jclass|
+        return 0 if jclass.null?
+        fid = env.get_field_id(jclass, field_name, sig)
+        return 0 if fid.null?
+        env.get_int_field(obj, fid)
+      end
+    end
+
     # ── One-shot long call on an object ──────────────────────────────────────
     # The JNIEnvWrapper used to hardcode this to 0i64 — any Java API
     # returning a long (durations, file sizes, timestamps) silently

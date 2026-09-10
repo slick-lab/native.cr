@@ -94,12 +94,9 @@ module Native::Navigation
         return unless env && @native != 0
 
         menu_class = env.find_class("android/view/Menu")
-        add_method = env.get_method_id(env.get_object_class(@native), "getMenu", "()Landroid/view/Menu;")
-        menu = env.call_object_method(@native, add_method)
+        menu = JNIHelpers.call_object(env, @native, "getMenu", "()Landroid/view/Menu;")
 
-        add_item = env.get_method_id(env.get_object_class(menu), "add", "(IIII)Landroid/view/MenuItem;")
-        JNIHelpers.with_jstring(env, title) do |jtitle|
-          menu_item = env.call_object_method(menu, add_item, 0, id, 0, jtitle)
+          menu_item = JNIHelpers.call_object(env, menu.to_i64, "add", "(IIILjava/lang/CharSequence;)Landroid/view/MenuItem;", 0, id, 0, jtitle)
 
           if icon != 0 && show_as_action
             JNIHelpers.call_object(env, menu_item, "setIcon", "(I)Landroid/view/MenuItem;", icon)

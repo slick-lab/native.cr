@@ -6,16 +6,14 @@
 # native.cr
 
 [![Crystal](https://img.shields.io/badge/Crystal-1.20%2B-000000?logo=crystal&logoColor=white)](https://crystal-lang.org/)
-[![Version](https://img.shields.io/badge/version-0.1.6-blueviolet)](https://github.com/slick-lab/native.cr/releases)
+[![Version](https://img.shields.io/badge/version-0.1.7-blueviolet)](https://github.com/slick-lab/native.cr/releases)
 [![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
 [![iOS](https://img.shields.io/badge/iOS-11%2B-000000?logo=apple&logoColor=white)](https://developer.apple.com/)
 [![License](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 [![CI](https://github.com/slick-lab/native.cr/actions/workflows/ci.yml/badge.svg)](https://github.com/slick-lab/native.cr/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 [![Discord](https://img.shields.io/badge/Discord-Chat-5865F2?logo=discord&logoColor=white)](https://discord.gg/nativecr)
-[![Shards](https://img.shields.io/badge/shards-compatible-informational)](https://shards.info/)
 [![GitHub Stars](https://img.shields.io/github/stars/slick-lab/native.cr?style=flat&color=f59e0b)](https://github.com/slick-lab/native.cr/stargazers)
-[![Lines of Code](https://img.shields.io/badge/LOC-12.2k-black)](https://github.com/slick-lab/native.cr)
 
 **Write real native Android and iOS apps in Crystal — one codebase, compiled to true native code, no JavaScript runtime.**
 
@@ -30,9 +28,8 @@
 | **Language** | Crystal | JavaScript / TypeScript | Dart |
 | **Runtime** | None (compiled) | JavaScriptCore / Hermes | Dart VM / AOT |
 | **UI layer** | Real native views via JNI / UIKit FFI | Native bridged | Custom renderer (Skia / Impeller) |
-| **Hot reload** | ✓ with state | ✓ | ✓ |
-| **Type safety** | Compile-time | Optional (TS) | Compile-time |
-| **Memory model** | Minimal GC pauses | GC | GC |
+| **Hot reload** | Yes, with state | Yes | Yes |
+| **Type safety** | Compile-time, strict | Optional (TS) | Compile-time |
 | **Binary size** | Small | Large (JS bundle) | Medium |
 
 Crystal gives you **Ruby-like syntax** with **C-like speed**. You write expressive, readable code and the compiler turns it into a native ARM64 binary. No interpreter, no JIT warmup, no garbage-collection pauses mid-animation.
@@ -43,18 +40,25 @@ On Android every widget is a real Android SDK `View` created and controlled thro
 
 ## How it works
 
-```mermaid
-graph LR
-    A["Your Crystal code\nmain.cr"] -->|crystal build --android| B["libnative_app.so\n+ libnative_cr_android.jar"]
-    A -->|crystal build --ios| E["ARM64 binary\n+ UIKit FFI bridge"]
-    B --> C["APK / AAB\nReal Android Views\nvia JNI bindings"]
-    E --> D["IPA\nReal UIKit views\nvia FFI bindings"]
-
-    style A fill:#1e293b,color:#e2e8f0,stroke:#334155
-    style B fill:#7c3aed,color:#fff,stroke:#6d28d9
-    style E fill:#7c3aed,color:#fff,stroke:#6d28d9
-    style C fill:#16a34a,color:#fff,stroke:#15803d
-    style D fill:#0f172a,color:#e2e8f0,stroke:#334155
+```
+                        ┌──────────────────────────┐
+                        │      your main.cr        │
+                        │  (one Crystal codebase)  │
+                        └────────────┬─────────────┘
+                 crystal build       │        crystal build
+                   --android         │            --ios
+                       ┌─────────────┴─────────────┐
+                       ▼                           ▼
+        ┌──────────────────────────┐   ┌──────────────────────────┐
+        │     libnative_app.so     │   │      ARM64 binary        │
+        │  + native_cr_android.jar │   │   + UIKit FFI bridge     │
+        └────────────┬─────────────┘   └────────────┬─────────────┘
+                     ▼                              ▼
+        ┌──────────────────────────┐   ┌──────────────────────────┐
+        │        APK / AAB         │   │   .xcodeproj  →  IPA     │
+        │  real Android Views      │   │   real UIKit views       │
+        │  via JNI bindings        │   │   via FFI bindings       │
+        └──────────────────────────┘   └──────────────────────────┘
 ```
 
 Crystal's compiler cross-compiles your code to ARM64.
@@ -67,30 +71,24 @@ Crystal's compiler cross-compiles your code to ARM64.
 
 The result in all cases is a real, store-submittable app that uses the platform's own native view system — not a WebView and not a custom renderer.
 
+### Under the hood: the JNI layer
+
+The Android engine hand-rolls the JNI function table, and every slot is verified against OpenJDK's `jni.h`. All framework code goes through `JNIHelpers`, a typed layer that owns the lifecycle of every JNI local reference (class lookups, strings, callbacks) so the framework cannot leak them — and every helper null-checks its lookups, so a missing Java class degrades gracefully instead of crashing the VM. Platform-conditional code (`-Dnative_android`, `-Dnative_ios`) is type-checked in CI on every push.
+
 ---
 
 ## Hot reload — how it actually works
 
 This is native.cr's killer development feature. You edit a file, save, and the running app updates in **under 2 seconds** — without losing your current state (scroll position, form data, counters, etc.).
 
-```mermaid
-sequenceDiagram
-    participant Dev as Developer
-    participant CLI as native.cr CLI
-    participant Proc as Running app
-    participant FS as File system
+1. **You save** `main.cr` — the CLI picks up the change via inotify / FSEvents.
+2. **State is serialised** — the running app receives `SIGUSR1`, writes every `@[Preserve]` field to `state.json`, and exits.
+3. **Incremental recompile** — only changed files are rebuilt.
+4. **New process starts**, reads `state.json`, restores your `@[Preserve]` fields, and calls `setup` with state intact.
 
-    Dev->>FS: Save main.cr
-    FS-->>CLI: File changed (inotify / FSEvents)
-    CLI->>Proc: SIGUSR1 — serialise state
-    Proc->>FS: Write state.json (Preserved fields only)
-    CLI->>Proc: Terminate old process
-    CLI->>CLI: Recompile (incremental — only changed files)
-    CLI->>Proc: Launch new process
-    Proc->>FS: Read state.json
-    Proc->>Proc: Restore @[Preserve] fields
-    Proc->>Proc: Call setup() with restored state
-    Proc-->>Dev: App updated — state intact ✓
+```
+save main.cr ──▶ serialise @[Preserve] ──▶ recompile ──▶ restore state ──▶ app updated
+   (<100ms)            (~50ms)              (~1s)           (~50ms)         total ≈ 1.3s
 ```
 
 ### The `@[Preserve]` annotation
@@ -123,7 +121,6 @@ native.cr reload main.cr
 ---
 
 ## App lifecycle
-
 
 Your app class implements lifecycle hooks:
 
@@ -199,31 +196,23 @@ Native::App.start(CounterApp)
 
 ---
 
-## UI widget tree
+## Composing the widget tree
 
-native.cr uses a tree of widgets composed in `setup`. The tree is rendered by the platform's native graphics pipeline.
+Widgets compose into a tree in `setup`. The tree is rendered by the platform's native graphics pipeline — here is a typical app structure:
 
-```mermaid
-graph TD
-    Root["LinearLayout (vertical)\n@root"] --> Row["LinearLayout (horizontal)"]
-    Root --> Scroll["ScrollView"]
-    Row --> Img["ImageView\nlogo.png"]
-    Row --> Title["TextView\n'My App'"]
-    Scroll --> List["RecyclerView\n@items"]
-    List --> Card1["CardView\nItem 1"]
-    List --> Card2["CardView\nItem 2"]
-    List --> CardN["CardView\nItem N"]
-
-    style Root fill:#7c3aed,color:#fff,stroke:#6d28d9
-    style Row fill:#1d4ed8,color:#fff,stroke:#1e40af
-    style Scroll fill:#1d4ed8,color:#fff,stroke:#1e40af
-    style Img fill:#0f766e,color:#fff,stroke:#0d6466
-    style Title fill:#0f766e,color:#fff,stroke:#0d6466
-    style List fill:#0f766e,color:#fff,stroke:#0d6466
-    style Card1 fill:#374151,color:#e5e7eb,stroke:#4b5563
-    style Card2 fill:#374151,color:#e5e7eb,stroke:#4b5563
-    style CardN fill:#374151,color:#e5e7eb,stroke:#4b5563
 ```
+@root  LinearLayout (vertical)
+├── LinearLayout (horizontal)
+│   ├── ImageView  "logo.png"
+│   └── TextView   "My App"
+└── ScrollView
+    └── RecyclerView  @items
+        ├── CardView  "Item 1"
+        ├── CardView  "Item 2"
+        └── CardView  "Item N"
+```
+
+Every node above is a real platform view: an `android.view.View` on Android, a `UIView` on iOS.
 
 ---
 
@@ -231,12 +220,12 @@ graph TD
 
 | Platform | Min version | CPU target | UI layer | Status |
 |---|---|---|---|---|
-| Android | 7.0+ (API 24) | ARM64 | Real Android Views via JNI | ✅ Stable |
-| iOS | 11+ | ARM64 | Real UIKit views via FFI | ✅ Stable |
-| Desktop (dev) | — | x86\_64 / ARM64 | SDL + OpenGL (dev only) | ✅ Dev only |
-| Windows | — | — | — | 🗺 Roadmap |
-| Linux | — | — | — | 🗺 Roadmap |
-| WebAssembly | — | — | — | 🗺 Roadmap |
+| Android | 7.0+ (API 24) | ARM64 | Real Android Views via JNI | Stable |
+| iOS | 11+ | ARM64 | Real UIKit views via FFI | Stable |
+| Desktop (dev) | — | x86_64 / ARM64 | SDL + OpenGL (dev only) | Dev only |
+| Windows | — | — | — | Roadmap |
+| Linux | — | — | — | Roadmap |
+| WebAssembly | — | — | — | Roadmap |
 
 Platform-specific branches use Crystal's compile-time flags:
 
@@ -254,52 +243,9 @@ Platform-specific branches use Crystal's compile-time flags:
 
 ## What's included
 
-```mermaid
-mindmap
-  root((native.cr))
-    UI
-      TextView
-      Button
-      ImageView
-      LinearLayout
-      ScrollView
-      RecyclerView
-      EditText
-      CardView
-      Checkbox
-      Switch
-      SeekBar
-      WebView
-    Data
-      Preferences
-      FileStorage
-    Network
-      HTTP Client
-      WebSocket
-      Streaming
-    Device
-      Permissions
-      Notifications
-      Location / GPS
-      Sensors
-      Camera
-      Audio
-      Video
-    Commerce
-      In-App Purchases
-      Subscriptions
-    Engine
-      Animations
-      Gestures
-      Navigation
-      Dialogs
-      Game Loop
-      Math Utils
-```
-
 | Module | What you get |
 |---|---|
-| **UI** | `TextView`, `Button`, `ImageView`, `LinearLayout`, `ScrollView`, `RecyclerView`, `EditText`, `CardView`, `Checkbox`, `Switch`, `SeekBar`, `RadioButton`, `Spinner`, `WebView` |
+| **UI** | `TextView`, `Button`, `ImageView`, `LinearLayout`, `ScrollView`, `RecyclerView`, `EditText`, `CardView`, `Checkbox`, `Switch`, `SeekBar`, `RadioButton`, `Spinner`, `WebView`, `Icon`, `ProgressBar` |
 | **Networking** | `HTTPClient` with base URL, `WebSocket`, streaming, request builder |
 | **Storage** | `Preferences` (key-value) and `FileStorage` (Documents, Cache, Temporary) |
 | **Permissions** | Unified permission API for camera, mic, location, notifications, storage, contacts |
@@ -310,9 +256,10 @@ mindmap
 | **Audio** | `Sound` (SFX), `MusicPlayer` (streaming), `AudioRecorder`, `AudioMixer` |
 | **Video** | `VideoPlayer` (a `View` subclass), seek, loop, volume, scale types |
 | **Payments** | In-app purchases and subscriptions (Google Play Billing + StoreKit), restore |
-| **Animations** | Tweens, easing curves, animation sequences |
+| **Biometric** | Fingerprint / Face ID authentication with system prompts |
+| **Animations** | Tweens, easing curves, animation sequences, animator sets |
 | **Gestures** | Tap, long press, pan, pinch, rotation, swipe |
-| **Navigation** | Screen stack with transitions |
+| **Navigation** | Screen stack with transitions, `Toolbar` with menus |
 | **Dialogs** | Alert, confirmation, toast, loading, action sheet |
 | **Game loop** | Fixed, variable, and adaptive update modes |
 | **Math** | `Vector2`, `Vector3`, `Rect`, `Matrix3`, `Color` |
@@ -341,12 +288,12 @@ make install
 
 ```bash
 native.cr --version
-# Native 0.1.3
+# Native 0.1.7
 
 native.cr doctor
-# ✓ Crystal 1.20.1
-# ✓ Android NDK r25c
-# ✓ Xcode 14.3
+# OK  Crystal 1.20.1
+# OK  Android NDK r25c
+# OK  Xcode 14.3
 ```
 
 ### Step 3 — add to a Crystal project
@@ -386,6 +333,8 @@ See the full **[Getting Started guide →](docs/getting-started.md)**
 
 ## Project layout
 
+A native.cr app:
+
 ```
 MyApp/
 ├── main.cr          ← entry point — your Native::App subclass
@@ -416,7 +365,7 @@ src/native/
 │   ├── payment.cr
 │   └── …
 ├── engine/
-│   ├── android/         ← OpenGL ES + JNI bridge
+│   ├── android/         ← JNI bridge (verified against OpenJDK jni.h) + OpenGL ES
 │   └── ios/             ← Metal + Objective-C bridge
 └── cli/                 ← create, build, reload, doctor
 ```
@@ -458,7 +407,16 @@ The [`examples/`](examples/) folder has runnable apps you can clone and run imme
 
 ## Changelog
 
-### v0.1.3 — current
+### v0.1.7 — current
+
+- Pre-1.0 hardening: security sweep of the build/CLI pipeline (no shell injection, no password leaks, correct version sorting)
+- JNI engine repaired: function table verified slot-by-slot against OpenJDK `jni.h` (a 4-slot misalignment previously bound array functions to the wrong JNI entry points); `CallLongMethodA`, `CallDoubleMethodA`, `CallStaticFloatMethodA`, exception handling and the full typed field API added
+- `call_long_method` / `call_double_method` return real values (previously hardcoded to 0)
+- Every framework file migrated to `JNIHelpers` — automatic JNI local-reference cleanup everywhere, zero uncovered refs across 35 files
+- On-device crashes fixed: `LinearLayout.addView(weight)` null method id, `BiometricPrompt` constructor signature, `Toolbar` menu-add argument types, sensors/share typos that never compiled for Android
+- CI: platform typecheck matrix that genuinely compiles the `-Dnative_android` / `-Dnative_ios` branches
+
+### v0.1.3
 
 - In-app purchases via Google Play Billing + StoreKit
 - `VideoPlayer` widget (subclass of `View`)
@@ -529,10 +487,10 @@ Types: `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `chore`
 
 | | |
 |---|---|
-| 💬 Discord | https://discord.gg/nativecr |
-| 🐛 Issues | https://github.com/slick-lab/native.cr/issues |
-| 🌐 Homepage | https://slick-lab.github.io/native.cr |
-| 📧 Email | dev@native.cr |
+| Discord | https://discord.gg/nativecr |
+| Issues | https://github.com/slick-lab/native.cr/issues |
+| Homepage | https://slick-lab.github.io/native.cr |
+| Email | dev@native.cr |
 
 ---
 

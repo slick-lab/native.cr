@@ -39,8 +39,7 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return "Unknown" unless env && activity
 
-      get_content_resolver = env.get_method_id(env.get_object_class(activity), "getContentResolver", "()Landroid/content/ContentResolver;")
-      resolver = env.call_object_method(activity, get_content_resolver)
+      resolver = JNIHelpers.call_object(env, activity, "getContentResolver", "()Landroid/content/ContentResolver;")
 
       settings_class = env.find_class("android/provider/Settings$Secure")
       get_string = env.get_static_method_id(settings_class, "getString", "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;")
@@ -111,10 +110,10 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return 0 unless env && activity
 
-      resources = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getResources", "()Landroid/content/res/Resources;"))
-      metrics = env.call_object_method(resources, env.get_method_id(env.get_object_class(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+      resources = JNIHelpers.call_object(env, activity, "getResources", "()Landroid/content/res/Resources;")
+      metrics = JNIHelpers.call_object(env, resources, "getDisplayMetrics", "()Landroid/util/DisplayMetrics;")
 
-      width = env.get_int_field(metrics, env.get_field_id(env.get_object_class(metrics), "widthPixels", "I"))
+      width = JNIHelpers.get_int_field_by_name(env, metrics.to_i64, "widthPixels", "I")
 
       env.delete_local_ref(resources)
       env.delete_local_ref(metrics)
@@ -133,10 +132,10 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return 0 unless env && activity
 
-      resources = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getResources", "()Landroid/content/res/Resources;"))
-      metrics = env.call_object_method(resources, env.get_method_id(env.get_object_class(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+      resources = JNIHelpers.call_object(env, activity, "getResources", "()Landroid/content/res/Resources;")
+      metrics = JNIHelpers.call_object(env, resources, "getDisplayMetrics", "()Landroid/util/DisplayMetrics;")
 
-      height = env.get_int_field(metrics, env.get_field_id(env.get_object_class(metrics), "heightPixels", "I"))
+      height = JNIHelpers.get_int_field_by_name(env, metrics.to_i64, "heightPixels", "I")
 
       env.delete_local_ref(resources)
       env.delete_local_ref(metrics)
@@ -155,11 +154,11 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return 0.0f32 unless env && activity
 
-      resources = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getResources", "()Landroid/content/res/Resources;"))
-      metrics = env.call_object_method(resources, env.get_method_id(env.get_object_class(resources), "getDisplayMetrics", "()Landroid/util/DisplayMetrics;"))
+      resources = JNIHelpers.call_object(env, activity, "getResources", "()Landroid/content/res/Resources;")
+      metrics = JNIHelpers.call_object(env, resources, "getDisplayMetrics", "()Landroid/util/DisplayMetrics;")
 
       # densityDpi is Int32 — use get_int_field instead of the missing get_float_field
-      density_dpi = env.get_int_field(metrics, env.get_field_id(env.get_object_class(metrics), "densityDpi", "I"))
+      density_dpi = JNIHelpers.get_int_field_by_name(env, metrics.to_i64, "densityDpi", "I")
 
       env.delete_local_ref(resources)
       env.delete_local_ref(metrics)
@@ -178,11 +177,16 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return unless env && activity
 
-      vibrator = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("vibrator"))
+      vibrator = JNIHelpers.with_jstring(env, "vibrator") do |jname|
+        JNIHelpers.call_object(env, activity.to_i64, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;", jname)
+      end
 
-      if vibrator
-        JNIHelpers.call_void(env, vibrator, "vibrate", "(J)V", duration_ms.to_i64)
-        env.delete_local_ref(vibrator)
+      if vibrator && !vibrator.null?
+        begin
+          JNIHelpers.call_void(env, vibrator.to_i64, "vibrate", "(J)V", duration_ms.to_i64)
+        ensure
+          env.delete_local_ref(vibrator)
+        end
       end
     elsif ios?
       LibIOS.vibrate
@@ -256,18 +260,20 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return unless env && activity
 
-      clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
+      clipboard = JNIHelpers.with_jstring(env, "clipboard") do |jname|
+        JNIHelpers.call_object(env, activity.to_i64, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;", jname)
+      end
 
-      if clipboard
-        clip_class = env.find_class("android/content/ClipData")
-        new_plain_text = env.get_static_method_id(clip_class, "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;")
-        clip = env.call_static_object_method(clip_class, new_plain_text, env.new_string_utf("text"), env.new_string_utf(text))
-        env.delete_local_ref(clip_class) unless clip_class.null?
-
-        JNIHelpers.call_void(env, clipboard, "setPrimaryClip", "(Landroid/content/ClipData;)V", clip)
-
+      if clipboard && !clipboard.null?
+        clip = JNIHelpers.call_static_object(env, "android/content/ClipData", "newPlainText", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Landroid/content/ClipData;", "text", text)
+        if clip && !clip.null?
+          begin
+            JNIHelpers.call_void(env, clipboard.to_i64, "setPrimaryClip", "(Landroid/content/ClipData;)V", clip)
+          ensure
+            env.delete_local_ref(clip)
+          end
+        end
         env.delete_local_ref(clipboard)
-        env.delete_local_ref(clip)
       end
     elsif ios?
       LibIOS.copy_to_clipboard(text.to_utf8)
@@ -280,31 +286,45 @@ module Native::Platform
       activity = Native::Android::JNI.activity
       return "" unless env && activity
 
-      clipboard = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"), env.new_string_utf("clipboard"))
-
-      if clipboard
-        has_text = env.get_method_id(env.get_object_class(clipboard), "hasPrimaryClip", "()Z")
-        if env.call_boolean_method(clipboard, has_text)
-          get_clip = env.get_method_id(env.get_object_class(clipboard), "getPrimaryClip", "()Landroid/content/ClipData;")
-          clip = env.call_object_method(clipboard, get_clip)
-
-          get_item = env.get_method_id(env.get_object_class(clip), "getItemAt", "(I)Landroid/content/ClipData$Item;")
-          item = env.call_object_method(clip, get_item, 0)
-
-          get_text = env.get_method_id(env.get_object_class(item), "getText", "()Ljava/lang/CharSequence;")
-          text = env.call_object_method(item, get_text)
-
-          result = env.get_string_utf_chars(text).to_s
-
-          env.delete_local_ref(clipboard)
-          env.delete_local_ref(clip)
-          env.delete_local_ref(item)
-
-          return result
-        end
-        env.delete_local_ref(clipboard)
+      clipboard = JNIHelpers.with_jstring(env, "clipboard") do |jname|
+        JNIHelpers.call_object(env, activity.to_i64, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;", jname)
       end
-      ""
+
+      if clipboard && !clipboard.null?
+        begin
+          has_clip = JNIHelpers.call_boolean(env, clipboard.to_i64, "hasPrimaryClip", "()Z")
+          unless has_clip
+            return ""
+          end
+
+          clip = JNIHelpers.call_object(env, clipboard.to_i64, "getPrimaryClip", "()Landroid/content/ClipData;")
+          return "" if clip.null?
+          begin
+            item = JNIHelpers.call_object(env, clip.to_i64, "getItemAt", "(I)Landroid/content/ClipData$Item;", 0)
+            return "" if item.null?
+            begin
+              text_obj = JNIHelpers.call_object(env, item.to_i64, "getText", "()Ljava/lang/CharSequence;")
+              result = ""
+              if text_obj && !text_obj.null?
+                begin
+                  result = env.get_string_utf_chars(text_obj)
+                ensure
+                  env.delete_local_ref(text_obj)
+                end
+              end
+              result
+            ensure
+              env.delete_local_ref(item)
+            end
+          ensure
+            env.delete_local_ref(clip)
+          end
+        ensure
+          env.delete_local_ref(clipboard)
+        end
+      else
+        ""
+      end
     elsif ios?
       ptr = LibIOS.paste_from_clipboard
       if ptr
@@ -326,11 +346,11 @@ module Native::Platform
       return 0 unless env && activity
 
       intent_filter = env.new_object(env.find_class("android/content/IntentFilter"), env.get_method_id(env.find_class("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.new_string_utf("android.intent.action.BATTERY_CHANGED"))
-      battery_status = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
+      battery_status = JNIHelpers.call_object(env, activity, "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;", nil, intent_filter)
 
       if battery_status
-        level = env.get_int_field(battery_status, env.get_field_id(env.get_object_class(battery_status), "level", "I"))
-        scale = env.get_int_field(battery_status, env.get_field_id(env.get_object_class(battery_status), "scale", "I"))
+        level = JNIHelpers.get_int_field_by_name(env, battery_status.to_i64, "level", "I")
+        scale = JNIHelpers.get_int_field_by_name(env, battery_status.to_i64, "scale", "I")
         result = (level * 100 / scale)
         env.delete_local_ref(battery_status)
         result
@@ -351,10 +371,10 @@ module Native::Platform
       return false unless env && activity
 
       intent_filter = env.new_object(env.find_class("android/content/IntentFilter"), env.get_method_id(env.find_class("android/content/IntentFilter"), "<init>", "(Ljava/lang/String;)V"), env.new_string_utf("android.intent.action.BATTERY_CHANGED"))
-      battery_status = env.call_object_method(activity, env.get_method_id(env.get_object_class(activity), "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;"), nil, intent_filter)
+      battery_status = JNIHelpers.call_object(env, activity, "registerReceiver", "(Landroid/content/BroadcastReceiver;Landroid/content/IntentFilter;)Landroid/content/Intent;", nil, intent_filter)
 
       if battery_status
-        plugged = env.get_int_field(battery_status, env.get_field_id(env.get_object_class(battery_status), "plugged", "I"))
+        plugged = JNIHelpers.get_int_field_by_name(env, battery_status.to_i64, "plugged", "I")
         result = plugged != 0
         env.delete_local_ref(battery_status)
         result

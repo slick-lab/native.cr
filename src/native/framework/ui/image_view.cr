@@ -46,13 +46,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
         jpath = env.new_string_utf(path)
-        set_image = env.get_method_id(env.get_object_class(@native), "setImageURI", "(Landroid/net/Uri;)V")
-        uri_class = env.find_class("android/net/Uri")
-        parse_method = env.get_static_method_id(uri_class, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
-        uri = env.call_static_object_method(uri_class, parse_method, jpath)
-        env.delete_local_ref(jpath) unless jpath.null?
-        env.delete_local_ref(uri_class) unless uri_class.null?
-        env.call_void_method(@native, set_image, uri)
+        JNIHelpers.call_void(env, @native, "setImageURI", "(Landroid/net/Uri;)V", uri)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_path(@native, path.to_utf8)
       {% end %}
@@ -64,12 +58,7 @@ module Native::UI
         return unless env && @native != 0
         byte_array = env.new_byte_array(data.size)
         env.set_byte_array_region(byte_array, 0, data.size, data)
-        set_image = env.get_method_id(env.get_object_class(@native), "setImageBitmap", "(Landroid/graphics/Bitmap;)V")
-        bitmap_class = env.find_class("android/graphics/BitmapFactory")
-        decode_method = env.get_static_method_id(bitmap_class, "decodeByteArray", "([BII)Landroid/graphics/Bitmap;")
-        bitmap = env.call_static_object_method(bitmap_class, decode_method, byte_array, 0, data.size)
-        env.delete_local_ref(bitmap_class) unless bitmap_class.null?
-        env.call_void_method(@native, set_image, bitmap)
+        JNIHelpers.call_void(env, @native, "setImageBitmap", "(Landroid/graphics/Bitmap;)V", bitmap)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_data(@native, data, data.size)
       {% end %}
@@ -101,9 +90,8 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return ScaleType::FitCenter unless env && @native != 0
-        get_scale = env.get_method_id(env.get_object_class(@native), "getScaleType", "()Landroid/widget/ImageView$ScaleType;")
-        scale_obj = env.call_object_method(@native, get_scale)
-        scale_name = env.call_object_method(scale_obj, env.get_method_id(env.get_object_class(scale_obj), "toString", "()Ljava/lang/String;"))
+        scale_obj = JNIHelpers.call_object(env, @native, "getScaleType", "()Landroid/widget/ImageView$ScaleType;")
+        scale_name = JNIHelpers.call_object(env, scale_obj, "toString", "()Ljava/lang/String;")
         name = env.get_string_utf_chars(scale_name, nil).to_s
         case name
         when "FIT_XY"        then ScaleType::FitXY
