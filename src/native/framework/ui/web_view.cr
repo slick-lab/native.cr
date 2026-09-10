@@ -62,7 +62,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
+        settings = JNIHelpers.call_object(env, @native, "getSettings", "()Landroid/webkit/WebSettings;")
         JNIHelpers.call_void(env, settings, "setJavaScriptEnabled", "(Z)V", value)
       {% elsif flag?(:native_ios) %}
         LibIOS.web_view_set_js_enabled(@native, value)
@@ -78,7 +78,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return unless env && @native != 0
-        settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
+        settings = JNIHelpers.call_object(env, @native, "getSettings", "()Landroid/webkit/WebSettings;")
         JNIHelpers.call_void(env, settings, "setDomStorageEnabled", "(Z)V", value)
       {% end %}
     end
@@ -170,7 +170,7 @@ module Native::UI
       env = Native::Android::JNI.env
       return unless env && @native != 0
 
-      settings = env.call_object_method(@native, env.get_method_id(env.get_object_class(@native), "getSettings", "()Landroid/webkit/WebSettings;"))
+      settings = JNIHelpers.call_object(env, @native, "getSettings", "()Landroid/webkit/WebSettings;")
       JNIHelpers.call_void(env, settings, "setCacheMode", "(I)V", -1)
     end
 

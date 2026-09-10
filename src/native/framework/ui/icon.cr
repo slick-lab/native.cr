@@ -43,17 +43,7 @@ module Native::UI
         env = Native::Android::JNI.env
         return unless env && @native != 0
 
-        set_typeface = env.get_method_id(env.get_object_class(@native), "setTypeface", "(Landroid/graphics/Typeface;)V")
-
-        typeface_class = env.find_class("android/graphics/Typeface")
-        create_method = env.get_static_method_id(typeface_class, "createFromAsset", "(Landroid/content/res/AssetManager;Ljava/lang/String;)Landroid/graphics/Typeface;")
-
-        asset_manager = env.call_object_method(Native::Android::JNI.activity, env.get_method_id(env.get_object_class(Native::Android::JNI.activity), "getAssets", "()Landroid/content/res/AssetManager;"))
-        typeface = env.call_static_object_method(typeface_class, create_method, asset_manager, env.new_string_utf("#{@font_family}.ttf"))
-        env.delete_local_ref(typeface_class) unless typeface_class.null?
-
-        if typeface
-          env.call_void_method(@native, set_typeface, typeface)
+          JNIHelpers.call_void(env, @native, "setTypeface", "(Landroid/graphics/Typeface;)V", typeface)
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_font(@native, @font_family.to_utf8)

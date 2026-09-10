@@ -80,8 +80,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return @selected_position unless env && @native != 0
-        get_selection = env.get_method_id(env.get_object_class(@native), "getSelectedItemPosition", "()I")
-        @selected_position = env.call_int_method(@native, get_selection)
+        @selected_position = JNIHelpers.call_int(env, @native, "getSelectedItemPosition", "()I")
       {% elsif flag?(:native_ios) %}
         @selected_position = LibIOS.picker_view_get_selected(@native)
       {% end %}

@@ -59,8 +59,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return @text unless env && @native != 0
-        get_text = env.get_method_id(env.get_object_class(@native), "getText", "()Landroid/text/Editable;")
-        result = env.call_object_method(@native, get_text)
+        result = JNIHelpers.call_object(env, @native, "getText", "()Landroid/text/Editable;")
         if result
           @text = env.get_string_utf_chars(result, nil).to_s
           env.delete_local_ref(result)

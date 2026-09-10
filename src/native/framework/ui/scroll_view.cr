@@ -177,8 +177,7 @@ module Native::UI
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         return nil unless env && @native != 0
-        get_child = env.get_method_id(env.get_object_class(@native), "getChildAt", "(I)Landroid/view/View;")
-        child_ptr = env.call_object_method(@native, get_child, index)
+        child_ptr = JNIHelpers.call_object(env, @native, "getChildAt", "(I)Landroid/view/View;", index)
         if child_ptr != Pointer(Void).null
           view = View.new
           view.native = child_ptr.to_i64
