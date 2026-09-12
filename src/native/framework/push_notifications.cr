@@ -33,6 +33,14 @@
 #       end
 #     end
 #   end
+#
+# ── Threading contract ────────────────────────────────────────────────────────
+#
+# The Java bridge (PushManager / FcmService / NotificationReceiver) posts every
+# native callback to the Android main thread before it reaches the `fun`s
+# below. That keeps the JNI environment handle valid (it is only usable on the
+# thread that obtained it) and matches the threading model of every other
+# framework callback. User callbacks therefore also fire on the main thread.
 
 module Native
   module PushNotifications
@@ -47,9 +55,10 @@ module Native
     end
 
     # ── Internal callback storage ─────────────────────────────────────────
-    @@on_message_cb   : (Message -> Nil)?         = nil
-    @@on_tap_cb       : (String, Int32 -> Nil)?   = nil
-    @@on_token_cb     : (String -> Nil)?           = nil
+    @@on_message_cb    : (Message -> Nil)?         = nil
+    @@on_tap_cb        : (String, Int32 -> Nil)?   = nil
+    @@on_token_cb      : (String -> Nil)?          = nil
+    @@on_token_refresh_cb : (String -> Nil)?       = nil
     @@on_permission_cb : (Bool -> Nil)?            = nil
 
     # ── Public API ─────────────────────────────────────────────────────────
@@ -58,72 +67,85 @@ module Native
     # On Android <13 this always yields `true` immediately.
     # On Android 13+ it shows the system permission dialog.
     # On iOS it shows the native permission prompt.
-    #
-    # The callback fires on the Crystal thread.
     def self.request_permission(&callback : Bool -> Nil)
       @@on_permission_cb = callback
 
       {% if flag?(:native_android) %}
-        env      = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        unless env && !activity.null?
-          callback.call(false)
-          return
-        end
-
-        # Android 13+ (API 33): POST_NOTIFICATIONS is a runtime permission.
-        build_class    = env.find_class("android/os/Build$VERSION")
-        sdk_field      = env.get_static_field_id(build_class, "SDK_INT", "I")
-        sdk_int        = env.get_static_int_field(build_class, sdk_field)
-
-        if sdk_int >= 33
-          Native::Permissions::PermissionManager.request(
-            Native::Permissions::PermissionType::Notifications
-          ) do |status|
-            granted = status == Native::Permissions::PermissionStatus::Granted
-            @@on_permission_cb.try &.call(granted)
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          if activity.null?
+            @@on_permission_cb.try &.call(false)
+            next
           end
-        else
-          # Pre-13: permission is granted at install time.
-          callback.call(true)
+
+          # Android 13+ (API 33): POST_NOTIFICATIONS is a runtime permission.
+          sdk_int = JNIHelpers.with_class(env, "android/os/Build$VERSION") do |build_class|
+            next -1 if build_class.null?
+            sdk_field = env.get_static_field_id(build_class, "SDK_INT", "I")
+            next -1 if sdk_field.null?
+            env.get_static_int_field(build_class, sdk_field)
+          end
+
+          if sdk_int == -1
+            # Build.VERSION lookup failed — assume the manifest asked for
+            # POST_NOTIFICATIONS and let the OS decide.
+            @@on_permission_cb.try &.call(true)
+          elsif sdk_int >= 33
+            Native::Permissions::PermissionManager.request(
+              Native::Permissions::PermissionType::Notifications
+            ) do |status|
+              granted = status == Native::Permissions::PermissionStatus::Granted
+              @@on_permission_cb.try &.call(granted)
+            end
+          else
+            # Pre-13: permission is granted at install time.
+            @@on_permission_cb.try &.call(true)
+          end
         end
       {% elsif flag?(:native_ios) %}
-        # iOS: use the existing LibIOS shim.
         granted = LibIOS.request_notification_permission
-        callback.call(granted)
+        @@on_permission_cb.try &.call(granted)
       {% else %}
-        callback.call(true)
+        @@on_permission_cb.try &.call(true)
       {% end %}
     end
 
     # Retrieve the FCM (Android) or APNs (iOS) device token asynchronously.
     # The token is needed to send push notifications from your server.
+    # Yields "" when Firebase is unavailable or the bridge is missing.
     def self.get_token(&callback : String -> Nil)
       @@on_token_cb = callback
 
       {% if flag?(:native_android) %}
-        env      = Native::Android::JNI.env
-        activity = Native::Android::JNI.activity
-        unless env && !activity.null?
-          callback.call("")
-          return
-        end
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          if activity.null?
+            @@on_token_cb.try &.call("")
+            next
+          end
 
-        push_class = env.find_class("com/nativecr/PushManager")
-        if push_class.null?
-          callback.call("")
-          return
-        end
+          JNIHelpers.with_class(env, "com/nativecr/PushManager") do |push_class|
+            if push_class.null?
+              @@on_token_cb.try &.call("")
+              next
+            end
 
-        get_token_method = env.get_static_method_id(
-          push_class, "getToken", "(Landroid/app/Activity;)V")
-        env.call_static_void_method(push_class, get_token_method, activity)
-        # Result fires via nativeOnTokenReady JNI callback → handle_token_ready
+            get_token_method = env.get_static_method_id(
+              push_class, "getToken", "(Landroid/app/Activity;)V")
+            if get_token_method.null?
+              @@on_token_cb.try &.call("")
+              next
+            end
+
+            env.call_static_void_method(push_class, get_token_method, activity)
+            # Result fires via nativeOnTokenReady JNI callback → handle_token_ready
+          end
+        end
       {% elsif flag?(:native_ios) %}
         # iOS token arrives via AppDelegate callback — bridge not shown here.
-        callback.call("")
+        @@on_token_cb.try &.call("")
       {% else %}
-        callback.call("desktop-no-token")
+        @@on_token_cb.try &.call("desktop-no-token")
       {% end %}
     end
 
@@ -140,38 +162,74 @@ module Native
       @@on_tap_cb = callback
     end
 
-    # ── JNI entry points (called from Java/native bridge) ─────────────────
-    # These are called from Crystal-side JNI exports defined below.
+    # Register a callback for FCM token rotation (onNewToken). A rotated
+    # token must be re-registered with your backend.
+    def self.on_token_refresh(&callback : String -> Nil)
+      @@on_token_refresh_cb = callback
+    end
+
+    # ── JNI entry points (called from the Java bridge, main thread) ───────
+    # User callbacks are wrapped in rescue so an exception in app code can
+    # never unwind through the JNI boundary and kill the VM.
 
     # :nodoc:
     def self.handle_token_ready(token : String) : Nil
-      @@on_token_cb.try &.call(token)
+      @@on_token_cb.try do |cb|
+        begin
+          cb.call(token)
+        rescue e
+          Log.warn { "push on_token callback raised: #{e.message}" }
+        end
+      end
+    end
+
+    # :nodoc:
+    def self.handle_token_refresh(token : String) : Nil
+      @@on_token_refresh_cb.try do |cb|
+        begin
+          cb.call(token)
+        rescue e
+          Log.warn { "push on_token_refresh callback raised: #{e.message}" }
+        end
+      end
     end
 
     # :nodoc:
     def self.handle_message_received(title : String, body : String, payload : String) : Nil
       msg = Message.new(title, body, payload)
-      @@on_message_cb.try &.call(msg)
+      @@on_message_cb.try do |cb|
+        begin
+          cb.call(msg)
+        rescue e
+          Log.warn { "push on_message callback raised: #{e.message}" }
+        end
+      end
     end
 
     # :nodoc:
     def self.handle_notification_tapped(payload : String, id : Int32) : Nil
-      @@on_tap_cb.try &.call(payload, id)
+      @@on_tap_cb.try do |cb|
+        begin
+          cb.call(payload, id)
+        rescue e
+          Log.warn { "push on_tap callback raised: #{e.message}" }
+        end
+      end
     end
   end
 end
 
 # ── JNI export functions ────────────────────────────────────────────────────
 # These Crystal `fun` declarations are the symbols that Java calls via JNI.
-# The mangled names follow the JNI convention:
-#   Java_<pkg>_<ClassName>_<methodName>
+# The names follow the JNI convention: Java_<pkg>_<ClassName>_<methodName>.
 #
-# Each method is called on a background thread; be careful with shared state.
+# The Java bridge posts all of these onto the Android main thread before
+# invoking them, so the cached JNI environment is always valid here.
 
 {% if flag?(:native_android) %}
-   fun Java_com_nativecr_PushManager_nativeOnTokenReady(
+  fun Java_com_nativecr_PushManager_nativeOnTokenReady(
     env : Void*, cls : Void*, token_j : Void*
-   ) : Void
+  ) : Void
     token_s = Native::Android::JNI.get_string_utf_chars(token_j)
     Native::PushNotifications.handle_token_ready(token_s)
   end
@@ -180,7 +238,7 @@ end
     env : Void*, cls : Void*, token_j : Void*
   ) : Void
     token_s = Native::Android::JNI.get_string_utf_chars(token_j)
-    Native::PushNotifications.handle_token_ready(token_s)
+    Native::PushNotifications.handle_token_refresh(token_s)
   end
 
   fun Java_com_nativecr_FcmService_nativeOnMessageReceived(

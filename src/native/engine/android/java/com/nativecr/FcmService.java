@@ -37,17 +37,32 @@ import android.util.Log;
 public class FcmService extends com.google.firebase.messaging.FirebaseMessagingService {
     private static final String TAG = "NativeCR.FCM";
 
+    // All native callbacks are posted to the main thread — see PushManager.
+    private static final android.os.Handler MAIN =
+        new android.os.Handler(android.os.Looper.getMainLooper());
+
+    private static void postToNative(Runnable r) {
+        MAIN.post(r);
+    }
+
     // Called when a new FCM registration token is generated.
     @Override
     public void onNewToken(String token) {
         super.onNewToken(token);
         Log.d(TAG, "New FCM token: " + token);
-        PushManager.storeToken(token);
-        try {
-            nativeOnTokenRefresh(token);
-        } catch (UnsatisfiedLinkError e) {
-            Log.w(TAG, "Native lib not ready for token callback: " + e.getMessage());
-        }
+        PushManager.storeToken(token != null ? token : "");
+        postToNative(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    nativeOnTokenRefresh(token != null ? token : "");
+                } catch (UnsatisfiedLinkError e) {
+                    Log.w(TAG, "Native lib not ready for token callback: " + e.getMessage());
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in token refresh callback: " + e.getMessage());
+                }
+            }
+        });
     }
 
     // Called when a push message is received while the app is in the foreground.
@@ -92,12 +107,19 @@ public class FcmService extends com.google.firebase.messaging.FirebaseMessagingS
             );
         }
 
-        // Fire the Crystal callback.
-        try {
-            nativeOnMessageReceived(title, body, payload);
-        } catch (UnsatisfiedLinkError e) {
-            Log.w(TAG, "Native lib not ready for message callback: " + e.getMessage());
-        }
+        // Fire the Crystal callback (posted to the main thread — see PushManager).
+        postToNative(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    nativeOnMessageReceived(title, body, payload);
+                } catch (UnsatisfiedLinkError e) {
+                    Log.w(TAG, "Native lib not ready for message callback: " + e.getMessage());
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in message callback: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private static String escapeJson(String s) {

@@ -2,6 +2,28 @@
 
 All notable changes to native.cr will be documented in this file.
 
+## [0.1.8] - Unreleased
+
+### Added
+- **Push notifications** (`Native::PushNotifications`): FCM on Android, APNs-ready on iOS —
+  `request_permission`, `get_token`, `on_token` / `on_token_refresh` / `on_message` / `on_tap`,
+  foreground message → local notification bridging, exception-safe callback dispatch
+- **iOS binding layer** (`src/native/engine/ios/ios_bindings.cr`): the full `lib LibIOS` C-ABI
+  contract — 226 funs covering every framework call site (225 referenced), with documented
+  handle/string/memory conventions for the native Swift dylib to implement
+- `JNIHelpers.new_object` (constructor one-shot on a stored handle's class) and
+  `get_int_field_by_name` (leak-free field reads)
+- Push notification spec coverage (desktop dispatch paths)
+
+### Fixed
+- Push bridge threads: Java side now posts every native callback to the main thread
+  (FCM/GMS executor threads were calling into a thread-bound cached JNIEnv)
+- `PushManager.getToken`: removed a dead reflection listener that was built but never
+  attached; null tokens no longer cross the JNI boundary
+- `platform#share` on iOS now matches the 6-argument share ABI (NULL for absent fields)
+- Removed the never-compiled `push_notification.c_r` from the repository root
+
+
 ## [0.1.6] - 2029-06-27
 
 ### fixes
