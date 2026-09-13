@@ -250,7 +250,10 @@ module Native::Platform
       env.delete_local_ref(intent)
       env.delete_local_ref(chooser)
     elsif ios?
-      LibIOS.share(text.to_utf8, title.to_utf8)
+      # share's full ABI is (text, url, title, image_path, image_data, mime_type);
+      # platform-level share only carries text and title — the rest are NULL.
+      LibIOS.share(text.to_utf8, Pointer(UInt8).null, title.to_utf8,
+                   Pointer(UInt8).null, Pointer(UInt8).null, Pointer(UInt8).null)
     end
   end
 

@@ -253,12 +253,27 @@ module Native::CLI
       Dir.mkdir_p(frameworks_dir)
       FileUtils.cp("#{lib_dir}/libnative_cr_engine.a", frameworks_dir)
 
+      # Ensure the Swift runtime (LibIOS implementation) is present in the
+      # project — the generator copies it, but older projects may predate it.
+      runtime_dir = "#{__DIR__}/../engine/ios/swift"
+      app_dir = Dir.glob("#{ios_project}/*/AppDelegate.swift").first?.try(&.dirname)
+      unless app_dir
+        puts "[native.cr] Error: no AppDelegate.swift found under #{ios_project} — regenerate with 'native.cr create'"
+        exit(1)
+      end
+      Dir.glob("#{runtime_dir}/*.swift").each do |src|
+        FileUtils.cp(src, "#{app_dir}/#{File.basename(src)}")
+      end
+
       puts "[native.cr] Compiling user code with framework..."
       user_o = "#{@output}/user_code.o"
+      # NOTE: the define MUST be native_ios — the framework checks
+      # flag?(:native_ios); "-D ios" would silently build the desktop branch.
+      # The target triple must be apple-ios for UIKit-compatible symbols.
       crystal_args = [
         "build", @entry_point,
-        "-D", "ios",
-        "--target", "aarch64-apple-darwin",
+        "-Dnative_ios",
+        "--target", "aarch64-apple-ios",
         "--cross-compile", "-o", user_o,
       ]
       crystal_args << "--release" if @release

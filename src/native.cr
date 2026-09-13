@@ -1,6 +1,7 @@
 require "json"
 require "file_utils"
 require "signal"
+require "log"
 require "./native/app"
 require "./native/cli/*"
 
@@ -36,6 +37,7 @@ require "./native/framework/media/*"
 require "./native/framework/navigation/screen"
 require "./native/framework/navigation/navigator"
 require "./native/framework/navigation/toolbar"
+require "./native/framework/push_notifications"
 
 module Native
   VERSION = "0.1.7"
