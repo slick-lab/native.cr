@@ -5,6 +5,18 @@ All notable changes to native.cr will be documented in this file.
 ## [0.1.8] - Unreleased
 
 ### Added
+- **iOS native runtime (Swift)**: full LibIOS implementation in
+  `src/native/engine/ios/swift/` — UI (views, widgets, alerts, toasts,
+  animators), media (effects/music/recorder/video/camera) and services
+  (HTTP/WebSockets, file storage, user defaults, notifications, StoreKit,
+  biometrics, location, sensors, image picker) — one `@_cdecl` symbol per
+  LibIOS fun, main-thread-safe, retained-pointer handle model
+- **iOS CLI pipeline works end to end**: `native create --ios` emits a
+  complete Xcode project (pbxproj, Info.plist, bridging header, Swift
+  runtime) with no manual steps; `native build ios` fixed (`-Dnative_ios`
+  instead of the never-matching `-D ios`, `aarch64-apple-ios` target,
+  runtime refreshed per build); `native ipa` gains an unsigned simulator
+  Payload fallback without APPLE_TEAM_ID plus Process.run hygiene
 - **Push notifications** (`Native::PushNotifications`): FCM on Android, APNs-ready on iOS —
   `request_permission`, `get_token`, `on_token` / `on_token_refresh` / `on_message` / `on_tap`,
   foreground message → local notification bridging, exception-safe callback dispatch
