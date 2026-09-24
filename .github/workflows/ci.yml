@@ -52,5 +52,6 @@ jobs:
       # its types are actually checked. NOTE: crystal options must come
       # BEFORE the programfile; anything after src/native.cr is passed to
       # the compiled program as ARGV, not as a define.
+      #
       - name: Type-check (${{ matrix.name }})
         run: crystal build --no-codegen ${{ matrix.flags }} -o /dev/null src/native.cr
