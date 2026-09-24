@@ -256,7 +256,9 @@ module Native::CLI
       # Ensure the Swift runtime (LibIOS implementation) is present in the
       # project — the generator copies it, but older projects may predate it.
       runtime_dir = "#{__DIR__}/../engine/ios/swift"
-      app_dir = Dir.glob("#{ios_project}/*/AppDelegate.swift").first?.try(&.dirname)
+      app_dir = Dir.glob("#{ios_project}/*/AppDelegate.swift").first?.try do |app_delegate|
+       File.dirname(app_delegate)
+      end
       unless app_dir
         puts "[native.cr] Error: no AppDelegate.swift found under #{ios_project} — regenerate with 'native.cr create'"
         exit(1)
