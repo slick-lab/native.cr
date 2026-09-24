@@ -227,32 +227,36 @@ end
 # invoking them, so the cached JNI environment is always valid here.
 
 {% if flag?(:native_android) %}
-  fun Java_com_nativecr_PushManager_nativeOnTokenReady(
-    env : Void*, cls : Void*, token_j : Void*
-  ) : Void
+  fun native_on_token_ready =
+    "Java_com_nativecr_PushManager_nativeOnTokenReady"(
+      env : Void*, cls : Void*, token_j : Void*
+    ) : Void
     token_s = Native::Android::JNI.get_string_utf_chars(token_j)
     Native::PushNotifications.handle_token_ready(token_s)
   end
 
-  fun Java_com_nativecr_FcmService_nativeOnTokenRefresh(
-    env : Void*, cls : Void*, token_j : Void*
-  ) : Void
+  fun native_on_token_refresh =
+    "Java_com_nativecr_FcmService_nativeOnTokenRefresh"(
+      env : Void*, cls : Void*, token_j : Void*
+    ) : Void
     token_s = Native::Android::JNI.get_string_utf_chars(token_j)
     Native::PushNotifications.handle_token_refresh(token_s)
   end
 
-  fun Java_com_nativecr_FcmService_nativeOnMessageReceived(
-    env : Void*, cls : Void*, title_j : Void*, body_j : Void*, payload_j : Void*
-  ) : Void
+  fun native_on_message_received =
+    "Java_com_nativecr_FcmService_nativeOnMessageReceived"(
+      env : Void*, cls : Void*, title_j : Void*, body_j : Void*, payload_j : Void*
+    ) : Void
     title   = Native::Android::JNI.get_string_utf_chars(title_j)
     body    = Native::Android::JNI.get_string_utf_chars(body_j)
     payload = Native::Android::JNI.get_string_utf_chars(payload_j)
     Native::PushNotifications.handle_message_received(title, body, payload)
   end
 
-  fun Java_com_nativecr_NotificationReceiver_nativeOnNotificationTapped(
-    env : Void*, cls : Void*, payload_j : Void*, id : Int32
-  ) : Void
+  fun native_on_notification_tapped =
+    "Java_com_nativecr_NotificationReceiver_nativeOnNotificationTapped"(
+      env : Void*, cls : Void*, payload_j : Void*, id : Int32
+    ) : Void
     payload = Native::Android::JNI.get_string_utf_chars(payload_j)
     Native::PushNotifications.handle_notification_tapped(payload, id)
   end
