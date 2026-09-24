@@ -407,32 +407,6 @@ The [`examples/`](examples/) folder has runnable apps you can clone and run imme
 
 ## Changelog
 
-### v0.1.7 — current
-
-- Pre-1.0 hardening: security sweep of the build/CLI pipeline (no shell injection, no password leaks, correct version sorting)
-- JNI engine repaired: function table verified slot-by-slot against OpenJDK `jni.h` (a 4-slot misalignment previously bound array functions to the wrong JNI entry points); `CallLongMethodA`, `CallDoubleMethodA`, `CallStaticFloatMethodA`, exception handling and the full typed field API added
-- `call_long_method` / `call_double_method` return real values (previously hardcoded to 0)
-- Every framework file migrated to `JNIHelpers` — automatic JNI local-reference cleanup everywhere, zero uncovered refs across 35 files
-- On-device crashes fixed: `LinearLayout.addView(weight)` null method id, `BiometricPrompt` constructor signature, `Toolbar` menu-add argument types, sensors/share typos that never compiled for Android
-- CI: platform typecheck matrix that genuinely compiles the `-Dnative_android` / `-Dnative_ios` branches
-
-### v0.1.3
-
-- In-app purchases via Google Play Billing + StoreKit
-- `VideoPlayer` widget (subclass of `View`)
-- Gesture recognisers (tap, long press, pan, pinch, swipe)
-- Navigation stack with transitions
-- `AudioMixer` for global volume control
-
-### v0.1.0 — 2026-06-02
-
-- Android engine (OpenGL ES 2.0) + iOS engine (Metal)
-- Full UI widget set
-- HTTP client, WebSocket, streaming
-- Storage, Sensors, Location, Camera, Audio, Notifications, Permissions
-- Hot reload with `@[Preserve]` state preservation
-- CLI: `create`, `build`, `reload`, `doctor`
-
 Full history → [Changelog.md](Changelog.md)
 
 ---
