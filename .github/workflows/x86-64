@@ -1,0 +1,35 @@
+name: Build CLI for x86-64
+
+on:
+  push:
+    branches: [ main, develop, master ]
+  pull_request:
+    branches: [ main, develop, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64-linux-gnu]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Install Shards
+        run: shards install
+
+      - name: Build CLI (Release)
+        run: |
+          crystal build src/native.cr -o native.cr --release --static --target x86_64-linux-gnu
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-cli-linux-x86-64
+          path: native.cr
