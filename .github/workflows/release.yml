@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-matrix:
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            target: x86_64-linux-gnu
+            artifact-name: native-cli-linux-x86-64
+            os-label: linux-x86-64
+          - runs-on: ubuntu-24.04-arm
+            target: aarch64-linux-gnu
+            artifact-name: native-cli-linux-arm64
+            os-label: linux-arm64
+          - runs-on: macos-15
+            target: aarch64-apple-darwin
+            artifact-name: native-cli-darwin-arm64
+            os-label: darwin-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Install Shards
+        run: shards install
+
+      - name: Build CLI (Release)
+        run: |
+          crystal build src/native.cr -o native.cr --release --static --target ${{ matrix.target }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: native.cr
+
+  create-release:
+    needs: build-matrix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          if [ -f "artifacts/native-cli-linux-x86-64/native.cr" ]; then
+            cp "artifacts/native-cli-linux-x86-64/native.cr" "release-assets/native-cli-linux-x86-64"
+            chmod +x "release-assets/native-cli-linux-x86-64"
+          fi
+          
+          if [ -f "artifacts/native-cli-linux-arm64/native.cr" ]; then
+            cp "artifacts/native-cli-linux-arm64/native.cr" "release-assets/native-cli-linux-arm64"
+            chmod +x "release-assets/native-cli-linux-arm64"
+          fi
+          
+          if [ -f "artifacts/native-cli-darwin-arm64/native.cr" ]; then
+            cp "artifacts/native-cli-darwin-arm64/native.cr" "release-assets/native-cli-darwin-arm64"
+            chmod +x "release-assets/native-cli-darwin-arm64"
+          fi
+          
+          ls -la release-assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
