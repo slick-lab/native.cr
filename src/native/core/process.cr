@@ -139,8 +139,8 @@ module Native::Core
           unless proc.terminated?
             proc.terminate
             # Give the process up to 1 s to save state and exit cleanly.
-            deadline = Time.monotonic + 1.second
-            while Time.monotonic < deadline && !proc.terminated?
+            deadline = Time.instant + 1.second
+            while Time.instant < deadline && !proc.terminated?
               sleep 0.05.seconds
             end
             # If still alive, force-kill — "terminate" again would just

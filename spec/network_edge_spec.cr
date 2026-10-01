@@ -50,16 +50,15 @@ describe Native::Network::Request do
     request.json = %({"a": 1})
     request.form = {"name" => "hello world"}
     request.headers["Content-Type"].should eq("application/x-www-form-urlencoded")
-    request.body.should eq("name=hello%20world")
+    request.body.should eq("name=hello+world")
   end
 
-  it "leaves reserved characters unescaped in form bodies (documents current behavior)" do
+  it "escapes reserved characters in form bodies" do
     request = Native::Network::Request.new
     request.form = {"query" => "a&b=c"}
-    # URI.encode keeps & and = as-is, so values containing reserved
-    # characters currently produce an ambiguous form body. Pinning the
-    # behavior here — switching to URI.encode_www_form would be a fix.
-    request.body.should eq("query=a&b=c")
+    # Form encoding escapes separators so values cannot bleed into the
+    # body structure — a&b=c arrives as a single value, not extra params.
+    request.body.should eq("query=a%26b%3Dc")
   end
 
   it "percent-encodes unicode in form bodies" do

@@ -33,7 +33,7 @@ describe Native::GameLoop::GameLoop do
   it "starts and stops" do
     loop = Native::GameLoop::GameLoop.new
     loop.start
-    sleep 0.1
+    sleep 0.1.seconds
     loop.is_running?.should be_true
     loop.stop
     loop.is_running?.should be_false
@@ -44,7 +44,7 @@ describe Native::GameLoop::GameLoop do
     loop = Native::GameLoop::GameLoop.new
     loop.on_start { started = true }
     loop.start
-    sleep 0.1
+    sleep 0.1.seconds
     started.should be_true
     loop.stop
   end
@@ -54,7 +54,7 @@ describe Native::GameLoop::GameLoop do
     loop = Native::GameLoop::GameLoop.new
     loop.on_update { |delta| updated = true }
     loop.start
-    sleep 0.1
+    sleep 0.1.seconds
     updated.should be_true
     loop.stop
   end
@@ -62,7 +62,7 @@ describe Native::GameLoop::GameLoop do
   it "returns FPS after running" do
     loop = Native::GameLoop::GameLoop.new
     loop.start
-    sleep 1.0
+    sleep 1.0.seconds
     loop.fps.should be > 0
     loop.stop
   end
@@ -72,13 +72,13 @@ describe Native::GameLoop::GameLoop do
     loop = Native::GameLoop::GameLoop.new
     loop.on_update { |delta| updated += 1 }
     loop.start
-    sleep 0.1
+    sleep 0.1.seconds
     loop.pause
     count_after_pause = updated
-    sleep 0.1
+    sleep 0.1.seconds
     updated.should eq(count_after_pause)
     loop.resume
-    sleep 0.1
+    sleep 0.1.seconds
     updated.should be > count_after_pause
     loop.stop
   end
@@ -89,7 +89,7 @@ describe Native::GameLoop::FixedGameLoop do
     loop = Native::GameLoop::FixedGameLoop.new(60)
     loop.target_fps = 60
     loop.start
-    sleep 0.1
+    sleep 0.1.seconds
     loop.is_running?.should be_true
     loop.stop
   end
@@ -99,7 +99,7 @@ describe Native::GameLoop::VariableGameLoop do
   it "creates variable timestep loop" do
     loop = Native::GameLoop::VariableGameLoop.new(60)
     loop.start
-    sleep 0.1
+    sleep 0.1.seconds
     loop.is_running?.should be_true
     loop.stop
   end
