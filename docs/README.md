@@ -41,6 +41,17 @@ Crystal gives you Ruby-like syntax with C-like speed. Your app is a single compi
 | [Getting Started](./getting-started.md) | Install, create your first app, run it |
 | [CLI Reference](./cli.md) | All CLI commands |
 
+### Tutorials
+
+Step-by-step guides that build working apps, in order:
+
+| Tutorial | You learn |
+|----------|-----------|
+| [1 — Your First App](./tutorials/01-first-app.md) | Widgets, clicks, building for Android and iOS |
+| [2 — A Persistent To-Do List](./tutorials/02-todo-list.md) | Input, lists, storage |
+| [3 — Talking to the Network](./tutorials/03-network-app.md) | HTTP, JSON, forms, streaming |
+| [4 — A Touch-Driven Game](./tutorials/04-game.md) | Game loop, touch, animation, audio |
+
 ### Core Concepts
 
 | Guide | Description |
@@ -48,9 +59,9 @@ Crystal gives you Ruby-like syntax with C-like speed. Your app is a single compi
 | [App Lifecycle](./app-lifecycle.md) | App class, callbacks, state |
 | [UI Components](./ui-components.md) | All widgets with examples |
 | [Navigation](./navigation.md) | Screen stack, toolbar, transitions |
-| [Dialogs](./dialogs.md) | Alerts, toasts, loading |
-| [Animations](./animations.md) | ValueAnimator, easing |
-| [Gestures](./gestures.md) | Tap, pan, pinch, swipe |
+| [Dialogs](./dialog.md) | Alerts, toasts, loading |
+| [Animations](./animation.md) | ValueAnimator, easing |
+| [Gestures](./gesture.md) | Tap, pan, pinch, swipe |
 
 ### Data & Networking
 
@@ -68,6 +79,7 @@ Crystal gives you Ruby-like syntax with C-like speed. Your app is a single compi
 | [Location](./location.md) | GPS, location updates |
 | [Sensors](./sensors.md) | Accelerometer, gyro, etc. |
 | [Camera](./camera.md) | Photo and video capture |
+| [Image Picker](./image-picker.md) | Gallery and camera picks |
 | [Audio](./audio.md) | Sound effects, music, recording |
 | [Video](./video.md) | Video playback |
 | [Biometric](./biometric.md) | Fingerprint, Face ID |
@@ -84,7 +96,7 @@ Crystal gives you Ruby-like syntax with C-like speed. Your app is a single compi
 | Guide | Description |
 |-------|-------------|
 | [Game Loop](./game-loop.md) | Fixed/variable updates |
-| [Math Utilities](./math.md) | Vector, Rect, Color |
+| [Math Utilities](./maths.md) | Vector, Rect, Color |
 
 ---
 
