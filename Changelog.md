@@ -5,6 +5,15 @@ All notable changes to native.cr will be documented in this file.
 ## [0.1.8] - Unreleased
 
 ### Added
+- **Tutorial series** (`docs/tutorials/`): four sequential, API-verified
+  tutorials — first app, persistent to-do list, HTTP client, touch game —
+  plus a tutorials index; every snippet checked against the real signatures
+- **Image picker docs** (`docs/image-picker.md`): gallery/camera picks,
+  quality/source enums, resize-on-pick, result fields, honest
+  `pick_multiple` status
+- Docs index repairs: four broken guide links (`dialogs`→`dialog`,
+  `animations`→`animation`, `gestures`→`gesture`, `math`→`maths`) and
+  new Tutorials + Image Picker sections
 - **iOS native runtime (Swift)**: full LibIOS implementation in
   `src/native/engine/ios/swift/` — UI (views, widgets, alerts, toasts,
   animators), media (effects/music/recorder/video/camera) and services
@@ -28,6 +37,14 @@ All notable changes to native.cr will be documented in this file.
 - Push notification spec coverage (desktop dispatch paths)
 
 ### Fixed
+- **Form bodies are now correctly encoded** (`Native::Network::Request#form=`):
+  deprecated `URI.encode` → `URI.encode_www_form`, so values containing
+  `&`, `=` or spaces can no longer bleed into the body structure — `a&b=c`
+  now arrives as one value (`query=a%26b%3Dc`), spaces encode as `+`.
+  Specs updated to pin the new behavior
+- Deprecated API sweep: `Time.monotonic` → `Time.instant` (core/process.cr),
+  `sleep <float>` → `sleep <span>` (9 sites in spec/game_spec.cr) — the
+  full suite now compiles with **zero deprecation warnings**
 - Push bridge threads: Java side now posts every native callback to the main thread
   (FCM/GMS executor threads were calling into a thread-bound cached JNIEnv)
 - `PushManager.getToken`: removed a dead reflection listener that was built but never

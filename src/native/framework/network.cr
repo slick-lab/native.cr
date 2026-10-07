@@ -32,7 +32,7 @@ module Native::Network
     end
 
     def form=(params : Hash(String, String))
-      @body = params.map { |k, v| "#{URI.encode(k)}=#{URI.encode(v)}" }.join("&")
+      @body = params.map { |k, v| "#{URI.encode_www_form(k)}=#{URI.encode_www_form(v)}" }.join("&")
       add_header("Content-Type", "application/x-www-form-urlencoded")
     end
 
