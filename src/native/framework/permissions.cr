@@ -42,11 +42,11 @@ module Native::Permissions
           end
 
           case result
-          when 0 then PermissionStatus::Granted
+          when 0  then PermissionStatus::Granted
           when -1 then PermissionStatus::Denied
-          else PermissionStatus::NotDetermined
+          else         PermissionStatus::NotDetermined
           end
-        end
+        end || PermissionStatus::NotDetermined
       {% elsif flag?(:native_ios) %}
         status = LibIOS.check_permission(type.value)
         PermissionStatus.from_value(status)
@@ -73,7 +73,7 @@ module Native::Permissions
 
           JNIHelpers.with_class(env, "java/lang/String") do |string_class|
             next if string_class.null?
-            perm_array = env.new_object_array(1, string_class)
+            perm_array = env.new_object_array(1, string_class, Pointer(Void).null)
             next if perm_array.null?
             begin
               JNIHelpers.with_jstring(env, permission_string(type)) do |jperm|
@@ -191,45 +191,75 @@ module Native::Permissions
     end
   end
 
-  module Permissions
-    def self.camera(&callback : PermissionStatus -> Nil)
-      PermissionManager.request(PermissionType::Camera, &callback)
-    end
+  # ── Per-permission convenience (module level, no nested Permissions::Permissions) ──
+  #   Native::Permissions.camera { |status| ... }        — request
+  #   Native::Permissions.camera_granted?                 — check
 
-    def self.camera_granted? : Bool
+  def self.camera(&callback : PermissionStatus -> Nil)
+    PermissionManager.request(PermissionType::Camera, &callback)
+  end
+
+  def self.camera_granted? : Bool
       PermissionManager.is_granted?(PermissionType::Camera)
-    end
+  end
 
-    def self.microphone(&callback : PermissionStatus -> Nil)
+  def self.microphone(&callback : PermissionStatus -> Nil)
       PermissionManager.request(PermissionType::Microphone, &callback)
-    end
+  end
 
-    def self.microphone_granted? : Bool
+  def self.microphone_granted? : Bool
       PermissionManager.is_granted?(PermissionType::Microphone)
-    end
+  end
 
-    def self.location(&callback : PermissionStatus -> Nil)
+  def self.location(&callback : PermissionStatus -> Nil)
       PermissionManager.request(PermissionType::Location, &callback)
-    end
+  end
 
-    def self.location_granted? : Bool
+  def self.location_granted? : Bool
       PermissionManager.is_granted?(PermissionType::Location)
-    end
+  end
 
-    def self.notifications(&callback : PermissionStatus -> Nil)
+  def self.notifications(&callback : PermissionStatus -> Nil)
       PermissionManager.request(PermissionType::Notifications, &callback)
-    end
+  end
 
-    def self.notifications_granted? : Bool
+  def self.notifications_granted? : Bool
       PermissionManager.is_granted?(PermissionType::Notifications)
-    end
+  end
 
-    def self.storage(&callback : PermissionStatus -> Nil)
+  def self.storage(&callback : PermissionStatus -> Nil)
       PermissionManager.request(PermissionType::Storage, &callback)
-    end
+  end
 
-    def self.storage_granted? : Bool
+  def self.storage_granted? : Bool
       PermissionManager.is_granted?(PermissionType::Storage)
-    end
+  end
+
+  # ── Type-agnostic entry points (the camera example's form) ──────────
+  #   Native::Permissions.request(type) { |status| ... }
+  def self.request(type : PermissionType, &callback : PermissionStatus -> Nil)
+    PermissionManager.request(type, &callback)
+  end
+
+  def self.check(type : PermissionType) : PermissionStatus
+    PermissionManager.check(type)
+  end
+
+  def self.is_granted?(type : PermissionType) : Bool
+    PermissionManager.is_granted?(type)
+  end
+
+  # status predicate: granted / denied without enum comparison at
+  # every call site
+  def self.status_granted?(status : PermissionStatus) : Bool
+    status == PermissionStatus::Granted
+  end
+
+  def self.status_denied?(status : PermissionStatus) : Bool
+    status == PermissionStatus::Denied
   end
 end
+
+# NOTE: Crystal enums can't be reopened with methods. Use the module-level
+#   Native::Permissions.granted?(status)
+# helper (defined above) — same readability, actually supported.

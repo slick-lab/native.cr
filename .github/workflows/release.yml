@@ -14,15 +14,15 @@ jobs:
         include:
           - runs-on: ubuntu-latest
             target: x86_64-linux-gnu
-            artifact-name: native-cli-linux-x86-64
+            artifact-name: native.cr-linux-x86_64
             os-label: linux-x86-64
           - runs-on: ubuntu-24.04-arm
             target: aarch64-linux-gnu
-            artifact-name: native-cli-linux-arm64
+            artifact-name: native.cr-linux-arm64
             os-label: linux-arm64
           - runs-on: macos-15
             target: aarch64-apple-darwin
-            artifact-name: native-cli-darwin-arm64
+            artifact-name: native.cr-darwin-arm64
             os-label: darwin-arm64
     steps:
       - uses: actions/checkout@v4
@@ -58,26 +58,31 @@ jobs:
         with:
           path: ./artifacts
 
+      # Asset names MUST match scripts/postinstall.sh's download URLs
+      # (native.cr-${OS}-${ARCH} with OS=linux/darwin, ARCH=x86_64/arm64).
+      # CHECKSUMS is generated here and verified by postinstall — any
+      # binary that reaches a user has a published sha256 to check
+      # against.
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          
-          if [ -f "artifacts/native-cli-linux-x86-64/native.cr" ]; then
-            cp "artifacts/native-cli-linux-x86-64/native.cr" "release-assets/native-cli-linux-x86-64"
-            chmod +x "release-assets/native-cli-linux-x86-64"
-          fi
-          
-          if [ -f "artifacts/native-cli-linux-arm64/native.cr" ]; then
-            cp "artifacts/native-cli-linux-arm64/native.cr" "release-assets/native-cli-linux-arm64"
-            chmod +x "release-assets/native-cli-linux-arm64"
-          fi
-          
-          if [ -f "artifacts/native-cli-darwin-arm64/native.cr" ]; then
-            cp "artifacts/native-cli-darwin-arm64/native.cr" "release-assets/native-cli-darwin-arm64"
-            chmod +x "release-assets/native-cli-darwin-arm64"
-          fi
-          
-          ls -la release-assets/
+
+          for name in native-cli-linux-x86-64 native-cli-linux-arm64 native-cli-darwin-arm64; do
+            if [ -f "artifacts/$name/native.cr" ]; then
+              cp "artifacts/$name/native.cr" "release-assets/$name"
+              chmod +x "release-assets/$name"
+            fi
+          done
+
+          # Normalize to the postinstall naming scheme.
+          mv "release-assets/native-cli-linux-x86-64"  "release-assets/native.cr-linux-x86_64"  2>/dev/null || true
+          mv "release-assets/native-cli-linux-arm64"   "release-assets/native.cr-linux-arm64"   2>/dev/null || true
+          mv "release-assets/native-cli-darwin-arm64"  "release-assets/native.cr-darwin-arm64"  2>/dev/null || true
+
+          cd release-assets
+          sha256sum native.cr-* > CHECKSUMS
+
+          ls -la .
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

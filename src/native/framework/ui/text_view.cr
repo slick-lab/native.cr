@@ -29,7 +29,7 @@ module Native::UI
         end
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_label
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
         if !text.empty?
           self.text = text
         end
@@ -80,6 +80,16 @@ module Native::UI
       {% elsif flag?(:native_ios) %}
         LibIOS.label_set_text_color(@native, value.r, value.g, value.b)
       {% end %}
+    end
+
+    # `color=` is the documented short alias for `text_color=` — the
+    # examples use it, and it matches `background_color=` symmetry.
+    def color=(value : Native::Math::Color)
+      self.text_color = value
+    end
+
+    def color : Native::Math::Color
+      text_color
     end
 
     def text_color : Native::Math::Color
@@ -155,11 +165,8 @@ module Native::UI
       {% end %}
     end
 
+    {% if flag?(:native_android) %}
     private def apply_gravity(env : Native::Android::JNIEnvWrapper? = nil)
-      {% unless flag?(:native_android) %}
-        return
-      {% end %}
-
       if env
         return if @native == 0
         JNIHelpers.set_gravity(env, @native, @gravity)
@@ -170,6 +177,11 @@ module Native::UI
         end
       end
     end
+    {% else %}
+    private def apply_gravity(env = nil)
+      # non-android: gravity is stored, applied nowhere
+    end
+    {% end %}
 
     private def argb_from_color(color : Native::Math::Color) : Int32
       ((color.a * 255).to_i << 24) |

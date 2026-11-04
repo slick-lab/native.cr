@@ -29,6 +29,11 @@ module Native::UI
     @padding_right : Int32 = 0
     @padding_bottom : Int32 = 0
 
+    # In-memory child tracking: keeps the tree introspectable on every
+    # platform (desktop included) and drives spacing/first-child logic on
+    # Android without an extra JNI round-trip.
+    @children = [] of View
+
     def initialize(orientation : Orientation = Orientation::Vertical)
       super()
       @orientation = orientation
@@ -44,7 +49,7 @@ module Native::UI
         end
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_stack_view
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
       {% end %}
     end
 
@@ -109,13 +114,14 @@ module Native::UI
     end
 
     def addView(view : View, weight : Float32 = 0.0)
+      @children << view
       {% if flag?(:native_android) %}
         JNIHelpers.with_env do |env|
           return if @native == 0 || view.native_ptr == 0
 
           JNIHelpers.call_void(env, @native, "addView", "(Landroid/view/View;)V", view.native_ptr)
 
-          if weight > 0
+          if weight > 0 || @spacing > 0
             params = JNIHelpers.call_object(
               env, view.native_ptr, "getLayoutParams",
               "()Landroid/view/ViewGroup$LayoutParams;"
@@ -129,10 +135,13 @@ module Native::UI
                     # setWeight method and handed a NULL method id to JNI,
                     # which aborts the process — a crash on every weighted
                     # addView. Set the field instead.
-                    fid = env.get_field_id(params_class, "weight", "F")
-                    unless fid.null?
-                      env.set_float_field(params, fid, weight)
+                    if weight > 0
+                      fid = env.get_field_id(params_class, "weight", "F")
+                      unless fid.null?
+                        env.set_float_field(params, fid, weight)
+                      end
                     end
+                    apply_spacing_margins(env, view, params_class, params)
                     JNIHelpers.call_void(
                       env, view.native_ptr, "setLayoutParams",
                       "(Landroid/view/ViewGroup$LayoutParams;)V", params
@@ -147,7 +156,73 @@ module Native::UI
         end
       {% elsif flag?(:native_ios) %}
         LibIOS.stack_view_add_view(@native, view.native_ptr)
+        LibIOS.stack_view_set_spacing(@native, @spacing.to_f32) if @spacing > 0
       {% end %}
+    end
+
+    # ── spacing / alignment DSL ──────────────────────────────────────────────
+    # `spacing = 20` inserts a 20dp gap between children; `alignment =`
+    # maps the Alignment constants onto gravity. Pure state here, applied
+    # per child at addView/add_child time (margins on Android, uniform
+    # spacing on iOS) — desktop keeps the value for tree introspection.
+
+    @spacing : Int32 = 0
+
+    def spacing : Int32
+      @spacing
+    end
+
+    def spacing=(value : Int32)
+      @spacing = value
+      {% if flag?(:native_ios) %}
+        LibIOS.stack_view_set_spacing(@native, value.to_f32) if @native != 0
+      {% end %}
+    end
+
+    def alignment=(value : LinearLayout::Gravity)
+      self.gravity = value
+    end
+
+    def alignment : LinearLayout::Gravity
+      gravity
+    end
+
+    # snake_case aliases — the old camelCase names stay as deprecated
+    # aliases; new code and all docs use add_child / add_view.
+    def add_child(view : View, weight : Float32 = 0.0)
+      addView(view, weight)
+    end
+
+    def add_view(view : View, weight : Float32 = 0.0)
+      addView(view, weight)
+    end
+
+    def add_view(view : View, width : Int32, height : Int32, weight : Float32 = 0.0)
+      addView(view, width, height, weight)
+    end
+
+    def remove_child(view : View)
+      removeView(view)
+    end
+
+    def remove_view(view : View)
+      removeView(view)
+    end
+
+    # Applies @spacing as child margins (Android): vertical layouts add a
+    # top margin (except for the very first child), horizontal layouts a
+    # left margin. Matches what a user expects `spacing` to do visually.
+    private def apply_spacing_margins(env, view, params_class, params)
+      return unless @spacing > 0 && childCount > 0
+      mid = env.get_method_id(params_class, "setMargins", "(IIII)V")
+      return if mid.null?
+      vertical = orientation == Orientation::Vertical
+      first = childCount == 0
+      # childCount has already been bumped by addView at this point, so
+      # "first child" is childCount == 1.
+      left = vertical ? 0 : (childCount <= 1 ? 0 : @spacing)
+      top = vertical ? (childCount <= 1 ? 0 : @spacing) : 0
+      env.call_void_method(params, mid, left.to_i32, top.to_i32, 0, 0)
     end
 
     def addView(view : View, width : Int32, height : Int32, weight : Float32 = 0.0)
@@ -157,6 +232,7 @@ module Native::UI
     end
 
     def removeView(view : View)
+      @children.reject! { |child| child.same?(view) }
       {% if flag?(:native_android) %}
         JNIHelpers.with_env do |env|
           return if @native == 0 || view.native_ptr == 0
@@ -168,6 +244,7 @@ module Native::UI
     end
 
     def removeAllViews
+      @children.clear
       {% if flag?(:native_android) %}
         JNIHelpers.with_env do |env|
           return if @native == 0
@@ -185,7 +262,7 @@ module Native::UI
           child_ptr = JNIHelpers.call_object(env, @native, "getChildAt", "(I)Landroid/view/View;", index)
           if !child_ptr.null?
             view = View.new
-            view.native = child_ptr.to_i64
+            view.native = child_ptr.address.to_i64
             view
           else
             nil
@@ -197,13 +274,16 @@ module Native::UI
     end
 
     def childCount : Int32
-      {% if flag?(:native_android) %}
-        JNIHelpers.with_env do |env|
+      {% unless flag?(:native_android) %}
+        return @children.size
+      {% else %}
+        # with_env's block result flows through a nilable wrapper — the
+        # || 0 keeps the declared Int32 return honest when env is nil.
+        count = JNIHelpers.with_env do |env|
           return 0 if @native == 0
           JNIHelpers.call_int(env, @native, "getChildCount", "()I")
         end
-      {% else %}
-        0
+        count || 0
       {% end %}
     end
 

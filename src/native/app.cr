@@ -76,6 +76,7 @@ module Native
     def root=(view : UI::View)
       @root = view
       android_attach_root
+      apply_pending_background(view)
     end
 
     # Expose the current root view (read).
@@ -104,11 +105,158 @@ module Native
     rescue
     end
 
+    # ── Hot-reload state (the @[Preserve] DSL) ────────────────────────────────
+    #
+    # Both methods are macro-generated from the ACTUAL subclass's
+    # @[Preserve]-annotated instance variables (see core/preserve.cr), so
+    # `count` in the docs' counter example round-trips through a reload
+    # with zero serialization code in user land.
+    #
+    # Unsupported annotated types fail at compile time. Everything else
+    # (unannotated ivars) is deliberately skipped — only marked state
+    # survives a reload.
+    #
+    # Overriding either method in a subclass is still supported: call
+    # `super` first and merge your own keys if you need extra data.
+
     def state_to_json : String
-      "{}"
+      {% begin %}
+        {% ivars = @type.instance_vars.select { |iv|
+            iv.annotation(::Preserve) || iv.annotation(Native::Preserve)
+          } %}
+        {% if ivars.empty? %}
+          "{}"
+        {% else %}
+          String.build do |io|
+            io << "{"
+            {% for i in 0...ivars.size %}
+              {% ivar = ivars[i] %}
+              {% ts = ivar.type.stringify %}
+              {% ok = false %}
+              {% for base in STATE_TYPES %}
+                {% if ts == base || ts == (base + " | Nil") || ts == ("(" + base + " | Nil)") || ts == ("::" + base) || ts == ("::" + base + " | Nil") || ts == ("(::" + base + " | Nil)") %}
+                  {% ok = true %}
+                {% end %}
+              {% end %}
+              {% unless ok %}
+                {% raise "Unsupported @[Preserve] type #{ts} for #{ivar.name} — " \
+                         "use Bool, Int32, Int64, Float32, Float64, String, Array(String), " \
+                         "Array(Int32), Array(Float64), JSON::Any or a nilable variant" %}
+              {% end %}
+              {% unless i == 0 %} io << "," {% end %}
+              {{ivar.name.stringify}}.to_json(io)
+              io << ":"
+              @{{ivar.name.id}}.to_json(io)
+            {% end %}
+            io << "}"
+          end
+        {% end %}
+      {% end %}
     end
 
     def state_from_json(json : String) : Nil
+      {% begin %}
+        {% ivars = @type.instance_vars.select { |iv|
+            iv.annotation(::Preserve) || iv.annotation(Native::Preserve)
+          } %}
+        {% if !ivars.empty? %}
+          doc = JSON.parse(json)
+          hash = doc.as_h?
+          return unless hash
+          {% for ivar in ivars %}
+            {% ts = ivar.type.stringify %}
+            if value = hash[{{ivar.name.stringify}}]?
+              {%if ts == "Bool" || ts == "::Bool" %}
+                @{{ivar.name.id}} = value.as_bool
+              {%elsif ts == "(Bool | Nil)" || ts == "Bool | Nil" || ts == "(::Bool | Nil)" || ts == "::Bool | Nil" %}
+                @{{ivar.name.id}} = value.as_bool?
+              {%elsif ts == "Int32" || ts == "::Int32" %}
+                @{{ivar.name.id}} = value.as_i.to_i32
+              {%elsif ts == "(Int32 | Nil)" || ts == "Int32 | Nil" || ts == "(::Int32 | Nil)" || ts == "::Int32 | Nil" %}
+                @{{ivar.name.id}} = value.as_i?.try &.to_i32
+              {%elsif ts == "Int64" || ts == "::Int64" %}
+                @{{ivar.name.id}} = value.as_i64
+              {%elsif ts == "(Int64 | Nil)" || ts == "Int64 | Nil" || ts == "(::Int64 | Nil)" || ts == "::Int64 | Nil" %}
+                @{{ivar.name.id}} = value.as_i64?
+              {%elsif ts == "Float32" || ts == "::Float32" %}
+                @{{ivar.name.id}} = value.as_f.to_f32
+              {%elsif ts == "(Float32 | Nil)" || ts == "Float32 | Nil" || ts == "(::Float32 | Nil)" || ts == "::Float32 | Nil" %}
+                @{{ivar.name.id}} = value.as_f?.try &.to_f32
+              {%elsif ts == "Float64" || ts == "::Float64" %}
+                @{{ivar.name.id}} = value.as_f
+              {%elsif ts == "(Float64 | Nil)" || ts == "Float64 | Nil" || ts == "(::Float64 | Nil)" || ts == "::Float64 | Nil" %}
+                @{{ivar.name.id}} = value.as_f?
+              {%elsif ts == "String" || ts == "::String" %}
+                @{{ivar.name.id}} = value.as_s
+              {%elsif ts == "(String | Nil)" || ts == "String | Nil" || ts == "(::String | Nil)" || ts == "::String | Nil" %}
+                @{{ivar.name.id}} = value.as_s?
+              {%elsif ts == "Array(String)" || ts == "::Array(::String)" %}
+                @{{ivar.name.id}} = value.as_a.map &.as_s
+              {%elsif ts == "(Array(String) | Nil)" || ts == "Array(String) | Nil" || ts == "(::Array(::String) | Nil)" || ts == "::Array(::String) | Nil" %}
+                @{{ivar.name.id}} = value.as_a?.try &.map(&.as_s)
+              {%elsif ts == "Array(Int32)" || ts == "::Array(::Int32)" %}
+                @{{ivar.name.id}} = value.as_a.map { |v| v.as_i.to_i32 }
+              {%elsif ts == "(Array(Int32) | Nil)" || ts == "Array(Int32) | Nil" || ts == "(::Array(::Int32) | Nil)" || ts == "::Array(::Int32) | Nil" %}
+                @{{ivar.name.id}} = value.as_a?.try &.map { |v| v.as_i.to_i32 }
+              {%elsif ts == "Array(Float64)" || ts == "::Array(::Float64)" %}
+                @{{ivar.name.id}} = value.as_a.map &.as_f
+              {%elsif ts == "(Array(Float64) | Nil)" || ts == "Array(Float64) | Nil" || ts == "(::Array(::Float64) | Nil)" || ts == "::Array(::Float64) | Nil" %}
+                @{{ivar.name.id}} = value.as_a?.try &.map(&.as_f)
+              {%elsif ts == "JSON::Any" || ts == "::JSON::Any" || ts == "(JSON::Any | Nil)" || ts == "JSON::Any | Nil" || ts == "(::JSON::Any | Nil)" || ts == "::JSON::Any | Nil" %}
+                @{{ivar.name.id}} = value
+              {%else%}
+                raise "BUG: unsupported preserved type reached runtime"
+              {%end%}
+            end
+          {% end %}
+        {% end %}
+      {% end %}
+    rescue ex : JSON::ParseException
+      # Corrupt or foreign state file — keep defaults rather than crash
+      # the freshly reloaded app.
+      Log.debug { "state_from_json ignored bad state: #{ex.message}" }
+    end
+
+    # ── Window background ─────────────────────────────────────────────────────
+    #
+    # Docs and examples have always shown `set_background_color(r, g, b)`
+    # in setup — implemented here for real:
+    #   Android: window background (via decor view), posted to the UI thread
+    #   iOS:     root view background color
+    #   desktop: stored, applied to the next assigned root view
+
+    def set_background_color(r : Int32, g : Int32, b : Int32, alpha : Int32 = 255) : Nil
+      {% if flag?(:native_android) %}
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
+          window = JNIHelpers.call_object(env, activity.address.to_i64, "getWindow", "()Landroid/view/Window;")
+          decor = JNIHelpers.call_object(env, window.address.to_i64, "getDecorView", "()Landroid/view/View;")
+          JNIHelpers.call_void(env, decor.address.to_i64, "setBackgroundColor", "(I)V",
+            ((alpha & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF))
+        end
+      {% elsif flag?(:native_ios) %}
+        color = Native::Math::Color.from_rgba(r, g, b, alpha)
+        if root_view = @root
+          LibIOS.view_set_background_color(root_view.native_ptr,
+            color.r.to_f32, color.g.to_f32, color.b.to_f32, color.a.to_f32)
+        else
+          @pending_background = color
+        end
+      {% else %}
+        @pending_background = Native::Math::Color.from_rgba(r, g, b, alpha)
+      {% end %}
+    end
+
+    @pending_background : Native::Math::Color? = nil
+
+    # Called by root= (desktop/iOS) to apply a set_background_color that
+    # happened before any root view existed.
+    private def apply_pending_background(view : UI::View) : Nil
+      if color = @pending_background
+        view.background_color = color
+        @pending_background = nil
+      end
     end
 
     abstract def setup : Nil

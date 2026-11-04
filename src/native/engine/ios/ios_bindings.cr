@@ -154,6 +154,8 @@ lib LibIOS
 
   # ── Stack view (linear layout) ──────────────────────────────────────────────
   fun stack_view_add_view(handle : Int64, child : Int64) : Void
+  fun stack_view_set_spacing(handle : Int64, spacing : Float32) : Void
+  fun view_set_corner_radius(handle : Int64, radius : Float32) : Void
   fun stack_view_remove_view(handle : Int64, child : Int64) : Void
   fun stack_view_remove_all_views(handle : Int64) : Void
   fun stack_view_set_axis(handle : Int64, axis : Int32) : Void

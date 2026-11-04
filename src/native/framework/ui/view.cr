@@ -122,23 +122,82 @@ module Native::UI
       @native
     end
 
-    def background_color=(color : Native::Math::Color)
-      {% if flag?(:native_android) %}
-        JNIHelpers.with_env do |env|
-          return if @native == 0
-          argb = argb_from_color(color)
-          JNIHelpers.set_background_color(env, @native, argb)
-        end
-      {% elsif flag?(:native_ios) %}
-        LibIOS.view_set_background_color(@native, color.r, color.g, color.b, color.a)
-      {% end %}
-    end
-
     private def argb_from_color(color : Native::Math::Color) : Int32
       (255 << 24) |
       ((color.r * 255).to_i << 16) |
       ((color.g * 255).to_i << 8) |
       (color.b * 255).to_i
+    end
+
+    # ── Corner rounding DSL ──────────────────────────────────────────────────
+    # `corner_radius = 24` (uniform) or `corner_radius = CornerRadius.all(24)`.
+    # Android: GradientDrawable recreated with the current background color
+    # so the shape survives reassignment; iOS: CALayer cornerRadius (uniform —
+    # per-corner values use the max); desktop: stored for introspection.
+
+    @corner_radius : CornerRadius = CornerRadius.new
+
+    def corner_radius : CornerRadius
+      @corner_radius
+    end
+
+    def corner_radius=(value : Int32 | Float32)
+      self.corner_radius = CornerRadius.all(value)
+    end
+
+    def corner_radius=(value : CornerRadius)
+      @corner_radius = value
+      {% if flag?(:native_android) %}
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          JNIHelpers.with_class(env, "android/graphics/drawable/GradientDrawable") do |klass|
+            next if klass.null?
+            new_m = env.get_method_id(klass, "<init>", "()V")
+            set_radius = env.get_method_id(klass, "setCornerRadius", "(F)V")
+            set_color = env.get_method_id(klass, "setColor", "(I)V")
+            next if new_m.null? || set_radius.null? || set_color.null?
+            drawable = env.new_object(klass, new_m)
+            next if drawable.null?
+            env.call_void_method(drawable, set_radius, value.max)
+            bg = argb_from_color(@bg_color || Native::Math::Color.new(0.0, 0.0, 0.0, 0.0))
+            env.call_void_method(drawable, set_color, bg)
+            set_bg = env.get_method_id(env.get_object_class(@native), "setBackground", "(Landroid/graphics/drawable/Drawable;)V")
+            unless set_bg.null?
+              env.call_void_method(@native, set_bg, drawable)
+            end
+            env.delete_local_ref(drawable)
+          end
+        end
+      {% elsif flag?(:native_ios) %}
+        if value.uniform?
+          LibIOS.view_set_corner_radius(@native, value.max) if @native != 0
+        else
+          # CALayer can do per-corner via maskedCorners; uniform-max keeps
+          # the API honest until per-corner lands.
+          LibIOS.view_set_corner_radius(@native, value.max) if @native != 0
+        end
+      {% end %}
+    end
+
+    @bg_color : Native::Math::Color? = nil
+
+    def background_color=(color : Native::Math::Color)
+      @bg_color = color
+      {% if flag?(:native_android) %}
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          if @corner_radius.max > 0
+            # Reapply the rounded background with the new color instead of
+            # overwriting the GradientDrawable with a flat one.
+            self.corner_radius = @corner_radius
+          else
+            argb = argb_from_color(color)
+            JNIHelpers.set_background_color(env, @native, argb)
+          end
+        end
+      {% elsif flag?(:native_ios) %}
+        LibIOS.view_set_background_color(@native, color.r.to_f32, color.g.to_f32, color.b.to_f32, color.a.to_f32)
+      {% end %}
     end
   end
 end

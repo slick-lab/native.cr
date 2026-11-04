@@ -1,4 +1,4 @@
-require "../src/native"
+require "native"
 
 # ─── Screen definitions ────────────────────────────────────────────────────────
 
@@ -103,7 +103,7 @@ end
 class ScreensApp < Native::App
   @navigator : Native::Navigation::Navigator? = nil
 
-  def setup
+  def setup : Nil
     nav = Native::Navigation::Navigator.new(self)
     @navigator = nav
     nav.push(HomeScreen.new(nav))

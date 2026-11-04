@@ -390,4 +390,46 @@ module Native::Platform
       false
     end
   end
+
+  # ── Haptic feedback ───────────────────────────────────────────────────────
+  #
+  #   Native::Platform::HapticFeedback.light   # 10 ms tap
+  #   Native::Platform::HapticFeedback.medium  # 20 ms
+  #   Native::Platform::HapticFeedback.heavy   # 35 ms
+  #
+  # Android: the platform Vibrator service (via NativeHelper.haptic, run on
+  # the UI thread — service access is main-thread-safe there).
+  # iOS: API 3.0 adds the generator funs; older runtimes and desktop are
+  # documented no-ops.
+
+  module HapticFeedback
+    def self.light : Nil
+      trigger(10)
+    end
+
+    def self.medium : Nil
+      trigger(20)
+    end
+
+    def self.heavy : Nil
+      trigger(35)
+    end
+
+    def self.trigger(duration_ms : Int32) : Nil
+      {% if flag?(:native_android) %}
+        JNIHelpers.with_env do |env|
+          activity = Native::Android::JNI.activity
+          return unless activity
+          JNIHelpers.with_class(env, "com/nativecr/NativeHelper") do |klass|
+            next if klass.null?
+            mid = env.get_static_method_id(klass, "haptic", "(I)V")
+            next if mid.null?
+            env.call_static_void_method(klass, mid, duration_ms)
+          end
+        end
+      {% else %}
+        # iOS / desktop: documented no-op until generator bindings land.
+      {% end %}
+    end
+  end
 end

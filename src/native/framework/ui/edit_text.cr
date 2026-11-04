@@ -34,7 +34,7 @@ module Native::UI
         setupTextWatcher
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_text_field
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
         if !text.empty?
           self.text = text
         end

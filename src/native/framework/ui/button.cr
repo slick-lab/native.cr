@@ -32,7 +32,7 @@ module Native::UI
         end
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_button
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
         if !text.empty?
           self.text = text
         end
@@ -106,6 +106,20 @@ module Native::UI
       @all_caps
     end
 
+    # Proc-assignment form used by the examples and older docs:
+    #   button.on_click = -> { increment }
+    #   button.on_click = ->increment    (captured method call)
+    # The block form `button.on_click { ... }` keeps working.
+    def on_click=(callback : -> Nil)
+      @on_click = callback
+      {% if flag?(:native_android) %}
+        JNIHelpers.with_env do |env|
+          return if @native == 0
+          setup_click_listeners(env)
+        end
+      {% end %}
+    end
+
     def on_click(&block : -> Nil)
       @on_click = block
       {% if flag?(:native_android) %}
@@ -126,42 +140,53 @@ module Native::UI
       {% end %}
     end
 
+    {% if flag?(:native_android) %}
     private def apply_text_color(env : Native::Android::JNIEnvWrapper? = nil)
-      {% if flag?(:native_android) %}
-        if env
+      if env
+        return if @native == 0
+        color = argb_from_color(@text_color)
+        JNIHelpers.set_text_color(env, @native, color)
+      else
+        JNIHelpers.with_env do |e|
           return if @native == 0
           color = argb_from_color(@text_color)
-          JNIHelpers.set_text_color(env, @native, color)
-        else
-          JNIHelpers.with_env do |e|
-            return if @native == 0
-            color = argb_from_color(@text_color)
-            JNIHelpers.set_text_color(e, @native, color)
-          end
+          JNIHelpers.set_text_color(e, @native, color)
         end
-      {% elsif flag?(:native_ios) %}
-        LibIOS.button_set_text_color(@native, @text_color.r, @text_color.g, @text_color.b)
+      end
+    end
+    {% else %}
+    private def apply_text_color(env = nil)
+      {% if flag?(:native_ios) %}
+        LibIOS.button_set_text_color(@native, @text_color.r.to_f32, @text_color.g.to_f32, @text_color.b.to_f32)
       {% end %}
     end
+    {% end %}
 
+
+    {% if flag?(:native_android) %}
     private def apply_background_color(env : Native::Android::JNIEnvWrapper? = nil)
-      {% if flag?(:native_android) %}
-        if env
+      if env
+        return if @native == 0
+        color = argb_from_color(@background_color)
+        JNIHelpers.set_background_color(env, @native, color)
+      else
+        JNIHelpers.with_env do |e|
           return if @native == 0
           color = argb_from_color(@background_color)
-          JNIHelpers.set_background_color(env, @native, color)
-        else
-          JNIHelpers.with_env do |e|
-            return if @native == 0
-            color = argb_from_color(@background_color)
-            JNIHelpers.set_background_color(e, @native, color)
-          end
+          JNIHelpers.set_background_color(e, @native, color)
         end
-      {% elsif flag?(:native_ios) %}
-        LibIOS.button_set_background_color(@native, @background_color.r, @background_color.g, @background_color.b, @background_color.a)
+      end
+    end
+    {% else %}
+    private def apply_background_color(env = nil)
+      {% if flag?(:native_ios) %}
+        LibIOS.button_set_background_color(@native, @background_color.r.to_f32, @background_color.g.to_f32, @background_color.b.to_f32)
       {% end %}
     end
+    {% end %}
 
+
+    {% if flag?(:native_android) %}
     private def setup_click_listeners(env : Native::Android::JNIEnvWrapper)
       {% unless flag?(:native_android) %}
         return
@@ -182,6 +207,8 @@ module Native::UI
         env.delete_local_ref(callback)
       end
     end
+    {% end %}
+
 
     def handle_click
       @on_click.try &.call

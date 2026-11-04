@@ -27,7 +27,7 @@ module Native::UI
         env.delete_local_ref(image_class) unless image_class.null?
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_image_view
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
       {% end %}
     end
 
@@ -54,11 +54,28 @@ module Native::UI
 
     def setImageData(data : Bytes)
       {% if flag?(:native_android) %}
+        # Copy the bytes into a JVM byte[], decode via BitmapFactory, then
+        # set the result. The old code passed an undefined `bitmap` local
+        # straight into setImageBitmap — never compiled once instantiated.
         env = Native::Android::JNI.env
         return unless env && @native != 0
+
         byte_array = env.new_byte_array(data.size)
-        env.set_byte_array_region(byte_array, 0, data.size, data)
-        JNIHelpers.call_void(env, @native, "setImageBitmap", "(Landroid/graphics/Bitmap;)V", bitmap)
+        env.set_byte_array_region(byte_array, 0, data)
+
+        bitmap = JNIHelpers.with_class(env, "android/graphics/BitmapFactory") do |factory|
+          next Pointer(Void).null if factory.null?
+          decode = env.get_static_method_id(factory, "decodeByteArray",
+            "([BII)Landroid/graphics/Bitmap;")
+          next Pointer(Void).null if decode.null?
+          env.call_static_object_method(factory, decode, byte_array, 0_i32, data.size.to_i32)
+        end
+
+        unless bitmap.null?
+          JNIHelpers.call_void(env, @native, "setImageBitmap", "(Landroid/graphics/Bitmap;)V", bitmap.address.to_i64)
+          env.delete_local_ref(bitmap)
+        end
+        env.delete_local_ref(byte_array)
       {% elsif flag?(:native_ios) %}
         LibIOS.image_view_set_data(@native, data, data.size)
       {% end %}
@@ -76,6 +93,7 @@ module Native::UI
                       when ScaleType::Center       then "CENTER"
                       when ScaleType::CenterCrop   then "CENTER_CROP"
                       when ScaleType::CenterInside then "CENTER_INSIDE"
+                      else "FIT_CENTER" # unreachable: enum is exhaustive
                       end
         scale_field = env.get_static_field_id(env.find_class("android/widget/ImageView$ScaleType"), scale_value, "Landroid/widget/ImageView$ScaleType;")
         scale_obj = env.get_static_object_field(env.find_class("android/widget/ImageView$ScaleType"), scale_field)

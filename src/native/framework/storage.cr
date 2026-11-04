@@ -12,15 +12,16 @@ module Native::Storage
         jkey = env.new_string_utf(key)
         jvalue = env.new_string_utf(value)
 
+        activity_id = activity.address.to_i64
         prefs = JNIHelpers.with_jstring(env, @name) do |jname|
-          JNIHelpers.call_object(env, activity.to_i64, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
+          JNIHelpers.call_object(env, activity_id, "getSharedPreferences", "(Ljava/lang/String;I)Landroid/content/SharedPreferences;", jname, 0)
         end
 
-        editor = JNIHelpers.call_object(env, prefs, "edit", "()Landroid/content/SharedPreferences$Editor;")
+        editor = JNIHelpers.call_object(env, prefs.address.to_i64, "edit", "()Landroid/content/SharedPreferences$Editor;")
 
-        JNIHelpers.call_object(env, editor, "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", jkey, jvalue)
+        JNIHelpers.call_object(env, editor.address.to_i64, "putString", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;", jkey, jvalue)
 
-        JNIHelpers.call_void(env, editor, "apply", "()V")
+        JNIHelpers.call_void(env, editor.address.to_i64, "apply", "()V")
 
         env.delete_local_ref(jkey)
         env.delete_local_ref(jvalue)

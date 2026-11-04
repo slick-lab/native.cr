@@ -376,6 +376,10 @@ module Native
         Color.new(r / 255.0, g / 255.0, b / 255.0, a / 255.0)
       end
 
+      def self.from_rgb(r : Float64, g : Float64, b : Float64, a : Float64 = 1.0) : Color
+        Color.new(r, g, b, a)
+      end
+
       def self.from_hex(hex : UInt32) : Color
         r = ((hex >> 16) & 0xFF).to_i32
         g = ((hex >> 8) & 0xFF).to_i32

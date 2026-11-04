@@ -1,41 +1,39 @@
 # examples/camera_app/src/main.cr
+#
+# Camera capture example — uses the REAL framework surface:
+#   Native::Media::Camera, ImageView#setImageData, Permissions.request.
+# Compile-checked on desktop/Android/iOS by the examples CI job.
 
 require "native"
 
 class CameraApp < Native::App
-  @photo_view : UI::Image?
+  @photo_view : UI::ImageView?
   @capture_button : UI::Button?
   @status_label : UI::TextView?
-  @camera : Native::Camera::Camera?
+  @camera : Native::Media::Camera?
 
-  def setup
+  def setup : Nil
     set_background_color(30, 30, 35)
-
     create_ui
     setup_camera
   end
 
   def create_ui
-    @status_label = UI::TextView.new
-    @status_label.not_nil!.text = "Camera ready"
+    @status_label = UI::TextView.new("Camera ready")
     @status_label.not_nil!.text_size = 14
     @status_label.not_nil!.color = Color.from_hex(0xAAAAAA)
 
     @photo_view = UI::ImageView.new
     @photo_view.not_nil!.width = 300
     @photo_view.not_nil!.height = 300
-    @photo_view.not_nil!.scale_mode = Native::Image::ScaleMode::AspectFit
+    @photo_view.not_nil!.scale_type = UI::ImageView::ScaleType::FitCenter
     @photo_view.not_nil!.background_color = Color.from_hex(0x1A1A1A)
     @photo_view.not_nil!.corner_radius = CornerRadius.all(12)
 
-    @capture_button = UI::Button.new
-    @capture_button.not_nil!.text = "📸 Capture"
+    @capture_button = UI::Button.new("Capture")
     @capture_button.not_nil!.width = 160
     @capture_button.not_nil!.height = 52
-    @capture_button.not_nil!.background_color = Color.from_hex(0x007AFF)
-    @capture_button.not_nil!.text_color = Color.white
-    @capture_button.not_nil!.corner_radius = CornerRadius.all(26)
-    @capture_button.not_nil!.on_click = -> { take_photo }
+    @capture_button.not_nil!.on_click = ->capture
 
     column = UI::Column.new
     column.spacing = 20
@@ -48,55 +46,36 @@ class CameraApp < Native::App
   end
 
   def setup_camera
-    return unless Native::Permissions.has_camera?
-
-    config = Native::Camera::CameraConfig.new
-    config.facing = Native::Camera::CameraFacing::Back
-    config.quality = Native::Camera::CaptureQuality::High
-
-    @camera = Native::Camera::Camera.new(config)
-    @camera.not_nil!.open
-
-    @status_label.not_nil!.text = "Camera ready"
+    # Ask before creating the camera — on refusal we still show the UI,
+    # with a status label explaining why capture is disabled.
+    Native::Permissions.request(Native::Permissions::PermissionType::Camera) do |status|
+      if Native::Permissions.status_granted?(status)
+        @camera = Native::Media::Camera.new
+        @camera.not_nil!.facing = Native::Media::Camera::Facing::Back
+        @camera.not_nil!.quality = Native::Media::Camera::Quality::High
+        @camera.not_nil!.on_photo_captured { |data, width, height| display_photo(data, width, height) }
+        @camera.not_nil!.on_error { |message| set_status("Camera error: #{message}") }
+        @camera.not_nil!.take_photo
+      else
+        set_status("Camera permission denied")
+      end
+    end
   end
 
-  def take_photo
-    return unless @camera && @camera.not_nil!.is_open?
-
-    @status_label.not_nil!.text = "Capturing..."
-
-    @camera.not_nil!.on_photo do |photo|
-      @status_label.not_nil!.text = "Photo captured!"
-      display_photo(photo)
-    end
-
+  def capture : Nil
+    return unless @camera
+    set_status("Capturing...")
     @camera.not_nil!.take_photo
   end
 
-  def display_photo(photo : Native::Camera::Photo)
-    image_data = Native::Image::ImageLoader.from_bytes(photo.data, "jpg")
-    if image_data
-      @photo_view.not_nil!.image = image_data
-    end
+  def display_photo(data : Bytes, width : Int32, height : Int32)
+    @photo_view.not_nil!.setImageData(data)
+    set_status("Photo captured: #{width}x#{height}")
   end
 
-  def on_resume
-    if @camera && !@camera.not_nil!.is_open?
-      @camera.not_nil!.open
-    end
+  def set_status(text : String)
+    @status_label.not_nil!.text = text
   end
-
-  def on_pause
-    if @camera && @camera.not_nil!.is_open?
-      @camera.not_nil!.close
-    end
-  end
-
 end
 
-# Request permission before starting
-if Native::Permissions.request_camera
-  Native::App.registered_subclass = CameraApp
-else
-  puts "Camera permission required to run this example"
-end
+Native::App.registered_subclass = CameraApp

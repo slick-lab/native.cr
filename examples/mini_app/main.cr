@@ -1,4 +1,4 @@
-require "../src/native"
+require "native"
 
 class CounterApp < Native::App
   @count : Int32 = 0
@@ -19,6 +19,7 @@ class CounterApp < Native::App
 
   def setup : Nil
     @count = @prefs.get_int("count", 0)
+    @root = @layout
 
     @label.text = "Tap count: #{@count}"
     @label.text_size = 24

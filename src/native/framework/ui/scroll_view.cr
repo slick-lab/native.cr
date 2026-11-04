@@ -43,7 +43,7 @@ module Native::UI
         setupScrollListener
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_scroll_view
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
         LibIOS.scroll_view_set_direction(@native, direction == ScrollDirection::Vertical ? 0 : 1)
       {% end %}
     end
@@ -180,7 +180,7 @@ module Native::UI
         child_ptr = JNIHelpers.call_object(env, @native, "getChildAt", "(I)Landroid/view/View;", index)
         if child_ptr != Pointer(Void).null
           view = View.new
-          view.native = child_ptr.to_i64
+          view.native = child_ptr.address.to_i64
           view
         else
           nil

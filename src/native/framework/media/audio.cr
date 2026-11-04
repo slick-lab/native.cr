@@ -50,7 +50,7 @@ module Native::Audio
         @is_loaded
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.sound_load(path.to_utf8)
-        @sound_ptr = ptr.to_i64
+        @sound_ptr = ptr.address.to_i64
         @is_loaded = ptr != Pointer(Void).null
         @is_loaded
       {% else %}
@@ -85,7 +85,7 @@ module Native::Audio
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.sound_play(@sound_ptr, config.volume, config.loop, config.pitch, config.pan)
         if ptr != Pointer(Void).null
-          SoundInstance.new(ptr.to_i64)
+          SoundInstance.new(ptr.address.to_i64)
         else
           nil
         end
@@ -288,7 +288,7 @@ module Native::Audio
         @music_ptr != 0
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.music_load(path.to_utf8)
-        @music_ptr = ptr.to_i64
+        @music_ptr = ptr.address.to_i64
         ptr != Pointer(Void).null
       {% else %}
         false
@@ -533,7 +533,7 @@ module Native::Audio
         @is_recording
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.recorder_start
-        @recorder_ptr = ptr.to_i64
+        @recorder_ptr = ptr.address.to_i64
         @is_recording = ptr != Pointer(Void).null
         @is_recording
       {% else %}
