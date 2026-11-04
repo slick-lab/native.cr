@@ -24,18 +24,26 @@ jobs:
       - name: Install Shards
         run: shards install
 
-      # ubuntu-latest's libcrypto.a is built with zstd support; the static
-      # link needs its archive present or ZSTD_* symbols stay undefined.
+      # ubuntu-26.04's libcrypto.a pulls zstd + jitter-entropy; static
+      # builds need both archives on the link line. libjitterentropy-dev
+      # is missing from that image's apt sets, so vendor from source.
       - name: Install static-link deps
-        run: sudo apt-get update -q && sudo apt-get install -y -q libzstd-dev zlib1g-dev libjitterentropy-dev
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q libzstd-dev zlib1g-dev
+          sudo apt-get install -y -q libjitterentropy-dev || {
+            git clone --depth 1 https://github.com/smuellerDD/jitterentropy-library /tmp/jitter
+            make -C /tmp/jitter
+            JIT_A=$(find /tmp/jitter -name '*.a' | head -1)
+            sudo cp "$JIT_A" /usr/local/lib/libjitterentropy.a
+          }
 
       - name: Build CLI (Release)
         run: |
           # Crystal puts user link flags BEFORE pkg-config libs on the cc
           # command line, so a plain --link-flags="-lzstd" lands ahead of
           # libcrypto.a and resolves nothing (archives are order-sensitive).
-          # Wrap the compiler driver so -lzstd is the LAST argument.
-          printf '#!/bin/sh\nexec /usr/bin/cc "$@" -lzstd -ljitterentropy\n' > ccwrap
+          # Wrap the compiler driver so the extras are the LAST arguments.
+          printf '#!/bin/sh\nexec /usr/bin/cc "$@" -lzstd -L/usr/local/lib -ljitterentropy\n' > ccwrap
           chmod +x ccwrap
           export CC="$PWD/ccwrap"
           crystal build src/native.cr -o native.cr --release --static --target x86_64-linux-gnu
