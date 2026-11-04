@@ -250,8 +250,35 @@
     # ── Common UI property setters ───────────────────────────────────────────
 
     def self.set_text(env : JNIEnvWrapper, obj : Int64, text : String)
-      with_jstring(env, text) do |jstr|
-        call_void(env, obj, "setText", "(Ljava/lang/CharSequence;)V", jstr)
+      # Routed through NativeHelper.setTextOnUiThread so text mutations
+      # from Crystal callbacks (off the main thread) don't throw
+      # CalledFromWrongThreadException on attached views. Falls back to
+      # the direct call when the helper class isn't on the class path.
+      activity = Native::Android::JNI.activity
+      if activity
+        JNIHelpers.with_class(env, "com/nativecr/NativeHelper") do |klass|
+          if klass.null?
+            with_jstring(env, text) do |jstr|
+              call_void(env, obj, "setText", "(Ljava/lang/CharSequence;)V", jstr)
+            end
+          else
+            mid = env.get_static_method_id(klass, "setTextOnUiThread",
+              "(Landroid/app/Activity;Landroid/view/View;Ljava/lang/String;)V")
+            if mid.null?
+              with_jstring(env, text) do |jstr|
+                call_void(env, obj, "setText", "(Ljava/lang/CharSequence;)V", jstr)
+              end
+            else
+              with_jstring(env, text) do |jstr|
+                env.call_static_void_method(klass, mid, activity, Pointer(Void).new(obj.to_u64), jstr)
+              end
+            end
+          end
+        end
+      else
+        with_jstring(env, text) do |jstr|
+          call_void(env, obj, "setText", "(Ljava/lang/CharSequence;)V", jstr)
+        end
       end
     end
 
@@ -361,5 +388,14 @@
     def self.set_on_long_click_listener(env : JNIEnvWrapper, obj : Int64, callback : Void*)
       call_void(env, obj, "setOnLongClickListener", "(Landroid/view/View$OnLongClickListener;)V", callback)
     end
+  end
+
+  # Framework files (ui/*.cr, app.cr, media/*.cr, ...) reference the
+  # helpers as bare `JNIHelpers` from inside `module Native::UI` etc.
+  # Without this alias that resolves to nothing the moment a widget
+  # method is actually instantiated — which the old CI never did, so
+  # every android app build after 0.1.0 would have failed here.
+  module Native
+    JNIHelpers = Native::Android::JNIHelpers
   end
 {% end %}

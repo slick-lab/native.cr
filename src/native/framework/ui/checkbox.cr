@@ -25,7 +25,7 @@ module Native::UI
         end
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_checkbox
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
         if !text.empty?
           self.text = text
         end

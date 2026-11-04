@@ -24,7 +24,7 @@ module Native::UI
         applyCardRadius
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_card_view
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
         applyCardElevation
         applyCardRadius
       {% end %}

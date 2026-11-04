@@ -22,7 +22,7 @@ module Native::UI
         end
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_slider
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
       {% end %}
     end
 

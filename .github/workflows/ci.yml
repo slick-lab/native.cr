@@ -55,3 +55,47 @@ jobs:
       #
       - name: Type-check (${{ matrix.name }})
         run: crystal build --no-codegen ${{ matrix.flags }} -o /dev/null src/native.cr
+
+  # The examples are the only code that actually INSTANTIATES the widget
+  # tree, so they catch real bugs the typecheck job cannot (the first run
+  # of this job found a namespace error that made every android app build
+  # fail since 0.1.0). Desktop is a full build+link; android and ios are
+  # typechecks of the instantiated program.
+  examples:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: desktop, flags: "" }
+          - { name: android, flags: -Dnative_android }
+          - { name: ios, flags: -Dnative_ios }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.20.0
+
+      # Examples `require "native"` — a lib/native path entry pointing at
+      # the repo root makes the shard resolvable without shards install
+      # (no network, no git dependency).
+      - name: Put shard on the load path
+        run: mkdir -p lib && ln -s "$PWD" lib/native
+
+      - name: Build examples (${{ matrix.name }})
+        run: |
+          set -e
+          for app in examples/*/; do
+            app="${app%/}"
+            echo "--- building $app"
+            if [ -z "${{ matrix.flags }}" ]; then
+              crystal build --no-color "$app/main.cr" -o /tmp/example.bin
+            else
+              crystal build --no-codegen --no-color ${{ matrix.flags }} "$app/main.cr" -o /dev/null
+            fi
+          done

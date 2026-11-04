@@ -38,4 +38,50 @@ public class NativeHelper {
             }
         });
     }
+
+    /**
+     * Set text on a TextView from ANY thread.
+     *
+     * Crystal callbacks (button taps, network responses) run on the
+     * Crystal thread; mutating an attached view from there throws
+     * CalledFromWrongThreadException. This hop keeps the documented
+     * `label.text = "..."` pattern safe from callbacks.
+     *
+     * NOTE: when no activity is attached yet the call runs inline —
+     * unattached views are safe from any thread.
+     */
+    public static void setTextOnUiThread(final Activity activity, final View view, final String text) {
+        if (view == null) return;
+        if (activity == null) {
+            if (view instanceof android.widget.TextView) {
+                ((android.widget.TextView) view).setText(text);
+            }
+            return;
+        }
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (view instanceof android.widget.TextView) {
+                    ((android.widget.TextView) view).setText(text);
+                }
+            }
+        });
+    }
+
+    /**
+     * Fire a haptic pulse (duration in ms) via the Vibrator service.
+     * Runs inline: Vibrator is safe to call from any thread.
+     */
+    @SuppressWarnings({"deprecation", "UnspecifiedRegister"})
+    public static void haptic(final Activity activity, int durationMs) {
+        try {
+            if (activity == null) return;
+            Object service = activity.getSystemService(android.content.Context.VIBRATOR_SERVICE);
+            if (service instanceof android.os.Vibrator) {
+                ((android.os.Vibrator) service).vibrate(durationMs);
+            }
+        } catch (Throwable t) {
+            // Haptics are best-effort; never crash an app over a buzz.
+        }
+    }
 }

@@ -42,7 +42,7 @@ module Native::Animation
         setupListeners
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_animator
-        @animator_ptr = ptr.to_i64
+        @animator_ptr = ptr.address.to_i64
       {% end %}
     end
 
@@ -251,7 +251,7 @@ module Native::Animation
         env.delete_local_ref(set_class) unless set_class.null?
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_animator_set
-        @animator_ptr = ptr.to_i64
+        @animator_ptr = ptr.address.to_i64
       {% end %}
     end
 

@@ -26,7 +26,7 @@ module Native::Dialog
         env.delete_local_ref(builder_class) unless builder_class.null?
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_alert_controller
-        @dialog_ptr = ptr.to_i64
+        @dialog_ptr = ptr.address.to_i64
       {% end %}
     end
 

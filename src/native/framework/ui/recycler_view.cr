@@ -46,7 +46,7 @@ module Native::UI
         set_layout_manager(LayoutManager::Linear)
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_table_view
-        @native = ptr.to_i64
+        @native = ptr.address.to_i64
       {% end %}
     end
 

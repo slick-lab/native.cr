@@ -2,6 +2,11 @@ require "json"
 require "file_utils"
 require "signal"
 require "log"
+# State DSL (annotations + conversion) must load before app.cr: the
+# @[Preserve] annotation is referenced by App's macro-generated state
+# serializers and by user code compiled after us.
+require "./native/core/state"
+require "./native/core/preserve"
 require "./native/app"
 require "./native/cli/*"
 
@@ -22,6 +27,7 @@ require "./native/framework/ui/checkbox"
 require "./native/framework/ui/edit_text"
 require "./native/framework/ui/image_view"
 require "./native/framework/ui/linear_layout"
+require "./native/framework/ui/column"
 require "./native/framework/ui/progress_bar"
 require "./native/framework/ui/recycler_view"
 require "./native/framework/ui/scroll_view"
@@ -39,8 +45,13 @@ require "./native/framework/navigation/navigator"
 require "./native/framework/navigation/toolbar"
 require "./native/framework/push_notifications"
 
+# Top-level DSL constants (UI, Color, Alignment, CornerRadius) — see
+# src/native/dsl.cr. Required AFTER the framework so the constants bind
+# to fully-defined namespaces.
+require "./native/dsl"
+
 module Native
-  VERSION = "0.1.7"
+  VERSION = "0.1.9"
 
   def self.run
     args = ARGV

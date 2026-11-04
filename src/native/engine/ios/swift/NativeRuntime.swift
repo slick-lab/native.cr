@@ -457,6 +457,19 @@ public func view_set_background_color(_ h: Int64, _ r: Float, _ g: Float, _ b: F
     // Matches the framework: 0 = vertical, 1 = horizontal.
     onMain { (resolve(h, as: UIStackView.self))?.axis = axis == 0 ? .vertical : .horizontal }
 }
+@_cdecl("stack_view_set_spacing") public func stack_view_set_spacing(_ h: Int64, _ spacing: Float) {
+    onMain { (resolve(h, as: UIStackView.self))?.spacing = CGFloat(spacing) }
+}
+
+@_cdecl("view_set_corner_radius") public func view_set_corner_radius(_ h: Int64, _ radius: Float) {
+    onMain {
+        if let v = view(h) {
+            v.layer.cornerRadius = CGFloat(radius)
+            v.layer.masksToBounds = radius > 0
+        }
+    }
+}
+
 @_cdecl("stack_view_set_padding") public func stack_view_set_padding(_ h: Int64, _ l: Int32, _ t: Int32, _ r: Int32, _ b: Int32) {
     onMain {
         guard let s = resolve(h, as: UIStackView.self) else { return }

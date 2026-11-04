@@ -46,7 +46,7 @@ module Native::Media
         setupCallbacks
       {% elsif flag?(:native_ios) %}
         ptr = LibIOS.create_camera_controller
-        @camera_ptr = ptr.to_i64
+        @camera_ptr = ptr.address.to_i64
       {% end %}
     end
 

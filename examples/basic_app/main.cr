@@ -4,18 +4,21 @@ class BasicApp < Native::App
   @[Preserve]
   property count : Int32 = 0
 
-  def setup
+  @label : UI::TextView?
+  @counter : UI::TextView?
+
+  def setup : Nil
     set_background_color(240, 240, 245)
 
     @label = UI::TextView.new
-    @label.text = "Hello, native.cr!"
-    @label.text_size = 28
-    @label.color = Color.from_hex(0x333333)
+    @label.not_nil!.text = "Hello, native.cr!"
+    @label.not_nil!.text_size = 28
+    @label.not_nil!.color = Color.from_hex(0x333333)
 
     @counter = UI::TextView.new
-    @counter.text = "Tap count: 0"
-    @counter.text_size = 18
-    @counter.color = Color.from_hex(0x666666)
+    @counter.not_nil!.text = "Tap count: 0"
+    @counter.not_nil!.text_size = 18
+    @counter.not_nil!.color = Color.from_hex(0x666666)
 
     button = UI::Button.new
     button.text = "Tap Me"
@@ -29,8 +32,8 @@ class BasicApp < Native::App
     column = UI::Column.new
     column.spacing = 24
     column.alignment = Alignment::Center
-    column.add_child(@label)
-    column.add_child(@counter)
+    column.add_child(@label.not_nil!)
+    column.add_child(@counter.not_nil!)
     column.add_child(button)
 
     @root = column
@@ -38,7 +41,7 @@ class BasicApp < Native::App
 
   def increment
     @count += 1
-    @counter.text = "Tap count: #{@count}"
+    @counter.not_nil!.text = "Tap count: #{@count}"
 
     if @count % 5 == 0
       set_background_color(200, 100, 100)

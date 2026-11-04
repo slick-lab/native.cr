@@ -10,10 +10,10 @@ fun crystal_start : Void
   app.setup
 end
 
-fun crystal_render_frame : Void
-  app = Native::App.current
-  app.draw
-end
+# NOTE: a crystal_render_frame fun referencing App#draw used to live here.
+# Nothing on the Swift side ever called it, App#draw never existed, and
+# the fun made any real iOS app compile fail — another "never actually
+# instantiated" code path. Removed; touch events below are the live API.
 
 fun crystal_touch_began(x : Float32, y : Float32) : Void
   app = Native::App.current
