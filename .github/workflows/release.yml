@@ -35,8 +35,30 @@ jobs:
       - name: Install Shards
         run: shards install
 
+      # ubuntu-26.04's libcrypto.a pulls zstd + jitter-entropy; the static
+      # link on the x86-64 leg needs both archives (same story as the
+      # Build CLI for x86-64 workflow). ARM64/macOS legs are unaffected.
+      - name: Install static-link deps (x86-64 leg only)
+        if: matrix.target == 'x86_64-linux-gnu'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q libzstd-dev zlib1g-dev
+          sudo apt-get install -y -q libjitterentropy-dev || {
+            git clone --depth 1 https://github.com/smuellerDD/jitterentropy-library /tmp/jitter
+            make -C /tmp/jitter
+            JIT_A=$(find /tmp/jitter -name '*.a' | head -1)
+            sudo cp "$JIT_A" /usr/local/lib/libjitterentropy.a
+          }
+
       - name: Build CLI (Release)
         run: |
+          # x86-64 leg: wrap cc so -lzstd/-ljitterentropy land AFTER
+          # libcrypto.a (Crystal places user flags before pkg-config libs;
+          # static archives are order-sensitive).
+          if [ "${{ matrix.target }}" = "x86_64-linux-gnu" ]; then
+            printf '#!/bin/sh\nexec /usr/bin/cc "$@" -lzstd -L/usr/local/lib -ljitterentropy\n' > ccwrap
+            chmod +x ccwrap
+            export CC="$PWD/ccwrap"
+          fi
           crystal build src/native.cr -o native.cr --release --static --target ${{ matrix.target }}
 
       - name: Upload Artifact
