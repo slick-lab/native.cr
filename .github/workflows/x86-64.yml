@@ -27,7 +27,7 @@ jobs:
       # ubuntu-latest's libcrypto.a is built with zstd support; the static
       # link needs its archive present or ZSTD_* symbols stay undefined.
       - name: Install static-link deps
-        run: sudo apt-get update -q && sudo apt-get install -y -q libzstd-dev zlib1g-dev
+        run: sudo apt-get update -q && sudo apt-get install -y -q libzstd-dev zlib1g-dev libjitterentropy-dev
 
       - name: Build CLI (Release)
         run: |
@@ -35,7 +35,7 @@ jobs:
           # command line, so a plain --link-flags="-lzstd" lands ahead of
           # libcrypto.a and resolves nothing (archives are order-sensitive).
           # Wrap the compiler driver so -lzstd is the LAST argument.
-          printf '#!/bin/sh\nexec /usr/bin/cc "$@" -lzstd\n' > ccwrap
+          printf '#!/bin/sh\nexec /usr/bin/cc "$@" -lzstd -ljitterentropy\n' > ccwrap
           chmod +x ccwrap
           export CC="$PWD/ccwrap"
           crystal build src/native.cr -o native.cr --release --static --target x86_64-linux-gnu
