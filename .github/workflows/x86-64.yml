@@ -31,7 +31,14 @@ jobs:
 
       - name: Build CLI (Release)
         run: |
-          crystal build src/native.cr -o native.cr --release --static --target x86_64-linux-gnu --link-flags="-lzstd"
+          # Crystal puts user link flags BEFORE pkg-config libs on the cc
+          # command line, so a plain --link-flags="-lzstd" lands ahead of
+          # libcrypto.a and resolves nothing (archives are order-sensitive).
+          # Wrap the compiler driver so -lzstd is the LAST argument.
+          printf '#!/bin/sh\nexec /usr/bin/cc "$@" -lzstd\n' > ccwrap
+          chmod +x ccwrap
+          export CC="$PWD/ccwrap"
+          crystal build src/native.cr -o native.cr --release --static --target x86_64-linux-gnu
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
