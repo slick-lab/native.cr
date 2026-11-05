@@ -59,7 +59,14 @@ jobs:
             chmod +x ccwrap
             export CC="$PWD/ccwrap"
           fi
-          crystal build src/native.cr -o native.cr --release --static --target ${{ matrix.target }}
+          # Fully static linking is Linux-only; on macOS -static dies with
+          # "library 'crt0.o' not found" (the standalone darwin workflow
+          # has never passed --static).
+          STATIC_FLAG=""
+          if [ "${{ matrix.target }}" != "aarch64-apple-darwin" ]; then
+            STATIC_FLAG="--static"
+          fi
+          crystal build src/native.cr -o native.cr --release $STATIC_FLAG --target ${{ matrix.target }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
