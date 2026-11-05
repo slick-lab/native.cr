@@ -96,17 +96,17 @@ jobs:
         run: |
           mkdir -p release-assets
 
-          for name in native-cli-linux-x86-64 native-cli-linux-arm64 native-cli-darwin-arm64; do
+          # Artifact names already match the postinstall download scheme
+          # (native.cr-${OS}-${ARCH}); copy straight across.
+          for name in native.cr-linux-x86_64 native.cr-linux-arm64 native.cr-darwin-arm64; do
             if [ -f "artifacts/$name/native.cr" ]; then
               cp "artifacts/$name/native.cr" "release-assets/$name"
               chmod +x "release-assets/$name"
+            else
+              echo "::error::artifact $name missing — refusing to publish without it"
+              exit 1
             fi
           done
-
-          # Normalize to the postinstall naming scheme.
-          mv "release-assets/native-cli-linux-x86-64"  "release-assets/native.cr-linux-x86_64"  2>/dev/null || true
-          mv "release-assets/native-cli-linux-arm64"   "release-assets/native.cr-linux-arm64"   2>/dev/null || true
-          mv "release-assets/native-cli-darwin-arm64"  "release-assets/native.cr-darwin-arm64"  2>/dev/null || true
 
           cd release-assets
           sha256sum native.cr-* > CHECKSUMS
