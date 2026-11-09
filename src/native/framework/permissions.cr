@@ -63,30 +63,41 @@ module Native::Permissions
         return
       end
 
-      @@callbacks[type] = [] of Proc(PermissionStatus, Nil) unless @@callbacks.has_key?(type)
-      @@callbacks[type] << callback
-
       {% if flag?(:native_android) %}
-        JNIHelpers.with_env do |env|
-          activity = Native::Android::JNI.activity
-          return unless activity
+        # Platform availability first: registering the callback and only
+        # then discovering that the activity is gone left it pending
+        # forever (nothing would ever fire it).
+        env = Native::Android::JNI.env
+        activity = Native::Android::JNI.activity
+        unless env && activity
+          callback.call(PermissionStatus::NotDetermined)
+          return
+        end
 
-          JNIHelpers.with_class(env, "java/lang/String") do |string_class|
-            next if string_class.null?
-            perm_array = env.new_object_array(1, string_class, Pointer(Void).null)
-            next if perm_array.null?
-            begin
-              JNIHelpers.with_jstring(env, permission_string(type)) do |jperm|
-                env.set_object_array_element(perm_array, 0, jperm)
-              end
-              JNIHelpers.call_void(env, activity.to_i64, "requestPermissions", "([Ljava/lang/String;I)V", perm_array, type.value)
-            ensure
-              env.delete_local_ref(perm_array)
+        @@callbacks[type] = [] of Proc(PermissionStatus, Nil) unless @@callbacks.has_key?(type)
+        @@callbacks[type] << callback
+
+        JNIHelpers.with_class(env, "java/lang/String") do |string_class|
+          next if string_class.null?
+          perm_array = env.new_object_array(1, string_class, Pointer(Void).null)
+          next if perm_array.null?
+          begin
+            JNIHelpers.with_jstring(env, permission_string(type)) do |jperm|
+              env.set_object_array_element(perm_array, 0, jperm)
             end
+            JNIHelpers.call_void(env, activity.to_i64, "requestPermissions", "([Ljava/lang/String;I)V", perm_array, type.value)
+          ensure
+            env.delete_local_ref(perm_array)
           end
         end
       {% elsif flag?(:native_ios) %}
+        @@callbacks[type] = [] of Proc(PermissionStatus, Nil) unless @@callbacks.has_key?(type)
+        @@callbacks[type] << callback
         LibIOS.request_permission(type.value)
+      {% else %}
+        # No backend: answer immediately instead of leaving the callback
+        # registered against a platform that will never answer.
+        callback.call(PermissionStatus::NotDetermined)
       {% end %}
     end
 
@@ -177,6 +188,13 @@ module Native::Permissions
       when PermissionType::Bluetooth                              then "android.permission.BLUETOOTH"
         # Android 13+ (API 33) requires POST_NOTIFICATIONS as a runtime permission.
       when PermissionType::Notifications then "android.permission.POST_NOTIFICATIONS"
+        # Android 13+ (API 33): granular media permissions replace the
+        # legacy READ_EXTERNAL_STORAGE grant for CameraRoll.
+      when PermissionType::CameraRoll then "android.permission.READ_MEDIA_IMAGES"
+        # Closest equivalents for the remaining types; each requires the
+        # matching <uses-permission> entry in the generated manifest.
+      when PermissionType::Speech then "android.permission.RECORD_AUDIO"
+      when PermissionType::Motion then "android.permission.ACTIVITY_RECOGNITION"
       else                                    ""
       end
     end

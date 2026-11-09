@@ -277,8 +277,17 @@ lib LibIOS
   # ── HTTP ────────────────────────────────────────────────────────────────────
   fun http_request(url : UInt8*, method : UInt8*, headers_json : UInt8*,
                    body : UInt8*, timeout : Float64) : UInt8*
+
+  # Streaming request. Asynchronous: events are delivered on the iOS
+  # main queue (the thread the Crystal runtime lives on), through the
+  # three C callbacks, each receiving the caller's context pointer back.
+  # chunk slices are borrowed and only valid for the duration of the
+  # call; the error message is NUL-terminated UTF-8.
   fun http_request_stream(url : UInt8*, method : UInt8*, headers_json : UInt8*,
-                          body : UInt8*, timeout : Float64) : Void
+                          body : UInt8*, timeout : Float64, context : Void*,
+                          on_chunk : (Void*, UInt8*, Int32 -> Void),
+                          on_complete : (Void*, Int32 -> Void),
+                          on_error : (Void*, UInt8* -> Void)) : Void
 
   # ── WebSocket ───────────────────────────────────────────────────────────────
   fun websocket_connect(url : UInt8*) : Void

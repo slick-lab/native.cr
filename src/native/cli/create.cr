@@ -97,7 +97,7 @@ module Native::CLI
         -p, --path DIR       Project directory path [default: ./PROJECT_NAME]
         --android            Generate Android only project
         --ios                Generate iOS only project
-        -t, --template TYPE  Template type [app, game, library] [default: app]
+        -t, --template TYPE  Template type [app, game] [default: app]
         -h, --help           Show this help
 
       Examples:

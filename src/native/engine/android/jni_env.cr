@@ -73,7 +73,7 @@
     def new_object(clazz : Void*, constructor : Void*, *jargs) : Void*
       e = ep; return Pointer(Void).null unless e
       jv = jvalues(jargs)
-      e.value.new_object_a.call(e.as(Void*), clazz, constructor,
+      e.value.new_object_a.call(@raw, clazz, constructor,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe).as(Void*)
     end
 
@@ -160,49 +160,49 @@
     def call_object_method(obj : Void* | Int64, mid : Void*, *jargs) : Void*
       e = ep; return Pointer(Void).null unless e
       jv = jvalues(jargs)
-      e.value.call_object_method_a.call(e.as(Void*), jobj(obj), mid,
+      e.value.call_object_method_a.call(@raw, jobj(obj), mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe).as(Void*)
     end
 
     def call_boolean_method(obj : Void* | Int64, mid : Void*, *jargs) : Bool
       e = ep; return false unless e
       jv = jvalues(jargs)
-      e.value.call_boolean_method_a.call(e.as(Void*), jobj(obj), mid,
+      e.value.call_boolean_method_a.call(@raw, jobj(obj), mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe) != 0
     end
 
     def call_int_method(obj : Void* | Int64, mid : Void*, *jargs) : Int32
       e = ep; return 0 unless e
       jv = jvalues(jargs)
-      e.value.call_int_method_a.call(e.as(Void*), jobj(obj), mid,
+      e.value.call_int_method_a.call(@raw, jobj(obj), mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
     def call_long_method(obj : Void* | Int64, mid : Void*, *jargs) : Int64
       e = ep; return 0i64 unless e
       jv = jvalues(jargs)
-      e.value.call_long_method_a.call(e.as(Void*), jobj(obj), mid,
+      e.value.call_long_method_a.call(@raw, jobj(obj), mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
     def call_float_method(obj : Void* | Int64, mid : Void*, *jargs) : Float32
       e = ep; return 0.0f32 unless e
       jv = jvalues(jargs)
-      e.value.call_float_method_a.call(e.as(Void*), jobj(obj), mid,
+      e.value.call_float_method_a.call(@raw, jobj(obj), mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
     def call_double_method(obj : Void* | Int64, mid : Void*, *jargs) : Float64
       e = ep; return 0.0 unless e
       jv = jvalues(jargs)
-      e.value.call_double_method_a.call(e.as(Void*), jobj(obj), mid,
+      e.value.call_double_method_a.call(@raw, jobj(obj), mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
     def call_void_method(obj : Void* | Int64, mid : Void*, *jargs) : Nil
       e = ep; return unless e
       jv = jvalues(jargs)
-      e.value.call_void_method_a.call(e.as(Void*), jobj(obj), mid,
+      e.value.call_void_method_a.call(@raw, jobj(obj), mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
@@ -211,42 +211,42 @@
     def call_static_object_method(clazz : Void*, mid : Void*, *jargs) : Void*
       e = ep; return Pointer(Void).null unless e
       jv = jvalues(jargs)
-      e.value.call_static_object_method_a.call(e.as(Void*), clazz, mid,
+      e.value.call_static_object_method_a.call(@raw, clazz, mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe).as(Void*)
     end
 
     def call_static_boolean_method(clazz : Void*, mid : Void*, *jargs) : Bool
       e = ep; return false unless e
       jv = jvalues(jargs)
-      e.value.call_static_boolean_method_a.call(e.as(Void*), clazz, mid,
+      e.value.call_static_boolean_method_a.call(@raw, clazz, mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe) != 0
     end
 
     def call_static_int_method(clazz : Void*, mid : Void*, *jargs) : Int32
       e = ep; return 0 unless e
       jv = jvalues(jargs)
-      e.value.call_static_int_method_a.call(e.as(Void*), clazz, mid,
+      e.value.call_static_int_method_a.call(@raw, clazz, mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
     def call_static_long_method(clazz : Void*, mid : Void*, *jargs) : Int64
       e = ep; return 0i64 unless e
       jv = jvalues(jargs)
-      e.value.call_static_long_method_a.call(e.as(Void*), clazz, mid,
+      e.value.call_static_long_method_a.call(@raw, clazz, mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
     def call_static_float_method(clazz : Void*, mid : Void*, *jargs) : Float32
       e = ep; return 0.0f32 unless e
       jv = jvalues(jargs)
-      e.value.call_static_float_method_a.call(e.as(Void*), clazz, mid,
+      e.value.call_static_float_method_a.call(@raw, clazz, mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
     def call_static_double_method(clazz : Void*, mid : Void*, *jargs) : Float64
       e = ep; return 0.0 unless e
       jv = jvalues(jargs)
-      e.value.call_static_double_method_a.call(e.as(Void*), clazz, mid,
+      e.value.call_static_double_method_a.call(@raw, clazz, mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 
@@ -255,47 +255,47 @@
 
     def get_long_field(obj : Void* | Int64, fid : Void*) : Int64
       e = ep; return 0i64 unless e
-      e.value.get_long_field.call(e.as(Void*), jobj(obj), fid)
+      e.value.get_long_field.call(@raw, jobj(obj), fid)
     end
 
     def get_float_field(obj : Void* | Int64, fid : Void*) : Float32
       e = ep; return 0.0f32 unless e
-      e.value.get_float_field.call(e.as(Void*), jobj(obj), fid)
+      e.value.get_float_field.call(@raw, jobj(obj), fid)
     end
 
     def get_double_field(obj : Void* | Int64, fid : Void*) : Float64
       e = ep; return 0.0 unless e
-      e.value.get_double_field.call(e.as(Void*), jobj(obj), fid)
+      e.value.get_double_field.call(@raw, jobj(obj), fid)
     end
 
     def get_static_long_field(clazz : Void*, fid : Void*) : Int64
       e = ep; return 0i64 unless e
-      e.value.get_static_long_field.call(e.as(Void*), clazz, fid)
+      e.value.get_static_long_field.call(@raw, clazz, fid)
     end
 
     def get_static_float_field(clazz : Void*, fid : Void*) : Float32
       e = ep; return 0.0f32 unless e
-      e.value.get_static_float_field.call(e.as(Void*), clazz, fid)
+      e.value.get_static_float_field.call(@raw, clazz, fid)
     end
 
     def get_static_double_field(clazz : Void*, fid : Void*) : Float64
       e = ep; return 0.0 unless e
-      e.value.get_static_double_field.call(e.as(Void*), clazz, fid)
+      e.value.get_static_double_field.call(@raw, clazz, fid)
     end
 
     def set_long_field(obj : Void* | Int64, fid : Void*, value : Int64) : Nil
       e = ep; return unless e
-      e.value.set_long_field.call(e.as(Void*), jobj(obj), fid, value)
+      e.value.set_long_field.call(@raw, jobj(obj), fid, value)
     end
 
     def set_float_field(obj : Void* | Int64, fid : Void*, value : Float32) : Nil
       e = ep; return unless e
-      e.value.set_float_field.call(e.as(Void*), jobj(obj), fid, value)
+      e.value.set_float_field.call(@raw, jobj(obj), fid, value)
     end
 
     def set_double_field(obj : Void* | Int64, fid : Void*, value : Float64) : Nil
       e = ep; return unless e
-      e.value.set_double_field.call(e.as(Void*), jobj(obj), fid, value)
+      e.value.set_double_field.call(@raw, jobj(obj), fid, value)
     end
 
     # ── exception handling ───────────────────────────────────────────────────────
@@ -305,23 +305,23 @@
 
     def exception_check : Bool
       e = ep; return false unless e
-      e.value.exception_check.call(e.as(Void*)) != 0
+      e.value.exception_check.call(@raw) != 0
     end
 
     def exception_clear : Nil
       e = ep; return unless e
-      e.value.exception_clear.call(e.as(Void*))
+      e.value.exception_clear.call(@raw)
     end
 
     def exception_occurred : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.exception_occurred.call(e.as(Void*)).as(Void*)
+      e.value.exception_occurred.call(@raw).as(Void*)
     end
 
     def call_static_void_method(clazz : Void*, mid : Void*, *jargs) : Nil
       e = ep; return unless e
       jv = jvalues(jargs)
-      e.value.call_static_void_method_a.call(e.as(Void*), clazz, mid,
+      e.value.call_static_void_method_a.call(@raw, clazz, mid,
         jv.empty? ? Pointer(LibJNI::JValue).null : jv.to_unsafe)
     end
 

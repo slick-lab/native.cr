@@ -54,9 +54,15 @@ public func http_request(_ url: UnsafePointer<UInt8>?, _ method: UnsafePointer<U
     let sem = DispatchSemaphore(value: 0)
     var payload: Data?
     var statusCode = 0
+    var responseHeaders: [String: String] = [:]
     var failed = false
     URLSession.shared.dataTask(with: request) { data, response, error in
-        if let http = response as? HTTPURLResponse { statusCode = http.statusCode }
+        if let http = response as? HTTPURLResponse {
+            statusCode = http.statusCode
+            http.allHeaderFields.forEach { (key, value) in
+                responseHeaders[String(describing: key)] = String(describing: value)
+            }
+        }
         payload = data
         failed = (error != nil)
         sem.signal()
@@ -64,9 +70,10 @@ public func http_request(_ url: UnsafePointer<UInt8>?, _ method: UnsafePointer<U
     _ = sem.wait(timeout: .now() + timeout + 2)
 
     guard !failed, let data = payload else { return nil }
-    // Envelope consumed by Network::HTTPClient#parse_response_json.
+    // Envelope consumed by Network::Response.from_json.
     let dict: [String: Any] = [
         "status": statusCode,
+        "headers": responseHeaders,
         "body": String(data: data, encoding: .utf8) ?? "",
         "success": (200..<300).contains(statusCode)
     ]
@@ -75,22 +82,107 @@ public func http_request(_ url: UnsafePointer<UInt8>?, _ method: UnsafePointer<U
     return retStr(str)
 }
 
+// ── HTTP streaming ───────────────────────────────────────────────────────────
+// Per-request delegate bridging URLSessionDataDelegate events back into
+// Crystal through the C callbacks provided by http_request_stream.
+
+final class NativeStreamTask: NSObject, URLSessionDataDelegate {
+    let context: UnsafeMutableRawPointer?
+    let onChunk: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?, Int32) -> Void)?
+    let onComplete: (@convention(c) (UnsafeMutableRawPointer?, Int32) -> Void)?
+    let onError: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?) -> Void)?
+
+    init(context: UnsafeMutableRawPointer?,
+         onChunk: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?, Int32) -> Void)?,
+         onComplete: (@convention(c) (UnsafeMutableRawPointer?, Int32) -> Void)?,
+         onError: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?) -> Void)?) {
+        self.context = context
+        self.onChunk = onChunk
+        self.onComplete = onComplete
+        self.onError = onError
+        super.init()
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        // Deliver on the main queue: the Crystal runtime lives on the iOS
+        // main thread (see NativeRuntime.swift's threading note), so the
+        // Crystal-side trampolines run on a GC-registered thread. The Data
+        // is captured by the closure, keeping the buffer alive across the
+        // withUnsafeBytes call.
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+                guard let base = raw.bindMemory(to: UInt8.self).baseAddress else { return }
+                self.onChunk?(self.context, base, Int32(data.count))
+            }
+        }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let error = error {
+                let message = error.localizedDescription
+                message.withCString { cString in
+                    self.onError?(self.context, cString)
+                }
+            } else {
+                let status = (task.response as? HTTPURLResponse)?.statusCode ?? 0
+                self.onComplete?(self.context, Int32(status))
+            }
+            NativeStreamRegistry.shared.release(task: task)
+        }
+    }
+}
+
+final class NativeStreamRegistry {
+    static let shared = NativeStreamRegistry()
+    private var sessions: [URLSessionTask: (session: URLSession, delegate: NativeStreamTask)] = [:]
+
+    func add(task: URLSessionTask, session: URLSession, delegate: NativeStreamTask) {
+        objc_sync_enter(self)
+        sessions[task] = (session, delegate)
+        objc_sync_exit(self)
+    }
+
+    func release(task: URLSessionTask) {
+        objc_sync_enter(self)
+        let entry = sessions.removeValue(forKey: task)
+        objc_sync_exit(self)
+        entry?.session.finishTasksAndInvalidate()
+    }
+}
+
 @_cdecl("http_request_stream")
 public func http_request_stream(_ url: UnsafePointer<UInt8>?, _ method: UnsafePointer<UInt8>?,
                                 _ headersJson: UnsafePointer<UInt8>?, _ body: UnsafePointer<UInt8>?,
-                                _ timeout: Double) {
-    // Fire-and-forget streaming: the framework's iOS stream path ignores the
-    // response for now (the Android bridge delivers via callback objects —
-    // that lands with the widget callback bridge).
+                                _ timeout: Double, _ context: UnsafeMutableRawPointer?,
+                                _ onChunk: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?, Int32) -> Void)?,
+                                _ onComplete: (@convention(c) (UnsafeMutableRawPointer?, Int32) -> Void)?,
+                                _ onError: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt8>?) -> Void)?) {
     var headers: [String: String] = [:]
     if let data = swiftStr(headersJson).data(using: .utf8),
        let obj = try? JSONSerialization.jsonObject(with: data) as? [String: String] {
         headers = obj
     }
-    let req = NativeHTTPRequest(url: swiftStr(url), method: swiftStr(method),
-                               headers: headers, body: swiftStr(body), timeout: timeout)
-    guard let request = buildRequest(req) else { return }
-    URLSession.shared.dataTask(with: request).resume()
+    guard let u = URL(string: swiftStr(url)) else {
+        // Deliver the failure synchronously; http_request_stream is called
+        // on the main thread, so this stays on a Crystal-safe thread.
+        "invalid url".withCString { onError?(context, $0) }
+        return
+    }
+    var request = URLRequest(url: u, timeoutInterval: timeout)
+    request.httpMethod = swiftStr(method)
+    headers.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+    let bodyStr = swiftStr(body)
+    if !bodyStr.isEmpty { request.httpBody = bodyStr.data(using: .utf8) }
+
+    let stream = NativeStreamTask(context: context, onChunk: onChunk,
+                                  onComplete: onComplete, onError: onError)
+    let session = URLSession(configuration: .default, delegate: stream, delegateQueue: nil)
+    let task = session.dataTask(with: request)
+    NativeStreamRegistry.shared.add(task: task, session: session, delegate: stream)
+    task.resume()
 }
 
 // ── WebSockets ───────────────────────────────────────────────────────────────
@@ -154,19 +246,45 @@ func storageDir(_ type: Int32) -> URL {
     return base
 }
 
+// Defense in depth for the storage API: the Crystal layer validates
+// names first (Native::Storage.valid_filename?); the Swift layer
+// independently refuses anything that could escape the storage dir.
+
+func safeStorageName(_ name: UnsafePointer<UInt8>?) -> String? {
+    guard let name = name else { return nil }
+    let s = String(cString: UnsafeRawPointer(name).assumingMemoryBound(to: CChar.self))
+    if s.isEmpty || s == "." || s == ".." || s.contains("/") || s.contains("\\") {
+        return nil
+    }
+    return s
+}
+
+func safeStorageSubdirectory(_ directory: UnsafePointer<UInt8>?) -> String? {
+    let s = directory.map { String(cString: UnsafeRawPointer($0).assumingMemoryBound(to: CChar.self)) } ?? ""
+    if s.isEmpty { return "" }
+    if s.contains("\\") || s.hasPrefix("/") { return nil }
+    for part in s.split(separator: "/") where part == "." || part == ".." || part.isEmpty {
+        return nil
+    }
+    return s
+}
+
 @_cdecl("file_write")
 public func file_write(_ name: UnsafePointer<UInt8>?, _ data: UnsafePointer<UInt8>?,
                        _ size: Int32, _ type: Int32) -> Bool {
-    guard let name = name, let data = data, size >= 0 else { return false }
-    let url = storageDir(type).appendingPathComponent(String(cString: UnsafeRawPointer(name).assumingMemoryBound(to: CChar.self)))
+    guard let safeName = safeStorageName(name), let data = data, size >= 0 else { return false }
+    let url = storageDir(type).appendingPathComponent(safeName)
     return FileManager.default.createFile(atPath: url.path, contents: Data(bytes: data, count: Int(size)))
 }
 
 @_cdecl("file_read")
 public func file_read(_ name: UnsafePointer<UInt8>?, _ sizePtr: UnsafeMutablePointer<Int32>?,
                       _ type: Int32) -> UnsafeMutablePointer<UInt8>? {
-    guard let name = name else { return nil }
-    let url = storageDir(type).appendingPathComponent(String(cString: UnsafeRawPointer(name).assumingMemoryBound(to: CChar.self)))
+    guard let safeName = safeStorageName(name) else {
+        sizePtr?.pointee = 0
+        return nil
+    }
+    let url = storageDir(type).appendingPathComponent(safeName)
     guard let data = try? Data(contentsOf: url) else {
         sizePtr?.pointee = 0
         return nil
@@ -179,21 +297,22 @@ public func file_read(_ name: UnsafePointer<UInt8>?, _ sizePtr: UnsafeMutablePoi
 
 @_cdecl("file_exists")
 public func file_exists(_ name: UnsafePointer<UInt8>?, _ type: Int32) -> Bool {
-    guard let name = name else { return false }
-    let url = storageDir(type).appendingPathComponent(String(cString: UnsafeRawPointer(name).assumingMemoryBound(to: CChar.self)))
+    guard let safeName = safeStorageName(name) else { return false }
+    let url = storageDir(type).appendingPathComponent(safeName)
     return FileManager.default.fileExists(atPath: url.path)
 }
 
 @_cdecl("file_delete")
 public func file_delete(_ name: UnsafePointer<UInt8>?, _ type: Int32) -> Bool {
-    guard let name = name else { return false }
-    let url = storageDir(type).appendingPathComponent(String(cString: UnsafeRawPointer(name).assumingMemoryBound(to: CChar.self)))
+    guard let safeName = safeStorageName(name) else { return false }
+    let url = storageDir(type).appendingPathComponent(safeName)
     do { try FileManager.default.removeItem(at: url); return true } catch { return false }
 }
 
 @_cdecl("file_list")
 public func file_list(_ directory: UnsafePointer<UInt8>?, _ type: Int32) -> UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>? {
-    let dir = storageDir(type).appendingPathComponent(swiftStr(directory))
+    guard let subdir = safeStorageSubdirectory(directory) else { return nil }
+    let dir = storageDir(type).appendingPathComponent(subdir)
     let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
     let arr = UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>.allocate(capacity: names.count + 1)
     for (i, n) in names.enumerated() { arr[i] = retStr(n) }
