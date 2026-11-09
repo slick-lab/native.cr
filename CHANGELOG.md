@@ -1,5 +1,70 @@
 # Changelog
 
+## 0.1.10
+
+External review fixes — platform integration hardening.
+
+### Android HTTP actually works now (critical)
+- The JNI signature mismatch is gone: `HTTPClient.execute` is now a
+  synchronous `(...)String` method matching exactly the signature
+  Crystal looks up. Previously every synchronous Android request failed
+  at GetStaticMethodID. The old callback-based method lives on as
+  `executeAsync`.
+- `StreamCallback` is now a real class (`new StreamCallback(J)`) with
+  native dispatch methods bridging chunks/status/errors back into
+  Crystal through exported JNI funs — it was an *interface* Crystal
+  tried to instantiate, which always throws. Android streaming now
+  delivers response chunks to `on_chunk`, the final status to
+  `on_complete` and transport errors to `on_error` (both new optional
+  `Request` hooks).
+- Stream events are delivered from a dedicated single-thread Java
+  executor, and the Crystal dispatch funs register that thread with
+  the Boehm GC before any allocation.
+
+### iOS streaming is real now (critical)
+- `http_request_stream` uses a per-request `URLSessionDataDelegate`
+  instead of firing and forgetting. Chunks, status and errors are
+  delivered on the main queue (the thread the Crystal runtime lives
+  on), through C trampolines into the same stream registry as Android.
+
+### File storage hardening (high)
+- Path traversal: filenames are validated on both sides of the bridge
+  (Crystal `Native::Storage.valid_filename?` + Swift
+  `safeStorageName`) — separators, `.`/`..` components and NUL are
+  rejected before anything reaches a path builder. Applies to write,
+  read, exists?, delete and list (subdirectory traversal likewise).
+- Android file IO: `FileInputStream` construction now checks for
+  pending JNI exceptions (a missing file used to poison every
+  subsequent JNI call), and the write() byte array is released exactly
+  once (it used to be deleted twice).
+
+### Networking fixes found while fixing the above
+- `Response.new(named args)` never compiled — an empty initialize
+  rejected every error-path construction in the file. (Crystal only
+  type-checks reachable code, and no spec/example reached them.)
+- `HTTPClient#get` without a block didn't exist; `HTTP.get(url)` was
+  therefore a compile error for any real app.
+- `build_desktop_client` referenced `HTTP::Client`, which resolved to
+  the `Native::Network::HTTP` convenience module inside this namespace
+  — an undefined constant. Same for `HTTP::Request`/`HTTP::Headers`.
+- Android and iOS response envelopes now include response headers
+  (previously dropped on both platforms).
+
+### Permissions
+- Callbacks are no longer left pending when the Android activity is
+  unavailable (or on desktop, which has no backend at all): they fire
+  with NotDetermined immediately.
+- CameraRoll, Speech and Motion now map to real Android permission
+  strings (READ_MEDIA_IMAGES, RECORD_AUDIO, ACTIVITY_RECOGNITION)
+  instead of the empty string.
+
+### Misc
+- README version badge matches shard.yml again (0.1.7 → 0.1.10).
+- `native create` help no longer advertises a nonexistent `library`
+  template.
+- Desktop streaming honours the request method and timeout, and calls
+  the new `on_complete`/`on_error` hooks.
+
 ## 0.1.9
 
 ### Hot-reload state is real now

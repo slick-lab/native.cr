@@ -235,6 +235,31 @@ module Native::Storage
     end
   end
 
+  # A filename is a single path component inside the app's storage dir.
+  # Anything containing separators (or traversal components, or NUL) is
+  # rejected before it can reach a path builder — on every platform, in
+  # every FileStorage method. The Swift backend independently applies
+  # the same rule (defense in depth).
+  def self.valid_filename?(filename : String) : Bool
+    return false if filename.empty?
+    return false if filename.includes?('/')
+    return false if filename.includes?('\\')
+    return false if filename == "." || filename == ".."
+    return false if filename.includes?('\0')
+    true
+  end
+
+  # list(directory) accepts a relative subdirectory path ("" = the
+  # storage root). Absolute paths, empty components and traversal
+  # segments are rejected.
+  def self.valid_subdirectory?(directory : String) : Bool
+    return true if directory.empty?
+    return false if directory.includes?('\\')
+    return false if directory.includes?('\0')
+    return false if directory.starts_with?('/')
+    directory.split('/').all? { |part| !part.empty? && part != "." && part != ".." }
+  end
+
   class FileStorage
     enum StorageType
       Documents
@@ -246,20 +271,25 @@ module Native::Storage
     end
 
     def write(filename : String, data : Bytes) : Bool
+      return false unless Native::Storage.valid_filename?(filename)
+
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
+        # (case over an enum is not inferred exhaustive — without the
+        # else the type widens to String | Nil and every JNIHelpers
+        # call below fails to resolve.)
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
                       when StorageType::Cache     then "getCacheDir"
-                      when StorageType::Temporary then "getCacheDir"
+                      else                             "getCacheDir"
                       end
 
         dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
+        path = JNIHelpers.call_object(env, dir.address.to_i64, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -275,20 +305,28 @@ module Native::Storage
         fos_class = env.find_class("java/io/FileOutputStream")
         fos_constructor = env.get_method_id(fos_class, "<init>", "(Ljava/io/File;)V")
         fos = env.new_object(fos_class, fos_constructor, file)
+        # FileNotFoundException et al. leave a pending exception that
+        # poisons every subsequent JNI call — check and clear it here.
+        if env.exception_check
+          env.exception_clear
+          env.delete_local_ref(file)
+          return false
+        end
 
         write_method = env.get_method_id(fos_class, "write", "([B)V")
         byte_array = env.new_byte_array(data.size)
-        env.set_byte_array_region(byte_array, 0, data.size, data)
+        env.set_byte_array_region(byte_array, 0, data)
         env.call_void_method(fos, write_method, byte_array)
-        env.delete_local_ref(byte_array) unless byte_array.null?
 
         close_method = env.get_method_id(fos_class, "close", "()V")
-        env.delete_local_ref(fos_class) unless fos_class.null?
         env.call_void_method(fos, close_method)
+        env.delete_local_ref(fos_class) unless fos_class.null?
 
         env.delete_local_ref(file)
         env.delete_local_ref(fos)
-        env.delete_local_ref(byte_array)
+        # Released exactly once, at the end — the old code deleted it
+        # both here and right after the write call.
+        env.delete_local_ref(byte_array) unless byte_array.null?
 
         true
       {% elsif flag?(:native_ios) %}
@@ -303,20 +341,25 @@ module Native::Storage
     end
 
     def read(filename : String) : Bytes?
+      return nil unless Native::Storage.valid_filename?(filename)
+
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return nil unless env && activity
 
+        # (case over an enum is not inferred exhaustive — without the
+        # else the type widens to String | Nil and every JNIHelpers
+        # call below fails to resolve.)
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
                       when StorageType::Cache     then "getCacheDir"
-                      when StorageType::Temporary then "getCacheDir"
+                      else                             "getCacheDir"
                       end
 
         dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
+        path = JNIHelpers.call_object(env, dir.address.to_i64, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -328,36 +371,44 @@ module Native::Storage
           env.new_object(file_class, file_constructor, jpath)
         end
         env.delete_local_ref(file_class) unless file_class.null?
+        return nil if file.null?
 
         fis_class = env.find_class("java/io/FileInputStream")
         fis_constructor = env.get_method_id(fis_class, "<init>", "(Ljava/io/File;)V")
         fis = env.new_object(fis_class, fis_constructor, file)
-
-        available = env.get_method_id(fis_class, "available", "()I")
-        size = env.call_int_method(fis, available)
-
-        if size <= 0
+        # A missing (or unreadable) file makes the FileInputStream
+        # constructor throw; without this check the pending exception
+        # turned every subsequent JNI call into undefined behaviour.
+        if env.exception_check
+          env.exception_clear
           env.delete_local_ref(file)
-          env.delete_local_ref(fis)
           return nil
         end
 
-        byte_array = env.new_byte_array(size)
-        read_method = env.get_method_id(fis_class, "read", "([B)I")
-        env.call_int_method(fis, read_method, byte_array)
+        begin
+          available = env.get_method_id(fis_class, "available", "()I")
+          size = env.call_int_method(fis, available)
 
-        close_method = env.get_method_id(fis_class, "close", "()V")
-        env.delete_local_ref(fis_class) unless fis_class.null?
-        env.call_void_method(fis, close_method)
+          if size <= 0
+            env.delete_local_ref(file)
+            env.delete_local_ref(fis)
+            return nil
+          end
 
-        data = Bytes.new(size)
-        env.get_byte_array_region(byte_array, 0, size, data)
+          byte_array = env.new_byte_array(size)
+          read_method = env.get_method_id(fis_class, "read", "([B)I")
+          env.call_int_method(fis, read_method, byte_array)
 
-        env.delete_local_ref(file)
-        env.delete_local_ref(fis)
-        env.delete_local_ref(byte_array)
+          close_method = env.get_method_id(fis_class, "close", "()V")
+          env.call_void_method(fis, close_method)
 
-        data
+          data = env.get_byte_array_region(byte_array, 0, size)
+
+          data
+        ensure
+          env.delete_local_ref(fis)
+          env.delete_local_ref(byte_array) if byte_array
+        end
       {% elsif flag?(:native_ios) %}
         size_ptr = Pointer(Int32).malloc(1)
         data_ptr = LibIOS.file_read(filename.to_utf8, size_ptr, @type.value)
@@ -379,20 +430,25 @@ module Native::Storage
     end
 
     def exists?(filename : String) : Bool
+      return false unless Native::Storage.valid_filename?(filename)
+
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
+        # (case over an enum is not inferred exhaustive — without the
+        # else the type widens to String | Nil and every JNIHelpers
+        # call below fails to resolve.)
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
                       when StorageType::Cache     then "getCacheDir"
-                      when StorageType::Temporary then "getCacheDir"
+                      else                             "getCacheDir"
                       end
 
         dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
+        path = JNIHelpers.call_object(env, dir.address.to_i64, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -419,20 +475,25 @@ module Native::Storage
     end
 
     def delete(filename : String) : Bool
+      return false unless Native::Storage.valid_filename?(filename)
+
       {% if flag?(:native_android) %}
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return false unless env && activity
 
+        # (case over an enum is not inferred exhaustive — without the
+        # else the type widens to String | Nil and every JNIHelpers
+        # call below fails to resolve.)
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
                       when StorageType::Cache     then "getCacheDir"
-                      when StorageType::Temporary then "getCacheDir"
+                      else                             "getCacheDir"
                       end
 
         dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
+        path = JNIHelpers.call_object(env, dir.address.to_i64, "getPath", "()Ljava/lang/String;")
 
         full_path = "#{env.get_string_utf_chars(path, nil).to_s}/#{filename}"
         env.delete_local_ref(dir)
@@ -459,21 +520,26 @@ module Native::Storage
     end
 
     def list(directory : String = "") : Array(String)
+      return [] of String unless Native::Storage.valid_subdirectory?(directory)
+
       {% if flag?(:native_android) %}
         files = [] of String
         env = Native::Android::JNI.env
         activity = Native::Android::JNI.activity
         return files unless env && activity
 
+        # (case over an enum is not inferred exhaustive — without the
+        # else the type widens to String | Nil and every JNIHelpers
+        # call below fails to resolve.)
         method_name = case @type
                       when StorageType::Documents then "getFilesDir"
                       when StorageType::Cache     then "getCacheDir"
-                      when StorageType::Temporary then "getCacheDir"
+                      else                             "getCacheDir"
                       end
 
         dir = JNIHelpers.call_object(env, activity.to_i64, method_name, "()Ljava/io/File;")
 
-        path = JNIHelpers.call_object(env, dir, "getPath", "()Ljava/lang/String;")
+        path = JNIHelpers.call_object(env, dir.address.to_i64, "getPath", "()Ljava/lang/String;")
 
         full_path = env.get_string_utf_chars(path, nil).to_s
         if !directory.empty?

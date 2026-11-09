@@ -18,7 +18,7 @@
       _p0 : Void*[6]                                                          # 0-5
       find_class : (Void*, UInt8*) -> Void*                                   # 6
       _p1 : Void*[8]                                                          # 7-14
-      exception_occurred : (Void*, Void*) -> Void*                            # 15
+      exception_occurred : (Void*) -> Void*                                   # 15
       exception_describe : (Void*) -> Void                                    # 16
       exception_clear : (Void*) -> Void                                       # 17
       _p1b : Void*[5]                                                         # 18-22
@@ -102,7 +102,7 @@
       _p25 : Void*[7]                                                         # 201-207
       set_byte_array_region : (Void*, Void*, Int32, Int32, UInt8*) -> Void    # 208
       _p26 : Void*[19]                                                        # 209-227
-      exception_check : (Void*, Void*) -> UInt8                               # 228
+      exception_check : (Void*) -> UInt8                                      # 228
     end
 
     alias JavaVM = Void*
@@ -170,92 +170,92 @@ module Native::Android::JNI
 
     def self.find_class(name : String) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.find_class.call(e.as(Void*), name.to_unsafe).as(Void*)
+      e.value.find_class.call(@@env, name.to_unsafe).as(Void*)
     end
 
     def self.get_method_id(class_ref : Void*, name : String, signature : String) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_method_id.call(e.as(Void*), class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
+      e.value.get_method_id.call(@@env, class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
     end
 
     def self.get_static_method_id(class_ref : Void*, name : String, signature : String) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_static_method_id.call(e.as(Void*), class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
+      e.value.get_static_method_id.call(@@env, class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
     end
 
     def self.get_field_id(class_ref : Void*, name : String, signature : String) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_field_id.call(e.as(Void*), class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
+      e.value.get_field_id.call(@@env, class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
     end
 
     def self.get_static_field_id(class_ref : Void*, name : String, signature : String) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_static_field_id.call(e.as(Void*), class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
+      e.value.get_static_field_id.call(@@env, class_ref, name.to_unsafe, signature.to_unsafe).as(Void*)
     end
 
     def self.get_object_class(obj : Void*) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_object_class.call(e.as(Void*), obj).as(Void*)
+      e.value.get_object_class.call(@@env, obj).as(Void*)
     end
 
     def self.is_instance_of(obj : Void*, clazz : Void*) : Bool
       e = ep; return false unless e
-      e.value.is_instance_of.call(e.as(Void*), obj, clazz) != 0
+      e.value.is_instance_of.call(@@env, obj, clazz) != 0
     end
 
     def self.new_string_utf(str : String) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.new_string_utf.call(e.as(Void*), str.to_unsafe).as(Void*)
+      e.value.new_string_utf.call(@@env, str.to_unsafe).as(Void*)
     end
 
     def self.get_string_utf_chars(str : Void*) : String
       e = ep; return "" unless e
       return "" if str.null?
-      chars = e.value.get_string_utf_chars.call(e.as(Void*), str, Pointer(UInt8).null)
+      chars = e.value.get_string_utf_chars.call(@@env, str, Pointer(UInt8).null)
       result = String.new(chars)
-      e.value.release_string_utf_chars.call(e.as(Void*), str, chars)
+      e.value.release_string_utf_chars.call(@@env, str, chars)
       result
     end
 
     def self.new_object(class_ref : Void*, constructor : Void*) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.new_object_a.call(e.as(Void*), class_ref, constructor, Pointer(LibJNI::JValue).null).as(Void*)
+      e.value.new_object_a.call(@@env, class_ref, constructor, Pointer(LibJNI::JValue).null).as(Void*)
     end
 
     def self.new_object_array(length : Int32, element_class : Void*, initial_element : Void* = Pointer(Void).null) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.new_object_array.call(e.as(Void*), length, element_class, initial_element).as(Void*)
+      e.value.new_object_array.call(@@env, length, element_class, initial_element).as(Void*)
     end
 
     def self.set_object_array_element(array : Void*, index : Int32, value : Void*) : Nil
       e = ep; return unless e
-      e.value.set_object_array_element.call(e.as(Void*), array, index, value)
+      e.value.set_object_array_element.call(@@env, array, index, value)
     end
 
     def self.get_object_array_element(array : Void*, index : Int32) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_object_array_element.call(e.as(Void*), array, index).as(Void*)
+      e.value.get_object_array_element.call(@@env, array, index).as(Void*)
     end
 
     def self.get_array_length(array : Void*) : Int32
       e = ep; return 0 unless e
-      e.value.get_array_length.call(e.as(Void*), array)
+      e.value.get_array_length.call(@@env, array)
     end
 
     def self.new_byte_array(length : Int32) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.new_byte_array.call(e.as(Void*), length).as(Void*)
+      e.value.new_byte_array.call(@@env, length).as(Void*)
     end
 
     def self.set_byte_array_region(array : Void*, offset : Int32, data : Bytes) : Nil
       e = ep; return unless e
-      e.value.set_byte_array_region.call(e.as(Void*), array, offset, data.size, data.to_unsafe)
+      e.value.set_byte_array_region.call(@@env, array, offset, data.size, data.to_unsafe)
     end
 
     def self.get_byte_array_region(array : Void*, offset : Int32, length : Int32) : Bytes
       e = ep; return Bytes.new(0) unless e
       data = Bytes.new(length)
-      e.value.get_byte_array_region.call(e.as(Void*), array, offset, length, data.to_unsafe)
+      e.value.get_byte_array_region.call(@@env, array, offset, length, data.to_unsafe)
       data
     end
 
@@ -263,9 +263,9 @@ module Native::Android::JNI
       e = ep; return Pointer(Void).null unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_object_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe).as(Void*)
+        e.value.call_object_method_a.call(@@env, obj, method_id, jv.to_unsafe).as(Void*)
       else
-        e.value.call_object_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null).as(Void*)
+        e.value.call_object_method_a.call(@@env, obj, method_id, Pointer(LibJNI::JValue).null).as(Void*)
       end
     end
 
@@ -273,9 +273,9 @@ module Native::Android::JNI
       e = ep; return false unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_boolean_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe) != 0
+        e.value.call_boolean_method_a.call(@@env, obj, method_id, jv.to_unsafe) != 0
       else
-        e.value.call_boolean_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null) != 0
+        e.value.call_boolean_method_a.call(@@env, obj, method_id, Pointer(LibJNI::JValue).null) != 0
       end
     end
 
@@ -283,9 +283,9 @@ module Native::Android::JNI
       e = ep; return 0 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_int_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe)
+        e.value.call_int_method_a.call(@@env, obj, method_id, jv.to_unsafe)
       else
-        e.value.call_int_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_int_method_a.call(@@env, obj, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -293,9 +293,9 @@ module Native::Android::JNI
       e = ep; return 0i64 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_long_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe)
+        e.value.call_long_method_a.call(@@env, obj, method_id, jv.to_unsafe)
       else
-        e.value.call_long_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_long_method_a.call(@@env, obj, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -303,9 +303,9 @@ module Native::Android::JNI
       e = ep; return 0.0f32 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_float_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe)
+        e.value.call_float_method_a.call(@@env, obj, method_id, jv.to_unsafe)
       else
-        e.value.call_float_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_float_method_a.call(@@env, obj, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -313,9 +313,9 @@ module Native::Android::JNI
       e = ep; return 0.0 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_double_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe)
+        e.value.call_double_method_a.call(@@env, obj, method_id, jv.to_unsafe)
       else
-        e.value.call_double_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_double_method_a.call(@@env, obj, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -323,9 +323,9 @@ module Native::Android::JNI
       e = ep; return unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_void_method_a.call(e.as(Void*), obj, method_id, jv.to_unsafe)
+        e.value.call_void_method_a.call(@@env, obj, method_id, jv.to_unsafe)
       else
-        e.value.call_void_method_a.call(e.as(Void*), obj, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_void_method_a.call(@@env, obj, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -333,9 +333,9 @@ module Native::Android::JNI
       e = ep; return Pointer(Void).null unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_static_object_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe).as(Void*)
+        e.value.call_static_object_method_a.call(@@env, class_ref, method_id, jv.to_unsafe).as(Void*)
       else
-        e.value.call_static_object_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null).as(Void*)
+        e.value.call_static_object_method_a.call(@@env, class_ref, method_id, Pointer(LibJNI::JValue).null).as(Void*)
       end
     end
 
@@ -343,9 +343,9 @@ module Native::Android::JNI
       e = ep; return false unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_static_boolean_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe) != 0
+        e.value.call_static_boolean_method_a.call(@@env, class_ref, method_id, jv.to_unsafe) != 0
       else
-        e.value.call_static_boolean_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null) != 0
+        e.value.call_static_boolean_method_a.call(@@env, class_ref, method_id, Pointer(LibJNI::JValue).null) != 0
       end
     end
 
@@ -353,9 +353,9 @@ module Native::Android::JNI
       e = ep; return 0 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_static_int_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe)
+        e.value.call_static_int_method_a.call(@@env, class_ref, method_id, jv.to_unsafe)
       else
-        e.value.call_static_int_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_static_int_method_a.call(@@env, class_ref, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -363,9 +363,9 @@ module Native::Android::JNI
       e = ep; return 0i64 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_static_long_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe)
+        e.value.call_static_long_method_a.call(@@env, class_ref, method_id, jv.to_unsafe)
       else
-        e.value.call_static_long_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_static_long_method_a.call(@@env, class_ref, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -373,9 +373,9 @@ module Native::Android::JNI
       e = ep; return 0.0f32 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_static_float_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe)
+        e.value.call_static_float_method_a.call(@@env, class_ref, method_id, jv.to_unsafe)
       else
-        e.value.call_static_float_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_static_float_method_a.call(@@env, class_ref, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -383,9 +383,9 @@ module Native::Android::JNI
       e = ep; return 0.0 unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_static_double_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe)
+        e.value.call_static_double_method_a.call(@@env, class_ref, method_id, jv.to_unsafe)
       else
-        e.value.call_static_double_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_static_double_method_a.call(@@env, class_ref, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
@@ -393,90 +393,90 @@ module Native::Android::JNI
       e = ep; return unless e
       if a = args
         jv = a.map { |x| jval_l(x) }
-        e.value.call_static_void_method_a.call(e.as(Void*), class_ref, method_id, jv.to_unsafe)
+        e.value.call_static_void_method_a.call(@@env, class_ref, method_id, jv.to_unsafe)
       else
-        e.value.call_static_void_method_a.call(e.as(Void*), class_ref, method_id, Pointer(LibJNI::JValue).null)
+        e.value.call_static_void_method_a.call(@@env, class_ref, method_id, Pointer(LibJNI::JValue).null)
       end
     end
 
     def self.get_object_field(obj : Void*, field_id : Void*) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_object_field.call(e.as(Void*), obj, field_id).as(Void*)
+      e.value.get_object_field.call(@@env, obj, field_id).as(Void*)
     end
 
     def self.get_boolean_field(obj : Void*, field_id : Void*) : Bool
       e = ep; return false unless e
-      e.value.get_boolean_field.call(e.as(Void*), obj, field_id) != 0
+      e.value.get_boolean_field.call(@@env, obj, field_id) != 0
     end
 
     def self.get_int_field(obj : Void*, field_id : Void*) : Int32
       e = ep; return 0 unless e
-      e.value.get_int_field.call(e.as(Void*), obj, field_id)
+      e.value.get_int_field.call(@@env, obj, field_id)
     end
 
     def self.get_long_field(obj : Void*, field_id : Void*) : Int64
       e = ep; return 0i64 unless e
-      e.value.get_long_field.call(e.as(Void*), obj, field_id)
+      e.value.get_long_field.call(@@env, obj, field_id)
     end
 
     def self.get_float_field(obj : Void*, field_id : Void*) : Float32
       e = ep; return 0.0f32 unless e
-      e.value.get_float_field.call(e.as(Void*), obj, field_id)
+      e.value.get_float_field.call(@@env, obj, field_id)
     end
 
     def self.get_double_field(obj : Void*, field_id : Void*) : Float64
       e = ep; return 0.0 unless e
-      e.value.get_double_field.call(e.as(Void*), obj, field_id)
+      e.value.get_double_field.call(@@env, obj, field_id)
     end
 
     def self.get_static_object_field(class_ref : Void*, field_id : Void*) : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.get_static_object_field.call(e.as(Void*), class_ref, field_id).as(Void*)
+      e.value.get_static_object_field.call(@@env, class_ref, field_id).as(Void*)
     end
 
     def self.get_static_int_field(class_ref : Void*, field_id : Void*) : Int32
       e = ep; return 0 unless e
-      e.value.get_static_int_field.call(e.as(Void*), class_ref, field_id)
+      e.value.get_static_int_field.call(@@env, class_ref, field_id)
     end
 
     def self.get_static_long_field(class_ref : Void*, field_id : Void*) : Int64
       e = ep; return 0i64 unless e
-      e.value.get_static_long_field.call(e.as(Void*), class_ref, field_id)
+      e.value.get_static_long_field.call(@@env, class_ref, field_id)
     end
 
     def self.get_static_float_field(class_ref : Void*, field_id : Void*) : Float32
       e = ep; return 0.0f32 unless e
-      e.value.get_static_float_field.call(e.as(Void*), class_ref, field_id)
+      e.value.get_static_float_field.call(@@env, class_ref, field_id)
     end
 
     def self.get_static_double_field(class_ref : Void*, field_id : Void*) : Float64
       e = ep; return 0.0 unless e
-      e.value.get_static_double_field.call(e.as(Void*), class_ref, field_id)
+      e.value.get_static_double_field.call(@@env, class_ref, field_id)
     end
 
     def self.set_object_field(obj : Void*, field_id : Void*, value : Void*) : Nil
       e = ep; return unless e
-      e.value.set_object_field.call(e.as(Void*), obj, field_id, value)
+      e.value.set_object_field.call(@@env, obj, field_id, value)
     end
 
     def self.set_int_field(obj : Void*, field_id : Void*, value : Int32) : Nil
       e = ep; return unless e
-      e.value.set_int_field.call(e.as(Void*), obj, field_id, value)
+      e.value.set_int_field.call(@@env, obj, field_id, value)
     end
 
     def self.set_long_field(obj : Void*, field_id : Void*, value : Int64) : Nil
       e = ep; return unless e
-      e.value.set_long_field.call(e.as(Void*), obj, field_id, value)
+      e.value.set_long_field.call(@@env, obj, field_id, value)
     end
 
     def self.set_float_field(obj : Void*, field_id : Void*, value : Float32) : Nil
       e = ep; return unless e
-      e.value.set_float_field.call(e.as(Void*), obj, field_id, value)
+      e.value.set_float_field.call(@@env, obj, field_id, value)
     end
 
     def self.set_double_field(obj : Void*, field_id : Void*, value : Float64) : Nil
       e = ep; return unless e
-      e.value.set_double_field.call(e.as(Void*), obj, field_id, value)
+      e.value.set_double_field.call(@@env, obj, field_id, value)
     end
 
     # Exception handling — a pending JNI exception makes every subsequent
@@ -484,31 +484,31 @@ module Native::Android::JNI
     # that can throw (most of them) and clear before continuing.
     def self.exception_check : Bool
       e = ep; return false unless e
-      e.value.exception_check.call(e.as(Void*)) != 0
+      e.value.exception_check.call(@@env) != 0
     end
 
     def self.exception_clear : Nil
       e = ep; return unless e
-      e.value.exception_clear.call(e.as(Void*))
+      e.value.exception_clear.call(@@env)
     end
 
     def self.exception_occurred : Void*
       e = ep; return Pointer(Void).null unless e
-      e.value.exception_occurred.call(e.as(Void*)).as(Void*)
+      e.value.exception_occurred.call(@@env).as(Void*)
     end
 
     def self.delete_local_ref(obj : Void*) : Nil
       return if obj.null?
       e = ep; return unless e
-      e.value.delete_local_ref.call(e.as(Void*), obj)
+      e.value.delete_local_ref.call(@@env, obj)
     end
 
     def self.get_activity_class_loader : Void*
       e = ep; return Pointer(Void).null unless e
       ac = @@activity_class
       return Pointer(Void).null if ac.null?
-      mid = e.value.get_method_id.call(e.as(Void*), ac, "getClassLoader".to_unsafe, "()Ljava/lang/ClassLoader;".to_unsafe)
-      e.value.call_object_method_a.call(e.as(Void*), ac, mid, Pointer(LibJNI::JValue).null).as(Void*)
+      mid = e.value.get_method_id.call(@@env, ac, "getClassLoader".to_unsafe, "()Ljava/lang/ClassLoader;".to_unsafe)
+      e.value.call_object_method_a.call(@@env, ac, mid, Pointer(LibJNI::JValue).null).as(Void*)
     end
 
     private def self.jval_l(ptr : Void*) : LibJNI::JValue
