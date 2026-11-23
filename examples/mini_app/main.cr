@@ -1,4 +1,5 @@
 require "native"
+require "native/dsl"
 
 class CounterApp < Native::App
   @count : Int32 = 0

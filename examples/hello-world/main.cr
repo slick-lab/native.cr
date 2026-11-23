@@ -1,4 +1,5 @@
 require "native"
+require "native/dsl"
 
 include Native
 

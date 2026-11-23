@@ -5,6 +5,7 @@
 # Compile-checked on desktop/Android/iOS by the examples CI job.
 
 require "native"
+require "native/dsl"
 
 class CameraApp < Native::App
   @photo_view : UI::ImageView?

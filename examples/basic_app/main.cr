@@ -1,4 +1,5 @@
 require "native"
+require "native/dsl"
 
 class BasicApp < Native::App
   @[Preserve]

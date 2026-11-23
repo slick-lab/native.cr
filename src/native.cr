@@ -45,13 +45,8 @@ require "./native/framework/navigation/navigator"
 require "./native/framework/navigation/toolbar"
 require "./native/framework/push_notifications"
 
-# Top-level DSL constants (UI, Color, Alignment, CornerRadius) — see
-# src/native/dsl.cr. Required AFTER the framework so the constants bind
-# to fully-defined namespaces.
-require "./native/dsl"
-
 module Native
-  VERSION = "0.1.9"
+  VERSION = "0.1.10"
 
   def self.run
     args = ARGV
@@ -87,4 +82,7 @@ module Native
   end
 end
 
-Native.run
+# Auto-run the CLI only when this binary IS the CLI. App binaries also
+# require this file — without the gate, `Native.run` parsed the app's
+# own ARGV at startup and could print help or exit the app.
+Native.run if {"native", "native.cr"}.includes?(File.basename(PROGRAM_NAME))

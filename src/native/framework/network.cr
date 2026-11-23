@@ -698,20 +698,31 @@ end
       mem_base : Void*
     end
 
+    fun GC_allow_register_threads = GC_allow_register_threads : Void
+    fun GC_thread_is_registered = GC_thread_is_registered : Int32
     fun GC_get_stack_base = GC_get_stack_base(base : StackBase*) : Int32
     fun GC_register_my_thread = GC_register_my_thread(base : StackBase*) : Int32
   end
 
   module Native::Network
-    @@jni_dispatcher_registered : Atomic(Bool) = Atomic(Bool).new(false)
+    @@jni_registration_allowed : Atomic(Bool) = Atomic(Bool).new(false)
 
     def self.ensure_jni_dispatcher_registered : Nil
-      return if @@jni_dispatcher_registered.get
+      # libgc rejects GC_register_my_thread until registration has been
+      # explicitly enabled; Crystal's own GC.init does not enable it for
+      # us. Process-global, so a one-shot atomic guard is enough.
+      unless @@jni_registration_allowed.get
+        LibGCAndroid.GC_allow_register_threads
+        @@jni_registration_allowed.set(true)
+      end
+      # Per-call check, deliberately NOT a cached flag: if a task raises,
+      # Java's ThreadPoolExecutor replaces the worker thread, and the
+      # fresh thread must register as well.
+      return if LibGCAndroid.GC_thread_is_registered != 0
       base = LibGCAndroid::StackBase.new(mem_base: Pointer(Void).null)
       if LibGCAndroid.GC_get_stack_base(pointerof(base)) == 0
         LibGCAndroid.GC_register_my_thread(pointerof(base))
       end
-      @@jni_dispatcher_registered.set(true)
     end
   end
 
