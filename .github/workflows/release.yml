@@ -91,7 +91,9 @@ jobs:
       # (native.cr-${OS}-${ARCH} with OS=linux/darwin, ARCH=x86_64/arm64).
       # CHECKSUMS is generated here and verified by postinstall — any
       # binary that reaches a user has a published sha256 to check
-      # against.
+      # against. Note: the checksum travels in the same release as the
+      # artifacts, so it detects corruption, not a compromised release
+      # (signed releases / cosign are the follow-up for authenticity).
       - name: Prepare release assets
         run: |
           mkdir -p release-assets

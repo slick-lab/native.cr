@@ -58,6 +58,29 @@ External review fixes — platform integration hardening.
   strings (READ_MEDIA_IMAGES, RECORD_AUDIO, ACTIVITY_RECOGNITION)
   instead of the empty string.
 
+### Review round 2
+- `Native.run` now auto-runs only when the binary IS the CLI
+  (`native`/`native.cr`) — app binaries no longer parsed their own
+  ARGV through the CLI dispatcher at startup.
+- `Native::VERSION` tracks shard.yml (0.1.10) again; README example
+  output updated.
+- The stray duplicate `Changelog.md` and the 6 MB stale `native`
+  binary are gone from the repo (`/native` now gitignored).
+- Top-level `UI`/`Color` DSL aliases are opt-in via
+  `require "native/dsl"` instead of leaking into every app; examples
+  updated.
+- GC thread registration: `GC_allow_register_threads` is now called
+  (libgc rejects registration without it — Crystal's GC.init does not
+  enable it), and the dispatcher thread checks
+  `GC_thread_is_registered` per call instead of trusting a cached
+  flag, so a replacement executor thread after a crashed task still
+  registers.
+- The dead JSON::Serializable `Core::State` module is removed
+  (`@[Preserve]` is the real API).
+- `@[Preserve]` type matching now uses `ivar.type.union_types` instead
+  of matching stringified type-name spellings.
+- Release CHECKSUMS documented as integrity-only (same-origin release).
+
 ### Misc
 - README version badge matches shard.yml again (0.1.7 → 0.1.10).
 - `native create` help no longer advertises a nonexistent `library`

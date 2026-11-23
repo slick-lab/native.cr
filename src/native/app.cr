@@ -131,15 +131,10 @@ module Native
             io << "{"
             {% for i in 0...ivars.size %}
               {% ivar = ivars[i] %}
-              {% ts = ivar.type.stringify %}
-              {% ok = false %}
-              {% for base in STATE_TYPES %}
-                {% if ts == base || ts == (base + " | Nil") || ts == ("(" + base + " | Nil)") || ts == ("::" + base) || ts == ("::" + base + " | Nil") || ts == ("(::" + base + " | Nil)") %}
-                  {% ok = true %}
-                {% end %}
-              {% end %}
-              {% unless ok %}
-                {% raise "Unsupported @[Preserve] type #{ts} for #{ivar.name} — " \
+              {% ut = ivar.type.union_types %}
+              {% non_nil = ut.reject { |t| t == Nil } %}
+              {% unless non_nil.size == 1 && (ut.size == 1 || ut.size == 2) && (non_nil[0] == Bool || non_nil[0] == Int32 || non_nil[0] == Int64 || non_nil[0] == Float32 || non_nil[0] == Float64 || non_nil[0] == String || non_nil[0] == Array(String) || non_nil[0] == Array(Int32) || non_nil[0] == Array(Float64) || non_nil[0] == JSON::Any) %}
+                {% raise "Unsupported @[Preserve] type #{ivar.type} for #{ivar.name} — " \
                          "use Bool, Int32, Int64, Float32, Float64, String, Array(String), " \
                          "Array(Int32), Array(Float64), JSON::Any or a nilable variant" %}
               {% end %}
@@ -164,49 +159,39 @@ module Native
           hash = doc.as_h?
           return unless hash
           {% for ivar in ivars %}
-            {% ts = ivar.type.stringify %}
+            {% ut = ivar.type.union_types %}
+            {% non_nil = ut.reject { |t| t == Nil } %}
+            {% unless non_nil.size == 1 && (ut.size == 1 || ut.size == 2) %}
+              {% raise "Unsupported @[Preserve] type #{ivar.type} for #{ivar.name} — " \
+                       "use Bool, Int32, Int64, Float32, Float64, String, Array(String), " \
+                       "Array(Int32), Array(Float64), JSON::Any or a nilable variant" %}
+            {% end %}
+            {% t = non_nil[0] %}
+            {% nilable = ut.size == 2 %}
             if value = hash[{{ivar.name.stringify}}]?
-              {%if ts == "Bool" || ts == "::Bool" %}
-                @{{ivar.name.id}} = value.as_bool
-              {%elsif ts == "(Bool | Nil)" || ts == "Bool | Nil" || ts == "(::Bool | Nil)" || ts == "::Bool | Nil" %}
-                @{{ivar.name.id}} = value.as_bool?
-              {%elsif ts == "Int32" || ts == "::Int32" %}
-                @{{ivar.name.id}} = value.as_i.to_i32
-              {%elsif ts == "(Int32 | Nil)" || ts == "Int32 | Nil" || ts == "(::Int32 | Nil)" || ts == "::Int32 | Nil" %}
-                @{{ivar.name.id}} = value.as_i?.try &.to_i32
-              {%elsif ts == "Int64" || ts == "::Int64" %}
-                @{{ivar.name.id}} = value.as_i64
-              {%elsif ts == "(Int64 | Nil)" || ts == "Int64 | Nil" || ts == "(::Int64 | Nil)" || ts == "::Int64 | Nil" %}
-                @{{ivar.name.id}} = value.as_i64?
-              {%elsif ts == "Float32" || ts == "::Float32" %}
-                @{{ivar.name.id}} = value.as_f.to_f32
-              {%elsif ts == "(Float32 | Nil)" || ts == "Float32 | Nil" || ts == "(::Float32 | Nil)" || ts == "::Float32 | Nil" %}
-                @{{ivar.name.id}} = value.as_f?.try &.to_f32
-              {%elsif ts == "Float64" || ts == "::Float64" %}
-                @{{ivar.name.id}} = value.as_f
-              {%elsif ts == "(Float64 | Nil)" || ts == "Float64 | Nil" || ts == "(::Float64 | Nil)" || ts == "::Float64 | Nil" %}
-                @{{ivar.name.id}} = value.as_f?
-              {%elsif ts == "String" || ts == "::String" %}
-                @{{ivar.name.id}} = value.as_s
-              {%elsif ts == "(String | Nil)" || ts == "String | Nil" || ts == "(::String | Nil)" || ts == "::String | Nil" %}
-                @{{ivar.name.id}} = value.as_s?
-              {%elsif ts == "Array(String)" || ts == "::Array(::String)" %}
-                @{{ivar.name.id}} = value.as_a.map &.as_s
-              {%elsif ts == "(Array(String) | Nil)" || ts == "Array(String) | Nil" || ts == "(::Array(::String) | Nil)" || ts == "::Array(::String) | Nil" %}
-                @{{ivar.name.id}} = value.as_a?.try &.map(&.as_s)
-              {%elsif ts == "Array(Int32)" || ts == "::Array(::Int32)" %}
-                @{{ivar.name.id}} = value.as_a.map { |v| v.as_i.to_i32 }
-              {%elsif ts == "(Array(Int32) | Nil)" || ts == "Array(Int32) | Nil" || ts == "(::Array(::Int32) | Nil)" || ts == "::Array(::Int32) | Nil" %}
-                @{{ivar.name.id}} = value.as_a?.try &.map { |v| v.as_i.to_i32 }
-              {%elsif ts == "Array(Float64)" || ts == "::Array(::Float64)" %}
-                @{{ivar.name.id}} = value.as_a.map &.as_f
-              {%elsif ts == "(Array(Float64) | Nil)" || ts == "Array(Float64) | Nil" || ts == "(::Array(::Float64) | Nil)" || ts == "::Array(::Float64) | Nil" %}
-                @{{ivar.name.id}} = value.as_a?.try &.map(&.as_f)
-              {%elsif ts == "JSON::Any" || ts == "::JSON::Any" || ts == "(JSON::Any | Nil)" || ts == "JSON::Any | Nil" || ts == "(::JSON::Any | Nil)" || ts == "::JSON::Any | Nil" %}
+              {% if t == Bool %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_bool?".id : "as_bool".id }}
+              {% elsif t == Int32 %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_i?.try &.to_i32".id : "as_i.to_i32".id }}
+              {% elsif t == Int64 %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_i64?".id : "as_i64".id }}
+              {% elsif t == Float32 %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_f?.try &.to_f32".id : "as_f.to_f32".id }}
+              {% elsif t == Float64 %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_f?".id : "as_f".id }}
+              {% elsif t == String %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_s?".id : "as_s".id }}
+              {% elsif t == Array(String) %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_a?.try &.map(&.as_s)".id : "as_a.map &.as_s".id }}
+              {% elsif t == Array(Int32) %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_a?.try &.map { |v| v.as_i.to_i32 }".id : "as_a.map { |v| v.as_i.to_i32 }".id }}
+              {% elsif t == Array(Float64) %}
+                @{{ivar.name.id}} = value.{{ nilable ? "as_a?.try &.map(&.as_f)".id : "as_a.map &.as_f".id }}
+              {% elsif t == JSON::Any %}
                 @{{ivar.name.id}} = value
-              {%else%}
+              {% else %}
                 raise "BUG: unsupported preserved type reached runtime"
-              {%end%}
+              {% end %}
             end
           {% end %}
         {% end %}

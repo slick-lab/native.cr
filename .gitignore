@@ -1,6 +1,8 @@
 # .gitignore
 
 # Native.cr build artifacts
+/native
+
 .native_cache/
 .build/
 build/

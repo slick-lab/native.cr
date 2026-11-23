@@ -288,7 +288,7 @@ make install
 
 ```bash
 native.cr --version
-# Native 0.1.7
+# Native 0.1.10
 
 native.cr doctor
 # OK  Crystal 1.20.1

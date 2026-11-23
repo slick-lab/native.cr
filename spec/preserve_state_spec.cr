@@ -134,9 +134,4 @@ describe "hot-reload state DSL" do
     json.should contain("level")
     json.should_not contain("count")
   end
-
-  it "Core::State validates JSON strings" do
-    Native::Core::State.valid_json?(%({"a": 1})).should be_true
-    Native::Core::State.valid_json?("not json").should be_false
-  end
 end

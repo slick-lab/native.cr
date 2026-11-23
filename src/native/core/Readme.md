@@ -23,20 +23,9 @@ Provides state serialization and deserialization for preserving app state during
 
 **Usage:**
 
-```crystal
-class MyApp
-  include JSON::Serializable
-  
-  property score : Int32 = 0
-  property name : String = ""
-end
-
-app = MyApp.new
-app.score = 100
-
-json = Native::Core::State.save(app)
-Native::Core::State.load(json, app)
-```
+The JSON::Serializable-based `Core::State` helper was removed — hot-reload
+state uses the `@[Preserve]` DSL (see preserve.cr and app.cr's
+`state_to_json` / `state_from_json`).
 
 ## process.cr
 
