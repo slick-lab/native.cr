@@ -105,10 +105,11 @@
       exception_check : (Void*) -> UInt8                                      # 228
     end
 
-    alias JavaVM = Void*
-    fun AttachCurrentThread(vm : JavaVM*, env : Void**, args : Void*) : Int32
-    fun DetachCurrentThread(vm : JavaVM*) : Int32
-    fun GetEnv(vm : JavaVM*, env : Void**, version : Int32) : Int32
+    # NOTE: JNI functions are NOT exported symbols — they live in the
+    # JNIEnv/JavaVM vtables (see JNINativeInterface above; a JavaVM
+    # interface struct is needed for AttachCurrentThread). Declaring
+    # them as extern `fun`s here would break the Android link the
+    # moment anyone referenced them.
   end
 {% end %}
 
@@ -116,7 +117,6 @@ module Native::Android::JNI
   @@env : Void* = Pointer(Void).null
   @@activity : Void* = Pointer(Void).null
   @@activity_class : Void* = Pointer(Void).null
-  @@vm : Void* = Pointer(Void).null
 
   def self.set_env(env : Void*) : Nil
     @@env = env
@@ -130,20 +130,12 @@ module Native::Android::JNI
     @@activity_class = activity_class
   end
 
-  def self.set_vm(vm : Void*) : Nil
-    @@vm = vm
-  end
-
   def self.activity : Void*
     @@activity
   end
 
   def self.activity_class : Void*
     @@activity_class
-  end
-
-  def self.vm : Void*
-    @@vm
   end
 
   {% if flag?(:native_android) %}
@@ -155,17 +147,6 @@ module Native::Android::JNI
     private def self.ep : LibJNI::JNINativeInterface*?
       return nil if @@env.null?
       @@env.as(LibJNI::JNINativeInterface**).value
-    end
-
-    def self.attach_current_thread : Bool
-      return false if @@vm.null?
-      result = LibJNI.AttachCurrentThread(@@vm.as(LibJNI::JavaVM*), pointerof(@@env), nil)
-      result == 0
-    end
-
-    def self.detach_current_thread : Nil
-      return if @@vm.null?
-      LibJNI.DetachCurrentThread(@@vm.as(LibJNI::JavaVM*))
     end
 
     def self.find_class(name : String) : Void*
@@ -520,12 +501,6 @@ module Native::Android::JNI
     def self.env : Nil
       nil
     end
-
-    def self.attach_current_thread : Bool
-      false
-    end
-
-    def self.detach_current_thread : Nil; end
 
     def self.find_class(name : String) : Void*
       Pointer(Void).null

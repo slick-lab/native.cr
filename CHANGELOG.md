@@ -80,6 +80,14 @@ External review fixes — platform integration hardening.
 - `@[Preserve]` type matching now uses `ivar.type.union_types` instead
   of matching stringified type-name spellings.
 - Release CHECKSUMS documented as integrity-only (same-origin release).
+- Hot reload: one restart per change batch (saving several files in one
+  tick used to queue a full stop+build+run per file), and the desktop
+  preview process now inherits the full parent environment (PATH/HOME
+  were stripped, breaking apps that spawn tools or read config).
+- Android stability: removed the dead `AttachCurrentThread`/`GetEnv`
+  extern declarations (JNI functions are vtable calls, not exported
+  symbols — referencing them would break the app link) and the unused
+  `JNI.vm` plumbing that was never wired up.
 
 ### Misc
 - README version badge matches shard.yml again (0.1.7 → 0.1.10).
