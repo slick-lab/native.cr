@@ -51,7 +51,9 @@ module Native::Core
           end
         end
 
-        changed_files.each { |f| @callback.call(f) } if changed_files.any?
+        # One restart per batch: saving several files in the same tick
+        # used to queue a full stop+build+run per file.
+        @callback.call(changed_files.first) if changed_files.any?
         changed_files.any?
       end
 
@@ -234,7 +236,10 @@ module Native::Core
         # Pass the state file path so the app can save/restore state across
         # reloads. SIGTERM (sent by stop()) triggers save_state in App.
         state_file = File.expand_path(@config.state_file)
-        env = {"NATIVE_CR_STATE_FILE" => state_file}
+        # Child env = parent env + the state file. Passing only the state
+        # file used to strip PATH/HOME and everything else the preview
+        # app might rely on.
+        env = ENV.to_h.merge({"NATIVE_CR_STATE_FILE" => state_file})
 
         proc = ::Process.new(binary, env: env, shell: false)
         @current_process = proc
